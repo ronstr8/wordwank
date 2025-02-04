@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: myrepo/tilemasterd
+  repository: ghcr.io/ronstr8/wordwank-tilemasterd
   tag: latest
   pullPolicy: IfNotPresent
 
