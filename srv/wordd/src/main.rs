@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{Utc, SecondsFormat};
 use clap::{App as ClapApp, Arg};
 
-// Function to load words into a HashSet
+// Function to load words from a file into a HashSet
 fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
     let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
@@ -15,10 +15,18 @@ fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
 
     for line in reader.lines() {
         if let Ok(word) = line {
-            words.insert(word.trim().to_string());
+            words.insert(word.trim().to_uppercase());
         }
     }
     Ok(words)
+}
+
+// Function to load the valid word list and remove censored words
+fn load_filtered_words(valid_path: &str, censored_path: &str) -> HashSet<String> {
+    let valid_words = load_words(valid_path).expect("Failed to load valid word list. Exiting.");
+    let censored_words = load_words(censored_path).unwrap_or_default();
+
+    valid_words.into_iter().filter(|word| !censored_words.contains(word)).collect()
 }
 
 // Function to query dictd server for a word definition
@@ -63,7 +71,7 @@ async fn check_word(
     cache: web::Data<Mutex<HashMap<String, String>>>,
     word: web::Path<String>,
 ) -> impl Responder {
-    let word = word.into_inner();
+    let word = word.into_inner().to_uppercase();
     let is_valid = data.contains(&word);
 
     // Query dictd for additional information
@@ -108,9 +116,10 @@ async fn main() -> std::io::Result<()> {
 
     let dictd_host = matches.value_of("dictd-host").map(String::from);
 
-    // Load the word list from the file in the share directory
-    let word_list_path = "./share/word.list";
-    let words = load_words(word_list_path).expect("Failed to load word list");
+    // Load valid and censored word lists
+    let valid_words_path = "./share/valid-words.txt";
+    let censored_words_path = "./share/censored-words.txt";
+    let words = load_filtered_words(valid_words_path, censored_words_path);
 
     let shared_words = Arc::new(words);
     let cache = web::Data::new(Mutex::new(HashMap::new()));

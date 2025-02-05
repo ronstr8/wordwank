@@ -35,4 +35,4 @@ COPY --from=builder /app/share/word.list ./share/word.list
 EXPOSE 8080
 
 # Command to run the application
-CMD ["./wordd", "./share/word.list"]
+CMD ["./wordd" ]
