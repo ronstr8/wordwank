@@ -1,0 +1,15 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# Editor & OS-specific files
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Compiled binaries
+wordd

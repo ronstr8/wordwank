@@ -16,6 +16,42 @@ use log::{error, info};
 
 use env_logger;
 
+use std::fs::OpenOptions;
+
+
+
+
+
+// Function to initialize logging
+
+fn init_logging(log_file: Option<&String>) {
+
+    if let Some(file) = log_file {
+
+        let log_output = OpenOptions::new()
+
+            .create(true)
+
+            .append(true)
+
+            .open(file)
+
+            .expect("Failed to open log file");
+
+        env_logger::Builder::new()
+
+            .target(env_logger::Target::Pipe(Box::new(log_output)))
+
+            .init();
+
+    } else {
+
+        env_logger::init();
+
+    }
+
+}
+
 
 
 // Function to load words from a file into a HashSet
@@ -162,10 +198,6 @@ async fn check_word(
 
 async fn main() -> std::io::Result<()> {
 
-    env_logger::init();
-
-    
-
     let matches = Command::new("wordd")
 
         .version("1.1")
@@ -194,9 +226,21 @@ async fn main() -> std::io::Result<()> {
 
                 .num_args(1)
 
-                .default_value("127.0.0.1:8080")
+                .default_value("127.0.0.1:2345")
 
                 .help("Specify the listen address (e.g., 0.0.0.0:2345)"),
+
+        )
+
+        .arg(
+
+            Arg::new("log-file")
+
+                .long("log-file")
+
+                .num_args(1)
+
+                .help("Specify a log file path (if omitted, logs to stderr)"),
 
         )
 
@@ -206,7 +250,13 @@ async fn main() -> std::io::Result<()> {
 
     let dictd_host = matches.get_one::<String>("dictd-host").cloned();
 
-    let listen_host = matches.get_one::<String>("listen-host").unwrap().clone();
+    let listen_host = matches.get_one::<String>("listen-host").expect("listen-host argument must always have a default value").clone();
+
+    let log_file = matches.get_one::<String>("log-file");
+
+    
+
+    init_logging(log_file);
 
     
 
