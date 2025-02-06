@@ -1,5 +1,4 @@
 
 global:
-	namespace: wordwank
-registry: ghcr.io/ronstr8
-
+    namespace: wordwank
+    registry: ghcr.io/ronstr8

@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/ronstr8/wordwank-wordd
+  repository: ghcr.io/ronstr8/wordd
   tag: latest
   pullPolicy: IfNotPresent
 
