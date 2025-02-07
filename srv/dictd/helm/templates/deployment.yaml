@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wordd
+  name: dictd
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: wordd
+    app: dictd
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: wordd
+      app: dictd
   template:
     metadata:
       labels:
-        app: wordd
+        app: dictd
     spec:
       containers:
-        - name: wordd
-          image: "{{ .Values.global.registry }}/wordd:{{ .Values.global.imageTag }}"
+        - name: dictd
+          image: "{{ .Values.global.registry }}/dictd:{{ .Values.global.imageTag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
-            - containerPort: 2345
+            - containerPort: 2628

@@ -15,13 +15,15 @@ EXPOSE 2628
 
 # Configure dictd to use the dictionaries
 RUN mkdir -p /etc/dictd && \
-    echo "database \
-        /usr/share/dictd/wn \"WordNet\"\n\
-        /usr/share/dictd/devil \"Devil's Dictionary\"\n\
-        /usr/share/dictd/vera \"V.E.R.A.\"\n\
-        /usr/share/dictd/gcide \"GNU Collaborative International Dictionary of English\"\n\
-        /usr/share/dictd/jargon \"Jargon File\"\n\
-        /usr/share/dictd/foldoc \"Free On-line Dictionary of Computing\"\n" > /etc/dictd/dictd.conf
+    printf "database /usr/share/dictd/wn \"WordNet\"\n\
+	database /usr/share/dictd/devil \"Devil's Dictionary\"\n\
+	database /usr/share/dictd/vera \"V.E.R.A.\"\n\
+	database /usr/share/dictd/gcide \"GNU Collaborative International Dictionary of English\"\n\
+	database /usr/share/dictd/jargon \"Jargon File\"\n\
+	database /usr/share/dictd/foldoc \"Free On-line Dictionary of Computing\"\n" > /etc/dictd/dictd.conf
+
+# Copy the correct dictd.conf
+COPY config/dictd.conf /etc/dictd/dictd.conf
 
 # Start dictd as the default command
-CMD ["dictd", "-d"]
+CMD ["dictd" ]
