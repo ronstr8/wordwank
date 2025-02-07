@@ -13,17 +13,17 @@ EXPOSE 2628
 # For example:
 # ADD your-dictionary-files /usr/share/dictd/
 
-# Configure dictd to use the dictionaries
-RUN mkdir -p /etc/dictd && \
-    printf "database /usr/share/dictd/wn \"WordNet\"\n\
-	database /usr/share/dictd/devil \"Devil's Dictionary\"\n\
-	database /usr/share/dictd/vera \"V.E.R.A.\"\n\
-	database /usr/share/dictd/gcide \"GNU Collaborative International Dictionary of English\"\n\
-	database /usr/share/dictd/jargon \"Jargon File\"\n\
-	database /usr/share/dictd/foldoc \"Free On-line Dictionary of Computing\"\n" > /etc/dictd/dictd.conf
+# Configure dictd to use the dictionaries (this seems done by the packages now)
+#RUN mkdir -p /etc/dictd && \
+#    printf "database /usr/share/dictd/wn \"WordNet\"\n\
+#	database /usr/share/dictd/devil \"Devil's Dictionary\"\n\
+#	database /usr/share/dictd/vera \"V.E.R.A.\"\n\
+#	database /usr/share/dictd/gcide \"GNU Collaborative International Dictionary of English\"\n\
+#	database /usr/share/dictd/jargon \"Jargon File\"\n\
+#	database /usr/share/dictd/foldoc \"Free On-line Dictionary of Computing\"\n" > /etc/dictd/dictd.conf
 
 # Copy the correct dictd.conf
-COPY config/dictd.conf /etc/dictd/dictd.conf
+#COPY config/dictd.conf /etc/dictd/dictd.conf
 
 # Start dictd as the default command
-CMD ["dictd" ]
+CMD [ "sh", "-c", "dictd && sleep inf" ]
