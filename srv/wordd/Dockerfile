@@ -4,9 +4,9 @@ FROM rust:latest AS builder
 WORKDIR /usr/src/wordd
 
 # Copy dependency files first for efficient caching
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo fetch
+#COPY Cargo.toml Cargo.lock ./
+#RUN mkdir src && echo "fn main() {}" > src/main.rs
+#RUN cargo fetch
 
 # Copy actual source code separately to avoid unnecessary rebuilds
 COPY . .
@@ -29,4 +29,4 @@ COPY --from=builder /usr/src/wordd/share /app/share
 EXPOSE 8080
 
 # Default command
-CMD ["wordd"]
+CMD ["wordd", "--dictd-host=dictd:2628" ]

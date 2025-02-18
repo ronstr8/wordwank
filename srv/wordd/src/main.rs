@@ -116,13 +116,13 @@ async fn main() -> std::io::Result<()> {
             Arg::new("dictd-host")
                 .long("dictd-host")
                 .num_args(1)
-                .help("Specify the dictd host (e.g., localhost:2628)"),
+                .help("Specify the dictd host (e.g., dictd:2628)"),
         )
         .arg(
             Arg::new("listen-host")
                 .long("listen-host")
                 .num_args(1)
-                .default_value("127.0.0.1:2345")
+                .default_value("0.0.0.0:2345")
                 .help("Specify the listen address (e.g., 0.0.0.0:2345)"),
         )
         .arg(
