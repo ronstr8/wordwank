@@ -1,0 +1,12 @@
+{
+    "name": "Tilemasters",
+    "version": "0.1.0",
+    "auth": "github:ronstr8",
+    "description": "A multiplayer word game engine",
+    "depends": [],
+    "provides": {
+        "Tilemasters::Game": "lib/Tilemasters/Game.rakumod",
+        "Tilemasters::Scorer": "lib/Tilemasters/Scorer.rakumod"
+    },
+    "source-url": "https://github.com/ronstr8/tilemasters"
+}

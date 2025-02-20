@@ -13,7 +13,7 @@ class Scorer {
     }
     
     method calculate-word-value(Str $word) {
-        [+] $word.comb.map(* calculate-letter-value(*));
+        [+] $word.comb.map({ self.calculate-letter-value($_) });
     }
 
     method calculate-final-scores(@plays) {
