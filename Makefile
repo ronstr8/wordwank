@@ -1,29 +1,58 @@
-NAMESPACE ?= wordwank
-GLOBAL_VALUES ?= ./global-values.yaml
-REGISTRY ?= ghcr.io/ronstr8
+# Wordwank Polyglot Stack Makefile
 
-deploy-wordd:
-	helm upgrade --install wordd srv/wordd/helm --namespace $(NAMESPACE) -f $(GLOBAL_VALUES) --create-namespace
+REGISTRY ?= docker.io/wordwank
+TAG ?= latest
 
-deploy-dictd:
-	helm upgrade --install dictd srv/dictd/helm --namespace $(NAMESPACE) -f $(GLOBAL_VALUES)
+SERVICES = frontend gatewayd tilemasters playerd wordd dictd
 
-deploy-all: deploy-wordd deploy-dictd
+.PHONY: all build clean deploy undeploy help $(SERVICES)
 
-# Build and push dictd
-build-dictd:
-	docker build -t $(REGISTRY)/dictd:latest srv/dictd
+all: build
 
-push-dictd: build-dictd
-	docker push $(REGISTRY)/dictd:latest
+help:
+	@echo "Wordwank Build System"
+	@echo "Usage:"
+	@echo "  make build         - Build all microservice Docker images"
+	@echo "  make deploy        - Install/Upgrade using Helm umbrella chart"
+	@echo "  make undeploy      - Uninstall Helm release"
+	@echo "  make clean         - Remove local build artifacts (dist, target, etc.)"
+	@echo "  make <service>     - Build a specific service (e.g., make frontend)"
 
-build-push-dictd: build-dictd push-dictd
+# Docker Build Targets
+build: $(SERVICES)
 
-# Build and push wordd
-build-wordd:
-	docker build -t $(REGISTRY)/wordd:latest srv/wordd
+frontend:
+	docker build -t $(REGISTRY)/frontend:$(TAG) ./srv/frontend
 
-push-wordd: build-wordd
-	docker push $(REGISTRY)/wordd:latest
+gatewayd:
+	docker build -t $(REGISTRY)/gatewayd:$(TAG) ./srv/gatewayd
 
-build-push-wordd: build-wordd push-wordd
+tilemasters:
+	docker build -t $(REGISTRY)/tilemasters:$(TAG) ./srv/tilemasters
+
+playerd:
+	docker build -t $(REGISTRY)/playerd:$(TAG) ./srv/playerd
+
+wordd:
+	docker build -t $(REGISTRY)/wordd:$(TAG) ./srv/wordd
+
+dictd:
+	docker build -t $(REGISTRY)/dictd:$(TAG) ./srv/dictd
+
+# Helm Commands
+deploy:
+	helm dependency update ./charts/wordwank
+	helm upgrade --install wordwank ./charts/wordwank --values ./charts/wordwank/values.yaml
+
+undeploy:
+	helm uninstall wordwank
+
+# Cleanup
+clean:
+	@echo "Cleaning up local artifacts..."
+	rm -rf srv/frontend/dist
+	rm -rf srv/frontend/node_modules
+	rm -rf srv/wordd/target
+	rm -rf srv/playerd/target
+	find . -name ".precomp" -type d -exec rm -rf {} +
+	rm -f srv/gatewayd/gatewayd

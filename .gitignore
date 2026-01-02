@@ -1,0 +1,52 @@
+# OS Specifics
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+
+# Node / Frontend
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Rust / wordd
+target/
+**/*.rs.bk
+
+# Raku / tilemasters
+.precomp/
+**/*.rakutest.precomp
+
+# Go / gatewayd
+gatewayd/gatewayd
+**/go.sum.bak
+
+# Java / playerd
+**/target/
+!.mvn/wrapper/maven-wrapper.jar
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+.mvn/
+
+# Helm
+charts/wordwank/charts/
+charts/wordwank/Chart.lock
+tmp-charts/
+
+# IDEs
+.vscode/
+.idea/
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace

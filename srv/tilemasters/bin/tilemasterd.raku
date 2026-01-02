@@ -1,5 +1,6 @@
 use Cro::HTTP;
 use Tilemasters::Game;
+use Tilemasters::Scorer;
 use JSON::Fast;
 
 my %games;
@@ -19,6 +20,12 @@ sub end-game($uuid) {
 }
 
 my $app = route {
+    post -> "game" {
+        my $uuid = ('a'..'z').roll(10).join;
+        my @letters = Tilemasters::Scorer.get-random-rack();
+        %games{$uuid} = Game.new(:$uuid, rack => @letters);
+        return { uuid => $uuid, rack => @letters }.to-json;
+    }
     get -> "game" / $<uuid> / "play" / $<word> {
         handle-play($<uuid>, $<word>, request.headers<Authorization>);
     }

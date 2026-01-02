@@ -23,7 +23,9 @@ class Game {
         return { error => "Invalid word" }.to-json unless Tilemasters::Validator.validate-word($word);
 
         my $score = Tilemasters::Scorer.calculate-score($word);
-        @.plays.push({ player => $player, word => $word, score => $score });
+        # Remove any previous play by this player to allow "changing" the word
+        @!plays = @!plays.grep({ $_<player> ne $player });
+        @.plays.push({ player => $player, word => $word, score => $score, time => now.to-posix[0] });
 
         return { success => True, score => $score }.to-json;
     }

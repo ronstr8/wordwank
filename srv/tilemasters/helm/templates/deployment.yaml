@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-tilemasters
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tilemasters
+  template:
+    metadata:
+      labels:
+        app: tilemasters
+    spec:
+      containers:
+        - name: tilemasters
+          image: "{{ .Values.global.registry }}/tilemasters:latest"
+          ports:
+            - containerPort: 3883
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tilemasters
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 3883
+  selector:
+    app: tilemasters

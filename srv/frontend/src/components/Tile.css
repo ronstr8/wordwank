@@ -1,0 +1,59 @@
+.tile-wrapper {
+    perspective: 1000px;
+    width: 80px;
+    height: 100px;
+}
+
+.tile-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.tile-front,
+.tile-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tile-front {
+    background: #d2b48c;
+    /* Tan/Wooden color */
+    background-image: linear-gradient(45deg, #d2b48c 25%, #c19a6b 25%, #c19a6b 50%, #d2b48c 50%, #d2b48c 75%, #c19a6b 75%, #c19a6b 100%);
+    background-size: 20px 20px;
+    border: 4px solid #8b4513;
+    color: #3d1f05;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotateY(0deg);
+}
+
+.tile-back {
+    background: #8b4513;
+    border: 4px solid #5d2e0a;
+    transform: rotateY(180deg);
+}
+
+.tile-letter {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 3rem;
+    margin-top: -10px;
+}
+
+.tile-value {
+    position: absolute;
+    bottom: 5px;
+    right: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    font-family: 'Fredoka', sans-serif;
+}

@@ -1,0 +1,6 @@
+service:
+  type: ClusterIP
+  port: 8081
+
+global:
+  registry: docker.io/wordwank

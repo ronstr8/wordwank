@@ -1,0 +1,6 @@
+.tile-row {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    padding: 10px;
+}

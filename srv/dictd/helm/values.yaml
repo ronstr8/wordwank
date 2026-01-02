@@ -6,3 +6,4 @@ service:
 
 global:
   namespace: wordwank
+  registry: docker.io/wordwank

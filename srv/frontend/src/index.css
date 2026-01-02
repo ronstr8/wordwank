@@ -1,0 +1,52 @@
+:root {
+  font-family: 'Outfit', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #1a1a1a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #2c3e50 0%, #000000 100%);
+}
+
+#root {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  font-family: 'Luckiest Guy', cursive;
+  font-size: 4rem;
+  line-height: 1.1;
+  margin-bottom: 2rem;
+  color: #f1c40f;
+  text-shadow: 4px 4px 0px #e67e22, 8px 8px 0px #d35400;
+  letter-spacing: 2px;
+}
+
+.splat {
+  display: inline-block;
+  transform: rotate(-10deg);
+  color: #e74c3c;
+  filter: drop-shadow(2px 2px 0px #c0392b);
+}
+
+* {
+  box-sizing: border-box;
+}

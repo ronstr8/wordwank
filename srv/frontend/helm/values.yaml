@@ -1,0 +1,7 @@
+service:
+  type: LoadBalancer
+  port: 80
+
+global:
+  registry: docker.io/wordwank
+  frontendExternalPort: 8080

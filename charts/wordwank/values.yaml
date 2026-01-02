@@ -1,0 +1,40 @@
+# Global settings shared across all microservices
+global:
+  domain: wordwank.local
+  environment: development
+  registry: docker.io/wordwank
+  # The external port on which the frontend is exposed
+  frontendExternalPort: 8080
+
+# Subchart overrides
+frontend:
+  service:
+    type: LoadBalancer
+    port: 80
+
+gatewayd:
+  service:
+    type: ClusterIP
+    port: 8081
+
+tilemasters:
+  service:
+    type: ClusterIP
+    port: 3883
+
+playerd:
+  service:
+    type: ClusterIP
+    port: 8080
+  redis:
+    host: redis-master
+
+wordd:
+  service:
+    type: ClusterIP
+    port: 2345
+
+dictd:
+  service:
+    type: ClusterIP
+    port: 2628
