@@ -3,3 +3,5 @@ global:
   registry: ghcr.io/ronstr8
   imageTag: latest
   imagePullPolicy: Always
+  frontendExternalPort: 6969
+
