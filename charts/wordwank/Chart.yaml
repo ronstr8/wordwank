@@ -12,7 +12,7 @@ dependencies:
   - name: gatewayd
     version: 0.1.0
     repository: "file://../../srv/gatewayd/helm"
-  - name: tilemasters
+  - name: tilemasterd
     version: 0.1.0
     repository: "file://../../srv/tilemasters/helm"
   - name: playerd

@@ -29,6 +29,10 @@ public class Player implements Serializable {
     public void setUsername(String username) { this.username = username; }
     public String getCurrentGameId() { return currentGameId; }
     public void setCurrentGameId(String currentGameId) { this.currentGameId = currentGameId; }
+    public long getTotalScore() { return totalScore; }
+    public void setTotalScore(long totalScore) { this.totalScore = totalScore; }
+    public long getGameCount() { return gameCount; }
+    public void setGameCount(long gameCount) { this.gameCount = gameCount; }
     public long getLastSeen() { return lastSeen; }
     public void setLastSeen(long lastSeen) { this.lastSeen = lastSeen; }
 }

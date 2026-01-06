@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-playerd
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,8 @@ spec:
     spec:
       containers:
         - name: playerd
-          image: "{{ .Values.global.registry }}/playerd:latest"
+          image: "{{ .Values.global.registry }}/playerd:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 8080
           env:

@@ -1,17 +1,12 @@
-# Use the official Raku image as the base
-FROM rakudo-star:latest
-
-# Set the working directory inside the container
-WORKDIR /tilemasters
-
-# Copy the project files into the container
+FROM golang:1.24-alpine AS build
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o tilemasters ./cmd/tilemasters
 
-# Install dependencies from META6.json (if any exist)
-RUN test -f META6.json && zef install --depsonly . || echo "No dependencies to install"
-
-# Run tests from the t/ directory
-RUN prove6 -ve 'raku' t/
-
-# Set the default command
-CMD ["raku", "-Ilib", "bin/tilemasters.raku"]
+FROM alpine:latest
+WORKDIR /app
+COPY --from=build /app/tilemasters .
+EXPOSE 3883
+CMD ["./tilemasters"]

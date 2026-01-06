@@ -21,7 +21,9 @@ function App() {
 
     const fetchLeaderboard = async () => {
         try {
-            const resp = await fetch('http://localhost:8080/players/leaderboard');
+            const isLocal = window.location.hostname === 'localhost';
+            const apiPath = isLocal ? 'http://localhost:8080/players/leaderboard' : '/players/leaderboard';
+            const resp = await fetch(apiPath);
             const data = await resp.json();
             setLeaderboard(Array.isArray(data) ? data : []);
         } catch (err) {
@@ -50,7 +52,10 @@ function App() {
         setPlayerId(id);
         fetchLeaderboard();
 
-        const socket = new WebSocket(`ws://localhost:8081/ws?id=${id}`);
+        const isLocal = window.location.hostname === 'localhost';
+        const wsHost = isLocal ? 'localhost:8081' : window.location.host;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${id}`);
 
         socket.onopen = () => {
             console.log('Connected to gateway');

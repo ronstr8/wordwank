@@ -1,10 +1,12 @@
 # Global settings shared across all microservices
 global:
   domain: wordwank.local
-  environment: development
+  # The single port for all traffic (Frontend, API, WS)
+  externalPort: 8888
   registry: docker.io/wordwank
-  # The external port on which the frontend is exposed
-  frontendExternalPort: 8080
+  namespace: wordwank
+  imageTag: latest
+  imagePullPolicy: Always
 
 # Subchart overrides
 frontend:
@@ -17,7 +19,7 @@ gatewayd:
     type: ClusterIP
     port: 8081
 
-tilemasters:
+tilemasterd:
   service:
     type: ClusterIP
     port: 3883

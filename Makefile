@@ -2,6 +2,7 @@
 
 REGISTRY ?= docker.io/wordwank
 TAG ?= latest
+DOCKER_BUILD_FLAGS ?= --progress=plain
 
 SERVICES = frontend gatewayd tilemasters playerd wordd dictd
 
@@ -22,27 +23,27 @@ help:
 build: $(SERVICES)
 
 frontend:
-	docker build -t $(REGISTRY)/frontend:$(TAG) ./srv/frontend
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/frontend:$(TAG) ./srv/frontend
 
 gatewayd:
-	docker build -t $(REGISTRY)/gatewayd:$(TAG) ./srv/gatewayd
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/gatewayd:$(TAG) ./srv/gatewayd
 
 tilemasters:
-	docker build -t $(REGISTRY)/tilemasters:$(TAG) ./srv/tilemasters
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/tilemasters:$(TAG) ./srv/tilemasters
 
 playerd:
-	docker build -t $(REGISTRY)/playerd:$(TAG) ./srv/playerd
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/playerd:$(TAG) ./srv/playerd
 
 wordd:
-	docker build -t $(REGISTRY)/wordd:$(TAG) ./srv/wordd
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordd:$(TAG) ./srv/wordd
 
 dictd:
-	docker build -t $(REGISTRY)/dictd:$(TAG) ./srv/dictd
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/dictd:$(TAG) ./srv/dictd
 
 # Helm Commands
 deploy:
 	helm dependency update ./charts/wordwank
-	helm upgrade --install wordwank ./charts/wordwank --values ./charts/wordwank/values.yaml
+	helm upgrade --install wordwank ./charts/wordwank --namespace wordwank --create-namespace --values ./charts/wordwank/values.yaml
 
 undeploy:
 	helm uninstall wordwank

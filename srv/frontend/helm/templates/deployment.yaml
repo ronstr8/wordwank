@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-frontend
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: "{{ .Values.global.registry }}/frontend:latest"
+          image: "{{ .Values.global.registry }}/frontend:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 80
 ---
@@ -23,12 +25,11 @@ kind: Service
 metadata:
   name: frontend
 spec:
-  type: {{ .Values.service.type }}
+  type: LoadBalancer
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ .Values.global.externalPort }}
       targetPort: 80
-      {{- if eq .Values.service.type "LoadBalancer" }}
-      nodePort: {{ .Values.global.frontendExternalPort }}
-      {{- end }}
+      protocol: TCP
+      name: http
   selector:
     app: frontend

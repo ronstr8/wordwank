@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-gatewayd
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,8 @@ spec:
     spec:
       containers:
         - name: gatewayd
-          image: "{{ .Values.global.registry }}/gatewayd:latest"
+          image: "{{ .Values.global.registry }}/gatewayd:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 8081
 ---
