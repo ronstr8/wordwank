@@ -4,9 +4,6 @@ service:
   type: ClusterIP
   port: 2345
 
-ingress:
-  host: wordd.arkham.fazigu.org
-
 global:
   namespace: wordwank
   registry: docker.io/wordwank

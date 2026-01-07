@@ -25,9 +25,9 @@ kind: Service
 metadata:
   name: frontend
 spec:
-  type: LoadBalancer
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
-    - port: {{ .Values.global.externalPort }}
+    - port: {{ .Values.service.port | default 80 }}
       targetPort: 80
       protocol: TCP
       name: http
