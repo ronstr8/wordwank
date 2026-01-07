@@ -50,7 +50,16 @@ metallb-config:
 	echo "Assigning MetalLB range: $$RANGE_START-$$RANGE_END"; \
 	sed "s/RANGE_START/$$RANGE_START/; s/RANGE_END/$$RANGE_END/" charts/wordwank/resources/metallb-config.yaml | kubectl apply -f -
 
-# Step 4: Start a background tunnel to the Minikube registry
+# Step 4: Expose the Ingress to the 192.168.1.0 network
+# This requires 'socat' installed on Arkham and sudo privileges
+expose:
+	@echo "Bridging Arkham:80 to Minikube Ingress..."
+	@INGRESS_IP=$$(kubectl get ingress -n $(NAMESPACE) wordwank-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+	if [ -z "$$INGRESS_IP" ]; then echo "Error: Ingress doesn't have an IP yet. Did you run make deploy and make metallb-config?"; exit 1; fi; \
+	echo "Ingress IP is $$INGRESS_IP. Starting proxy..."; \
+	sudo socat TCP4-LISTEN:80,fork,reuseaddr TCP4:$$INGRESS_IP:80
+
+# Step 5: Start a background tunnel to the Minikube registry
 registry-tunnel:
 	@echo "Ensuring registry tunnel is running..."
 	@kubectl port-forward --namespace kube-system service/registry 5000:80 > /dev/null 2>&1 &
@@ -111,4 +120,4 @@ clean:
 	rm -rf srv/playerd/target
 	rm -f srv/gatewayd/gatewayd
 	find . -name "*.exe" -delete
-	find . -na
+	find . -name "tilemasters" -type f -not -path "./srv/tilemasters/cmd/tilemasters/*" -delete
