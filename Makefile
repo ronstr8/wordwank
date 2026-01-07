@@ -2,7 +2,8 @@
 
 # Localhost is always allowed as an insecure registry by Docker
 REGISTRY = localhost:5000
-TAG ?= latest
+# Single point of truth for versions is charts/wordwank/values.yaml
+TAG ?= $(shell grep -m 1 "imageTag:" charts/wordwank/values.yaml | sed 's/.*imageTag:[[:space:]]*//' | tr -d ' "')
 DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = wordwank
 DOMAIN = arkham.fazigu.org
@@ -69,34 +70,40 @@ registry-tunnel:
 build: $(SERVICES)
 
 frontend: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/frontend:$(TAG) ./srv/frontend
-	docker push $(REGISTRY)/frontend:$(TAG)
-	kubectl rollout restart deployment/frontend -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-frontend:$(TAG) ./srv/frontend
+	docker push $(REGISTRY)/wordwank-frontend:$(TAG)
+	kubectl rollout restart deployment/wordwank-frontend -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-frontend -n $(NAMESPACE) || true
 
 gatewayd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/gatewayd:$(TAG) ./srv/gatewayd
-	docker push $(REGISTRY)/gatewayd:$(TAG)
-	kubectl rollout restart deployment/gatewayd -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-gatewayd:$(TAG) ./srv/gatewayd
+	docker push $(REGISTRY)/wordwank-gatewayd:$(TAG)
+	kubectl rollout restart deployment/wordwank-gatewayd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-gatewayd -n $(NAMESPACE) || true
 
 tilemasters: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/tilemasters:$(TAG) ./srv/tilemasters
-	docker push $(REGISTRY)/tilemasters:$(TAG)
-	kubectl rollout restart deployment/tilemasters -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-tilemasters:$(TAG) ./srv/tilemasters
+	docker push $(REGISTRY)/wordwank-tilemasters:$(TAG)
+	kubectl rollout restart deployment/wordwank-tilemasters -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-tilemasters -n $(NAMESPACE) || true
 
 playerd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/playerd:$(TAG) ./srv/playerd
-	docker push $(REGISTRY)/playerd:$(TAG)
-	kubectl rollout restart deployment/playerd -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-playerd:$(TAG) ./srv/playerd
+	docker push $(REGISTRY)/wordwank-playerd:$(TAG)
+	kubectl rollout restart deployment/wordwank-playerd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-playerd -n $(NAMESPACE) || true
 
 wordd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordd:$(TAG) ./srv/wordd
-	docker push $(REGISTRY)/wordd:$(TAG)
-	kubectl rollout restart deployment/wordd -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-wordd:$(TAG) ./srv/wordd
+	docker push $(REGISTRY)/wordwank-wordd:$(TAG)
+	kubectl rollout restart deployment/wordwank-wordd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-wordd -n $(NAMESPACE) || true
 
 dictd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/dictd:$(TAG) ./srv/dictd
-	docker push $(REGISTRY)/dictd:$(TAG)
-	kubectl rollout restart deployment/dictd -n $(NAMESPACE) || true
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-dictd:$(TAG) ./srv/dictd
+	docker push $(REGISTRY)/wordwank-dictd:$(TAG)
+	kubectl rollout restart deployment/wordwank-dictd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordwank-dictd -n $(NAMESPACE) || true
 
 # Helm Commands
 deploy: minikube-setup

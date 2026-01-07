@@ -24,6 +24,10 @@ func registerPlayerWithService(id string) {
 	log.Printf("Player %s registered: %s", id, string(body))
 }
 
+var httpClient = &http.Client{
+	Timeout: 5 * time.Second,
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // In production, refine this
@@ -301,16 +305,28 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			req, _ := http.NewRequest("GET", playURL, nil)
 			req.Header.Set("Authorization", clientID)
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := httpClient.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
 				var result map[string]interface{}
 				json.NewDecoder(resp.Body).Decode(&result)
 
 				if _, hasError := result["error"]; !hasError {
-					// Only broadcast if the word was valid (or at least accepted)
-					msg.Payload = result // Include score if returned
+					// Merge score into original payload to preserve the word
+					payload := msg.Payload.(map[string]interface{})
+					if score, ok := result["score"]; ok {
+						payload["score"] = score
+					}
+					msg.Payload = payload
 					g.broadcast <- msg
+				} else {
+					// Send error back to sender
+					errMsg, _ := json.Marshal(Message{
+						Type:      "error",
+						Payload:   result["error"],
+						Timestamp: time.Now().Unix(),
+					})
+					conn.WriteMessage(websocket.TextMessage, errMsg)
 				}
 			}
 		default:

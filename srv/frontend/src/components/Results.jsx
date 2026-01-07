@@ -1,9 +1,23 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import './Results.css'
 
 const Results = ({ data }) => {
-    const { results, summary } = data;
-    const winner = results[0];
+    const { results = [], summary = "" } = data || {};
+    const safeResults = Array.isArray(results) ? results : [];
+    const winner = safeResults.length > 0 ? safeResults[0] : null;
+
+    useEffect(() => {
+        const handleInput = () => {
+            window.location.reload();
+        };
+        window.addEventListener('keydown', handleInput);
+        window.addEventListener('mousedown', handleInput);
+        return () => {
+            window.removeEventListener('keydown', handleInput);
+            window.removeEventListener('mousedown', handleInput);
+        };
+    }, []);
 
     return (
         <motion.div
@@ -11,6 +25,11 @@ const Results = ({ data }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
         >
+            <div className="splatter-background">
+                <div className="splat-effect s1"></div>
+                <div className="splat-effect s2"></div>
+                <div className="splat-effect s3"></div>
+            </div>
             <div className="results-card">
                 <h2>GAME OVER!</h2>
                 <div className="summary-banner">{summary}</div>
@@ -22,7 +41,7 @@ const Results = ({ data }) => {
                 )}
 
                 <div className="results-list">
-                    {results.map((res, i) => (
+                    {safeResults.map((res, i) => (
                         <div key={i} className="player-result-group">
                             <div className={`result-row ${i === 0 ? 'winner' : ''}`}>
                                 <span className="rank">{i + 1}</span>

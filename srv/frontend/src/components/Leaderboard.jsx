@@ -1,7 +1,7 @@
 import './Panel.css'
 
 const Leaderboard = ({ players }) => {
-    const sortedPlayers = [...players].sort((a, b) => b.totalScore - a.totalScore);
+    const sortedPlayers = Array.isArray(players) ? [...players].sort((a, b) => b.totalScore - a.totalScore) : [];
 
     return (
         <div className="leaderboard-content">

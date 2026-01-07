@@ -56,7 +56,7 @@ func (s *Scorer) CalculateWordScore(word string) int {
 		if r >= 'a' && r <= 'z' {
 			continue
 		}
-		score += letterValues[r]
+		score += letterValues[rune(strings.ToUpper(string(r))[0])]
 	}
 	return score
 }

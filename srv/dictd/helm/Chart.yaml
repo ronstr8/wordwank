@@ -1,10 +1,8 @@
-
 apiVersion: v2
 
 name: dictd
 
 description: A Helm chart for deploying dictd
 
-version: 0.1.0
-
-appVersion: "latest"
+version: 0.10.0
+appVersion: "0.10.0"

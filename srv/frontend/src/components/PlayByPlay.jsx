@@ -1,9 +1,10 @@
 import './Panel.css'
 
 const PlayByPlay = ({ plays }) => {
+    const safePlays = Array.isArray(plays) ? plays : [];
     return (
         <div className="panel-content">
-            {plays.map((play, i) => (
+            {safePlays.map((play, i) => (
                 <div key={i} className="play-entry">
                     <span className="timestamp">[{play.timestamp}]</span>
                     <span className="play-message">
@@ -11,7 +12,7 @@ const PlayByPlay = ({ plays }) => {
                     </span>
                 </div>
             ))}
-            {plays.length === 0 && <div className="empty-msg">Waiting for plays...</div>}
+            {safePlays.length === 0 && <div className="empty-msg">Waiting for plays...</div>}
         </div>
     )
 }

@@ -1,7 +1,6 @@
 global:
   namespace: wordwank
   registry: ghcr.io/ronstr8
-  imageTag: latest
+  imageTag: 0.10.0
   imagePullPolicy: Always
   frontendExternalPort: 6969
-

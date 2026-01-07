@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dictd
+  name: {{ .Release.Name }}-dictd
   namespace: {{ .Values.global.namespace }}
   labels:
     app: dictd
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: dictd
-          image: "{{ .Values.global.registry }}/dictd:{{ .Values.global.imageTag }}"
+          image: "{{ .Values.global.registry }}/wordwank-dictd:{{ .Values.imageTag | default .Values.global.imageTag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 2628

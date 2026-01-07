@@ -5,8 +5,8 @@ global:
   externalPort: 80
   registry: localhost:5000
   namespace: wordwank
-  imageTag: latest
-  imagePullPolicy: IfNotPresent
+  imageTag: 0.12.2
+  imagePullPolicy: Always
 
 # Centralized Ingress configuration
 ingress:
@@ -14,7 +14,6 @@ ingress:
   host: arkham.fazigu.org
   annotations:
     kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 
 # Subchart overrides
@@ -38,7 +37,8 @@ playerd:
     type: ClusterIP
     port: 8080
   redis:
-    host: redis-master
+    host: wordwank-redis-master
+    port: 6379
 
 wordd:
   service:
@@ -49,3 +49,18 @@ dictd:
   service:
     type: ClusterIP
     port: 2628
+
+# Redis dependency configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  image:
+    registry: docker.io
+    repository: bitnami/redis
+    tag: latest
+  master:
+    service:
+      ports:
+        redis: 6379

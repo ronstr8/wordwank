@@ -23,7 +23,7 @@ var (
 func init() {
 	worddHost := os.Getenv("WORDD_HOST")
 	if worddHost == "" {
-		worddHost = "http://wordd"
+		worddHost = "http://wordd:2345"
 	}
 	validator = &game.RemoteValidator{WorddURL: worddHost}
 }
@@ -67,8 +67,8 @@ func handlePlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authHeader := r.Header.Get("Authorization")
-	player := "player-123"
-	if authHeader == "" {
+	player := authHeader
+	if player == "" {
 		player = "anonymous"
 	}
 

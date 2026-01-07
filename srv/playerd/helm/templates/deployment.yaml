@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: playerd
-          image: "{{ .Values.global.registry }}/playerd:{{ .Values.global.imageTag }}"
+          image: "{{ .Values.global.registry }}/wordwank-playerd:{{ .Values.imageTag | default .Values.global.imageTag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 8080

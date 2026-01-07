@@ -106,6 +106,19 @@ async fn check_word(
     }
 }
 
+#[get("/validate/{word}")]
+async fn validate_word(
+    data: web::Data<Arc<HashSet<String>>>,
+    word: web::Path<String>,
+) -> impl Responder {
+    let word = word.into_inner();
+    if data.contains(&word.to_uppercase()) {
+        HttpResponse::Ok().finish()
+    } else {
+        HttpResponse::NotFound().finish()
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let matches = Command::new("wordd")
@@ -150,6 +163,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(shared_words.clone()))
             .app_data(web::Data::new(dictd_host.clone()))
             .service(check_word)
+            .service(validate_word)
     })
     .bind(&listen_host)?
     .run()

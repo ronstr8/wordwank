@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wordd
+  name: {{ .Release.Name }}-wordd
   namespace: {{ .Values.global.namespace }}
   labels:
     app: wordd
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: wordd
-          image: "{{ .Values.global.registry }}/wordd:{{ .Values.global.imageTag }}"
+          image: "{{ .Values.global.registry }}/wordwank-wordd:{{ .Values.imageTag | default .Values.global.imageTag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 2345

@@ -2,4 +2,5 @@ apiVersion: v2
 name: tilemasterd
 description: A Raku-based microservice for Wordwank Tilemasters
 type: application
-version: 0.1.0
+version: 0.10.0
+appVersion: "0.10.0"

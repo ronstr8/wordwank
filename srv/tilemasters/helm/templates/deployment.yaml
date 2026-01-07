@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: tilemasters
-          image: "{{ .Values.global.registry }}/tilemasters:{{ .Values.global.imageTag }}"
+          image: "{{ .Values.global.registry }}/wordwank-tilemasters:{{ .Values.imageTag | default .Values.global.imageTag }}"
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 3883
