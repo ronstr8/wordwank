@@ -7,21 +7,37 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func registerPlayerWithService(id string) {
-	resp, err := http.PostForm("http://playerd:8080/players/"+id, url.Values{"username": {id}})
+var (
+	adjectives = []string{"Funny", "Serious", "Clumsy", "Swift", "Brave", "Quiet", "Loud", "Happy", "Sad", "Zen", "Mad", "Groovy", "Funkie", "Mighty", "Wobbly", "Salty", "Spicy", "Cool", "Hot", "Icy"}
+	nouns      = []string{"Wizard", "Ninja", "Pirate", "Cactus", "Panda", "Robot", "Alien", "Zombie", "Viking", "Ghost", "Penguin", "Badger", "Hamster", "Dragon", "Unicorn", "Gnome", "Troll", "Goblin", "Sprite", "Fairy"}
+)
+
+func generateProceduralName(id string) string {
+	var hash uint32 = 0
+	for i := 0; i < len(id); i++ {
+		hash = uint32(id[i]) + (hash << 6) + (hash << 16) - hash
+	}
+	adj := adjectives[int(hash)%len(adjectives)]
+	noun := nouns[int(hash/uint32(len(adjectives)))%len(nouns)]
+	return fmt.Sprintf("%s%s", adj, noun)
+}
+
+func registerPlayerWithService(id, name string) {
+	resp, err := http.PostForm("http://playerd:8080/players/"+id, url.Values{"username": {name}})
 	if err != nil {
 		log.Printf("Failed to register player %s: %v", id, err)
 		return
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	log.Printf("Player %s registered: %s", id, string(body))
+	log.Printf("Player %s (%s) registered: %s", id, name, string(body))
 }
 
 var httpClient = &http.Client{
@@ -47,93 +63,140 @@ type Message struct {
 }
 
 type GameState struct {
-	UUID     string        `json:"uuid"`
-	Rack     []string      `json:"rack"`
-	TimeLeft int           `json:"time_left"`
-	IsActive bool          `json:"is_active"`
-	Results  []interface{} `json:"results,omitempty"`
+	UUID        string        `json:"uuid"`
+	Rack        []string      `json:"rack"`
+	TimeLeft    int           `json:"time_left"`
+	IsActive    bool          `json:"is_active"`
+	LetterValue int           `json:"letter_value,omitempty"`
+	Results     []interface{} `json:"results,omitempty"`
 }
 
 type Gateway struct {
-	clients    map[string]*Client
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan Message
-	game       *GameState
-	mu         sync.Mutex
+	clients      map[string]*Client
+	gameClients  map[string][]string // GameUUID -> []ClientID
+	clientGame   map[string]string   // ClientID -> GameUUID
+	playerNames  map[string]string   // ClientID -> Nickname
+	register     chan *Client
+	unregister   chan *Client
+	broadcast    chan Message // Global broadcast (e.g., chat)
+	games        map[string]*GameState
+	mu           sync.Mutex
+	maxPlayers   int
+	gameDuration int
 }
 
 func NewGateway() *Gateway {
+	max := 10
+	if m := os.Getenv("MAX_PLAYERS"); m != "" {
+		fmt.Sscanf(m, "%d", &max)
+	}
+
+	duration := 30
+	if d := os.Getenv("GAME_DURATION"); d != "" {
+		fmt.Sscanf(d, "%d", &duration)
+	}
+
 	return &Gateway{
-		clients:    make(map[string]*Client),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		broadcast:  make(chan Message),
-		game:       &GameState{IsActive: false},
+		clients:      make(map[string]*Client),
+		gameClients:  make(map[string][]string),
+		clientGame:   make(map[string]string),
+		playerNames:  make(map[string]string),
+		register:     make(chan *Client),
+		unregister:   make(chan *Client),
+		broadcast:    make(chan Message),
+		games:        make(map[string]*GameState),
+		maxPlayers:   max,
+		gameDuration: duration,
 	}
 }
 
-func (g *Gateway) StartGame() {
+func (g *Gateway) StartGame() string {
 	// Call tilemasters to get a rack and UUID
 	resp, err := http.Post("http://tilemasters:3883/game", "application/json", nil)
 	if err != nil {
 		log.Printf("Failed to start game: %v", err)
-		return
+		return ""
 	}
 	defer resp.Body.Close()
 
 	var data struct {
-		UUID string   `json:"uuid"`
-		Rack []string `json:"rack"`
+		UUID        string   `json:"uuid"`
+		Rack        []string `json:"rack"`
+		LetterValue int      `json:"letter_value"`
 	}
 	json.NewDecoder(resp.Body).Decode(&data)
 
-	g.mu.Lock()
-	g.game = &GameState{
-		UUID:     data.UUID,
-		Rack:     data.Rack,
-		TimeLeft: 60,
-		IsActive: true,
+	game := &GameState{
+		UUID:        data.UUID,
+		Rack:        data.Rack,
+		TimeLeft:    g.gameDuration,
+		IsActive:    true,
+		LetterValue: data.LetterValue,
 	}
+
+	g.mu.Lock()
+	g.games[data.UUID] = game
 	g.mu.Unlock()
 
-	g.broadcast <- Message{
+	g.broadcastToGame(data.UUID, Message{
 		Type:      "game_start",
-		Payload:   g.game,
+		Payload:   game,
 		Timestamp: time.Now().Unix(),
-	}
+	})
 
 	// Start timer ticker
 	ticker := time.NewTicker(1 * time.Second)
 	go func() {
 		for range ticker.C {
 			g.mu.Lock()
-			if !g.game.IsActive {
+			gm, exists := g.games[data.UUID]
+			if !exists || !gm.IsActive {
 				ticker.Stop()
 				g.mu.Unlock()
 				return
 			}
-			g.game.TimeLeft--
-			timeLeft := g.game.TimeLeft
+			gm.TimeLeft--
+			timeLeft := gm.TimeLeft
 			g.mu.Unlock()
+
+			// Broadcast time update to all clients in this game
+			g.broadcastToGame(data.UUID, Message{
+				Type: "timer",
+				Payload: map[string]interface{}{
+					"time_left": timeLeft,
+				},
+				Timestamp: time.Now().Unix(),
+			})
 
 			if timeLeft <= 0 {
 				ticker.Stop()
-				g.EndGame()
+				g.EndGame(data.UUID)
 				return
 			}
 		}
 	}()
+	return data.UUID
 }
 
-func (g *Gateway) EndGame() {
+func (g *Gateway) broadcastToGame(gameUUID string, msg Message) {
+	msgBytes, _ := json.Marshal(msg)
 	g.mu.Lock()
-	if !g.game.IsActive {
+	defer g.mu.Unlock()
+	for _, clientID := range g.gameClients[gameUUID] {
+		if client, ok := g.clients[clientID]; ok {
+			client.Conn.WriteMessage(websocket.TextMessage, msgBytes)
+		}
+	}
+}
+
+func (g *Gateway) EndGame(gameUUID string) {
+	g.mu.Lock()
+	gm, exists := g.games[gameUUID]
+	if !exists || !gm.IsActive {
 		g.mu.Unlock()
 		return
 	}
-	g.game.IsActive = false
-	gameUUID := g.game.UUID
+	gm.IsActive = false
 	g.mu.Unlock()
 
 	// Fetch final scores from tilemasters
@@ -159,7 +222,6 @@ func (g *Gateway) EndGame() {
 			pID := res["player"].(string)
 			pScoreRaw := res["score"]
 
-			// Handle score as float64 from JSON decoding
 			var pScore int64
 			if f, ok := pScoreRaw.(float64); ok {
 				pScore = int64(f)
@@ -183,18 +245,35 @@ func (g *Gateway) EndGame() {
 		summaryText = fmt.Sprintf("%s wins the game with \"%s\" for a total of %v points.", winnerID, winningWord, winner["score"])
 	}
 
-	g.broadcast <- Message{
+	g.broadcastToGame(gameUUID, Message{
 		Type: "game_over",
 		Payload: map[string]interface{}{
 			"results": results,
 			"summary": summaryText,
 		},
 		Timestamp: time.Now().Unix(),
+	})
+
+	// Start a replacement game immediately if this was the last active one
+	g.mu.Lock()
+	activeCount := 0
+	for _, gm := range g.games {
+		if gm.IsActive {
+			activeCount++
+		}
+	}
+	if activeCount == 0 {
+		g.mu.Unlock()
+		g.StartGame()
+	} else {
+		g.mu.Unlock()
 	}
 
-	// Restart game after 10 seconds
-	time.AfterFunc(10*time.Second, func() {
-		g.StartGame()
+	// Cleanup game after 30 seconds to allow results viewing
+	time.AfterFunc(30*time.Second, func() {
+		g.mu.Lock()
+		delete(g.games, gameUUID)
+		g.mu.Unlock()
 	})
 }
 
@@ -211,6 +290,17 @@ func (g *Gateway) Run() {
 			g.mu.Lock()
 			if _, ok := g.clients[client.ID]; ok {
 				delete(g.clients, client.ID)
+				if gameUUID, ok := g.clientGame[client.ID]; ok {
+					clients := g.gameClients[gameUUID]
+					newClients := []string{}
+					for _, c := range clients {
+						if c != client.ID {
+							newClients = append(newClients, c)
+						}
+					}
+					g.gameClients[gameUUID] = newClients
+					delete(g.clientGame, client.ID)
+				}
 				client.Conn.Close()
 				fmt.Printf("Client unregistered: %s\n", client.ID)
 			}
@@ -236,6 +326,51 @@ func (g *Gateway) Run() {
 	}
 }
 
+func (g *Gateway) joinNextAvailableGame(clientID string) {
+	g.mu.Lock()
+	// Unregister from old game if any
+	if oldUUID, ok := g.clientGame[clientID]; ok {
+		clients := g.gameClients[oldUUID]
+		newClients := []string{}
+		for _, c := range clients {
+			if c != clientID {
+				newClients = append(newClients, c)
+			}
+		}
+		g.gameClients[oldUUID] = newClients
+	}
+
+	var joinUUID string
+	for uuid, gm := range g.games {
+		if gm.IsActive && len(g.gameClients[uuid]) < g.maxPlayers {
+			joinUUID = uuid
+			break
+		}
+	}
+	g.mu.Unlock()
+
+	if joinUUID == "" {
+		joinUUID = g.StartGame()
+	}
+
+	g.mu.Lock()
+	g.clientGame[clientID] = joinUUID
+	g.gameClients[joinUUID] = append(g.gameClients[joinUUID], clientID)
+	gm := g.games[joinUUID]
+	g.mu.Unlock()
+
+	if gm != nil {
+		stateBytes, _ := json.Marshal(Message{
+			Type:      "game_start",
+			Payload:   gm,
+			Timestamp: time.Now().Unix(),
+		})
+		if client, ok := g.clients[clientID]; ok {
+			client.Conn.WriteMessage(websocket.TextMessage, stateBytes)
+		}
+	}
+}
+
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -248,17 +383,49 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		clientID = fmt.Sprintf("anon-%d", time.Now().UnixNano())
 	}
 
-	go registerPlayerWithService(clientID)
+	nickname := generateProceduralName(clientID)
+	go registerPlayerWithService(clientID, nickname)
 
 	client := &Client{ID: clientID, Conn: conn}
 	g.register <- client
 
-	// Send current game state to new client
+	// Store player name
 	g.mu.Lock()
-	if g.game.IsActive {
+	g.playerNames[clientID] = nickname
+	g.mu.Unlock()
+
+	// Find available game or start new one
+	g.mu.Lock()
+	var joinUUID string
+	for uuid, gm := range g.games {
+		if gm.IsActive && len(g.gameClients[uuid]) < g.maxPlayers {
+			joinUUID = uuid
+			break
+		}
+	}
+	g.mu.Unlock()
+
+	if joinUUID == "" {
+		joinUUID = g.StartGame()
+	}
+
+	g.mu.Lock()
+	g.clientGame[clientID] = joinUUID
+	g.gameClients[joinUUID] = append(g.gameClients[joinUUID], clientID)
+	gm := g.games[joinUUID]
+
+	// Send ID and Name to client
+	idMsg, _ := json.Marshal(Message{
+		Type:      "identity",
+		Payload:   map[string]string{"id": clientID, "name": nickname},
+		Timestamp: time.Now().Unix(),
+	})
+	client.Conn.WriteMessage(websocket.TextMessage, idMsg)
+
+	if gm != nil && gm.IsActive {
 		stateBytes, _ := json.Marshal(Message{
 			Type:      "game_start",
-			Payload:   g.game,
+			Payload:   gm,
 			Timestamp: time.Now().Unix(),
 		})
 		client.Conn.WriteMessage(websocket.TextMessage, stateBytes)
@@ -287,12 +454,31 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Handle message types
 		switch msg.Type {
+		case "join":
+			g.joinNextAvailableGame(clientID)
 		case "chat":
-			g.broadcast <- msg
+			// Add player name to chat message
+			g.mu.Lock()
+			gameUUID := g.clientGame[clientID]
+			playerName := g.playerNames[clientID]
+			g.mu.Unlock()
+			if gameUUID != "" {
+				// Enhance message with player name
+				enhancedMsg := msg
+				if payload, ok := msg.Payload.(string); ok {
+					enhancedMsg.Payload = map[string]interface{}{
+						"text":       payload,
+						"senderName": playerName,
+					}
+				}
+				g.broadcastToGame(gameUUID, enhancedMsg)
+			}
 		case "play":
 			g.mu.Lock()
-			gameUUID := g.game.UUID
-			isActive := g.game.IsActive
+			gameUUID := g.clientGame[clientID]
+			gm, exists := g.games[gameUUID]
+			isActive := exists && gm.IsActive
+			playerName := g.playerNames[clientID]
 			g.mu.Unlock()
 
 			if !isActive {
@@ -312,13 +498,15 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				json.NewDecoder(resp.Body).Decode(&result)
 
 				if _, hasError := result["error"]; !hasError {
-					// Merge score into original payload to preserve the word
+					// Merge score and player name into original payload
 					payload := msg.Payload.(map[string]interface{})
 					if score, ok := result["score"]; ok {
 						payload["score"] = score
 					}
+					payload["word"] = word
+					payload["playerName"] = playerName
 					msg.Payload = payload
-					g.broadcast <- msg
+					g.broadcastToGame(gameUUID, msg)
 				} else {
 					// Send error back to sender
 					errMsg, _ := json.Marshal(Message{
@@ -341,7 +529,14 @@ func main() {
 
 	// Wait a bit for other services to be up then start the game loop
 	time.AfterFunc(5*time.Second, func() {
-		gateway.StartGame()
+		// Just ensure at least one game is started if none exist
+		gateway.mu.Lock()
+		if len(gateway.games) == 0 {
+			gateway.mu.Unlock()
+			gateway.StartGame()
+		} else {
+			gateway.mu.Unlock()
+		}
 	})
 
 	http.Handle("/ws", gateway)

@@ -19,6 +19,11 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 8081
+          env:
+            - name: MAX_PLAYERS
+              value: {{ .Values.maxPlayers | default "10" | quote }}
+            - name: GAME_DURATION
+              value: {{ .Values.gameDuration | default "30" | quote }}
 ---
 apiVersion: v1
 kind: Service

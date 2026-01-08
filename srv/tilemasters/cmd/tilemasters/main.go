@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	games     = make(map[string]*game.Game)
-	gamesMu   sync.RWMutex
-	scorer    = &game.Scorer{}
-	validator game.Validator
+	games           = make(map[string]*game.Game)
+	gamesMu         sync.RWMutex
+	scorer          = &game.Scorer{}
+	validator       game.Validator
+	randomScoreMode bool
 )
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 		worddHost = "http://wordd:2345"
 	}
 	validator = &game.RemoteValidator{WorddURL: worddHost}
+	randomScoreMode = os.Getenv("RANDOM_SCORE_MODE") == "true"
 }
 
 func handleCreateGame(w http.ResponseWriter, r *http.Request) {
@@ -36,15 +38,23 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request) {
 
 	gameUUID := uuid.New().String()
 	rack := scorer.GetRandomRack()
-	newGame := game.NewGame(gameUUID, rack)
+
+	letterValue := 0
+	if randomScoreMode {
+		// Use math/rand for simplicity as it's already seeded
+		letterValue = int((uuid.New().ID() % 10) + 1)
+	}
+
+	newGame := game.NewGame(gameUUID, rack, letterValue)
 
 	gamesMu.Lock()
 	games[gameUUID] = newGame
 	gamesMu.Unlock()
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"uuid": gameUUID,
-		"rack": rack,
+		"uuid":         gameUUID,
+		"rack":         rack,
+		"letter_value": letterValue,
 	})
 }
 

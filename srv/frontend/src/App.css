@@ -1,8 +1,44 @@
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.header-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mute-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.mute-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.mute-btn:active {
+    transform: scale(0.95);
+}
+
 .game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2rem;
+    gap: clamp(0.5rem, 2vh, 2rem);
     width: 100%;
 }
 
@@ -17,14 +53,15 @@
 
 .main-game-layout {
     display: flex;
-    gap: 3rem;
+    gap: clamp(1rem, 5vw, 3rem);
     align-items: center;
     background: rgba(0, 0, 0, 0.4);
-    padding: 3rem;
+    padding: clamp(1rem, 4vh, 3rem);
     border-radius: 30px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
+    width: 100%;
 }
 
 .center-panel {
@@ -32,13 +69,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: clamp(0.5rem, 1.5vh, 1rem);
     width: 100%;
 }
 
 .timer-sidebar {
-    width: 120px;
-    height: 400px;
+    width: clamp(80px, 10vw, 120px);
+    height: clamp(200px, 40vh, 400px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -66,11 +103,12 @@
     justify-content: center;
     align-items: center;
     background: rgba(0, 0, 0, 0.3);
-    padding: 1rem;
+    padding: 0.8rem;
     border-radius: 15px;
     border: 2px dashed rgba(255, 255, 255, 0.1);
-    min-height: 140px;
-    min-width: 650px;
+    min-height: 100px;
+    width: 100%;
+    max-width: 700px;
 }
 
 .input-row {
@@ -102,7 +140,7 @@
 
 .submit-container {
     position: relative;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
 }
 
 .submit-btn {
@@ -144,16 +182,17 @@
 
 .word-board {
     display: flex;
-    gap: 10px;
+    gap: clamp(5px, 1vw, 10px);
     background: rgba(0, 0, 0, 0.2);
-    padding: 15px;
+    padding: clamp(0.5rem, 1.5vh, 1rem);
     border-radius: 15px;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
 }
 
 .board-slot {
-    width: 60px;
-    height: 60px;
+    width: clamp(40px, 6vw, 80px);
+    /* Match tile scaling */
+    height: clamp(50px, 8vw, 100px);
     border-radius: 8px;
     border: 2px dashed rgba(255, 255, 255, 0.1);
     display: flex;
@@ -169,6 +208,29 @@
 
 .board-slot.empty:hover {
     background: rgba(255, 255, 255, 0.05);
+}
+
+.board-slot.focused {
+    border-color: #f1c40f;
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.3);
+    animation: slotPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes slotPulse {
+    0% {
+        transform: scale(1);
+        border-color: rgba(241, 196, 15, 0.5);
+    }
+
+    50% {
+        transform: scale(1.05);
+        border-color: #f1c40f;
+    }
+
+    100% {
+        transform: scale(1);
+        border-color: rgba(241, 196, 15, 0.5);
+    }
 }
 
 .empty-rack-msg {

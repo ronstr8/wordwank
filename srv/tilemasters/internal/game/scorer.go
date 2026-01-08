@@ -50,13 +50,17 @@ func (s *Scorer) GetRandomRack() []string {
 	}
 }
 
-func (s *Scorer) CalculateWordScore(word string) int {
+func (s *Scorer) CalculateWordScore(word string, fixedValue int) int {
 	score := 0
 	for _, r := range word {
 		if r >= 'a' && r <= 'z' {
-			continue
+			continue // Blanks are always 0
 		}
-		score += letterValues[rune(strings.ToUpper(string(r))[0])]
+		if fixedValue > 0 {
+			score += fixedValue
+		} else {
+			score += letterValues[rune(strings.ToUpper(string(r))[0])]
+		}
 	}
 	return score
 }

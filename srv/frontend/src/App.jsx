@@ -6,7 +6,10 @@ import PlayByPlay from './components/PlayByPlay'
 import Results from './components/Results'
 import Leaderboard from './components/Leaderboard'
 import DraggablePanel from './components/DraggablePanel'
+import useSound from './hooks/useSound'
 import './App.css'
+import './LoadingModal.css'
+import './JumbleButton.css'
 
 function App() {
     const [rack, setRack] = useState([]) // Array of { id, letter }
@@ -22,7 +25,22 @@ function App() {
     const [feedback, setFeedback] = useState({ text: '', type: '' })
     const [isLocked, setIsLocked] = useState(false)
     const [isConnecting, setIsConnecting] = useState(true)
+    const [connectionError, setConnectionError] = useState(null)
     const [blankChoice, setBlankChoice] = useState(null) // { slotIndex, tileId }
+    const [letterValue, setLetterValue] = useState(0) // Fixed score if mode is on
+    const rackRef = useRef([]);
+    const guessRef = useRef([]);
+    const { play, startAmbience, toggleMute, isMuted } = useSound();
+    const [playerNames, setPlayerNames] = useState({}); // Map playerID -> nickname
+    const autoSubmittedRef = useRef(false);
+
+    useEffect(() => {
+        rackRef.current = rack;
+    }, [rack]);
+
+    useEffect(() => {
+        guessRef.current = guess;
+    }, [guess]);
 
     const fetchLeaderboard = async () => {
         try {
@@ -69,28 +87,57 @@ function App() {
             console.log('Connected to gateway - Player:', id);
             setWs(socket);
             setIsConnecting(false);
+            setConnectionError(null);
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            setConnectionError('Failed to connect to game server');
+            setIsConnecting(false);
         };
 
         socket.onclose = () => {
             console.log('Disconnected from gateway');
             setWs(null);
             setIsConnecting(true);
+            setConnectionError(null);
         };
+
+        // Connection timeout - if not connected in 10 seconds, show error
+        const connectionTimeout = setTimeout(() => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                console.error('Connection timeout');
+                setConnectionError('Connection timeout - please refresh the page');
+                setIsConnecting(false);
+                socket.close();
+            }
+        }, 10000);
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             console.log('WS MESSAGE RECEIVED:', data);
             if (data.type === 'chat') {
                 console.log('Processing chat message:', data.payload);
+                const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
+                const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNames[data.sender];
                 setMessages(prev => [...prev, {
                     sender: data.sender,
-                    text: data.payload,
+                    senderName: senderName || data.sender,
+                    text: text,
                     timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                 }]);
+            } else if (data.type === 'identity') {
+                console.log('Received identity:', data.payload);
+                setNickname(data.payload.name);
+                setPlayerNames(prev => ({
+                    ...prev,
+                    [data.payload.id]: data.payload.name
+                }));
             } else if (data.type === 'play') {
                 console.log('Processing play message:', data.payload);
                 const play = {
                     player: data.sender,
+                    playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
                     word: data.payload.word,
                     score: data.payload.score,
                     timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
@@ -114,20 +161,35 @@ function App() {
                 }));
                 setRack(newRack);
                 setTimeLeft(data.payload.time_left);
+                setLetterValue(data.payload.letter_value || 0);
                 setResults(null);
                 setPlays([]);
                 setGuess(Array(7).fill(null));
                 setIsLocked(false);
                 setFeedback({ text: '', type: '' });
+                autoSubmittedRef.current = false; // Reset for new game
+                startAmbience(); // Start background loop
+            } else if (data.type === 'timer') {
+                // Keep timer in sync with server
+                if (data.payload && data.payload.time_left !== undefined) {
+                    setTimeLeft(data.payload.time_left);
+                }
             } else if (data.type === 'game_over') {
                 setResults(data.payload);
                 fetchLeaderboard();
                 setIsLocked(false);
+                play('bigsplat'); // Game end explosion
             }
         };
 
-        return () => socket.close();
+        return () => {
+            clearTimeout(connectionTimeout);
+            socket.close();
+        };
     }, []);
+
+    // Persistent state for identity
+    const [nickname, setNickname] = useState("")
 
     useEffect(() => {
         if (timeLeft > 0) {
@@ -137,6 +199,24 @@ function App() {
             return () => clearInterval(timer);
         }
     }, [timeLeft]);
+
+    // Auto-submit word when timer hits 0
+    useEffect(() => {
+        if (timeLeft <= 0 && !isLocked && !autoSubmittedRef.current && guess.some(g => g !== null)) {
+            // Build word from guess slots
+            const word = guess.map(g => g ? g.char : '').join('').toUpperCase();
+            if (word.length > 0 && ws && ws.readyState === WebSocket.OPEN) {
+                console.log('Auto-submitting word at timer end:', word);
+                autoSubmittedRef.current = true;
+                // Inline submission to avoid circular dependency
+                const msg = JSON.stringify({
+                    type: 'play',
+                    payload: { word }
+                });
+                ws.send(msg);
+            }
+        }
+    }, [timeLeft, isLocked, guess, ws]);
 
     const handleTileClick = (tile, source) => {
         if (isLocked || timeLeft === 0) return;
@@ -174,6 +254,31 @@ function App() {
         setGuess(newGuess);
         setRack(prev => prev.filter(t => t.id !== tileId));
         setBlankChoice(null);
+        play('placement'); // Tile placed sound
+    };
+
+    const jumbleRack = () => {
+        if (isLocked || timeLeft === 0) return;
+        // Fisher-Yates shuffle
+        setRack(prev => {
+            const shuffled = [...prev];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        });
+    };
+
+    const clearGuess = () => {
+        if (isLocked || timeLeft === 0) return;
+        // Return all tiles from guess to rack
+        const tilesToReturn = guess.filter(slot => slot !== null).map(slot => ({
+            id: slot.id,
+            letter: slot.originalLetter || slot.char.toUpperCase()
+        }));
+        setRack(prev => [...prev, ...tilesToReturn]);
+        setGuess(Array(7).fill(null));
     };
 
     const returnTile = (slotIndex) => {
@@ -202,6 +307,7 @@ function App() {
             const newGuess = [...currentGuess];
             newGuess[emptyIndex] = { id: tile.id, char: tile.letter, originalLetter: tile.letter };
             setRack(prev => prev.filter(t => t.id !== tile.id));
+            play('placement'); // Tile placed sound
             return newGuess;
         });
     };
@@ -210,14 +316,73 @@ function App() {
         if (isLocked || timeLeft === 0) return;
 
         setGuess(currentGuess => {
-            const played = currentGuess[slotIndex];
+            // If slotIndex is not provided, find the last filled slot
+            const targetIndex = slotIndex !== undefined ? slotIndex :
+                [...currentGuess].reverse().findIndex(g => g !== null);
+
+            const actualIndex = slotIndex !== undefined ? slotIndex :
+                (targetIndex === -1 ? -1 : 6 - targetIndex);
+
+            if (actualIndex === -1) return currentGuess;
+
+            const played = currentGuess[actualIndex];
             if (!played) return currentGuess;
 
             const newGuess = [...currentGuess];
-            newGuess[slotIndex] = null;
+            newGuess[actualIndex] = null;
             setRack(prev => [...prev, { id: played.id, letter: played.originalLetter || played.char }]);
             return newGuess;
         });
+    };
+
+    const handleGlobalKeyDown = (e) => {
+        // Ignore if typing in an input (like chat) or results is open
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (isLocked || timeLeft === 0 || results) return;
+
+        if (e.key === 'Backspace') {
+            e.preventDefault();
+            returnToRack();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            submitWord();
+        } else if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+            e.preventDefault();
+            const char = e.key.toUpperCase();
+
+            const currentRack = rackRef.current;
+            const currentGuess = guessRef.current;
+
+            // Priority 1: Match exact letter in rack
+            const exactTile = currentRack.find(t => t.letter === char);
+            if (exactTile) {
+                moveTileToGuess(exactTile);
+            } else {
+                // Priority 2: Use blank if available
+                const blankTile = currentRack.find(t => t.letter === '_');
+                if (blankTile) {
+                    const emptyIndex = currentGuess.findIndex(g => g === null);
+                    if (emptyIndex !== -1) {
+                        playTile(blankTile.id, char, emptyIndex);
+                    }
+                } else {
+                    // No matching tile available
+                    play('buzzer');
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [rack, guess, isLocked, timeLeft, results]);
+
+    const joinGame = () => {
+        setResults(null);
+        if (ws) {
+            ws.send(JSON.stringify({ type: 'join' }));
+        }
     };
 
     const submitWord = () => {
@@ -250,7 +415,13 @@ function App() {
     return (
         <div className="game-container">
             <header>
-                <h1>wordw<span className="splat">💥</span>nk</h1>
+                <div className="header-content">
+                    <h1>wordw<span className="splat">💥</span>nk</h1>
+                    {nickname && <div className="user-nickname">Playing as: <strong>{nickname}</strong></div>}
+                </div>
+                <button className="mute-btn" onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}>
+                    {isMuted ? '🔇' : '🔊'}
+                </button>
             </header>
 
             <main className="game-area">
@@ -261,29 +432,50 @@ function App() {
                             <div className="rack-container clickable">
                                 {rack.map((tile) => (
                                     <div key={tile.id} onClick={() => moveTileToGuess(tile)}>
-                                        <Tile letter={tile.letter} />
+                                        <Tile letter={tile.letter} value={letterValue > 0 ? letterValue : undefined} />
                                     </div>
                                 ))}
                                 {rack.length === 0 && <div className="empty-rack-msg">ALL TILES PLAYED!</div>}
+                            </div>
+                            <div className="rack-actions">
+                                <button
+                                    className="jumble-btn"
+                                    onClick={jumbleRack}
+                                    disabled={isLocked || timeLeft === 0 || rack.length === 0}
+                                    title="Shuffle tiles"
+                                >
+                                    🔀 JUMBLE
+                                </button>
+                                <button
+                                    className="clear-btn"
+                                    onClick={clearGuess}
+                                    disabled={isLocked || timeLeft === 0 || guess.every(g => g === null)}
+                                    title="Clear all tiles from word"
+                                >
+                                    🧹 CLEAR
+                                </button>
                             </div>
                         </div>
 
                         <div className="input-section">
                             <div className="section-label">YOUR WORD (Click to Remove)</div>
                             <div className="word-board">
-                                {guess.map((slot, i) => (
-                                    <div
-                                        key={i}
-                                        className={`board-slot ${slot ? 'filled' : 'empty'}`}
-                                        onClick={() => slot && returnToRack(i)}
-                                    >
-                                        {slot ? (
-                                            <Tile letter={slot.char} />
-                                        ) : (
-                                            <div className="slot-placeholder"></div>
-                                        )}
-                                    </div>
-                                ))}
+                                {guess.map((slot, i) => {
+                                    const isFirstEmpty = guess.findIndex(g => g === null) === i;
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`board-slot ${slot ? 'filled' : 'empty'} ${isFirstEmpty && !isLocked && timeLeft > 0 ? 'focused' : ''}`}
+                                            onClick={() => slot && returnToRack(i)}
+                                        >
+                                            {slot ? (
+                                                <Tile letter={slot.char} value={letterValue > 0 ? letterValue : undefined} />
+                                            ) : (
+                                                <div className="slot-placeholder"></div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <div className="submit-container">
                                 <button
@@ -333,21 +525,34 @@ function App() {
             </DraggablePanel>
 
             <DraggablePanel title="PLAY-BY-PLAY" id="plays" initialPos={{ x: window.innerWidth - 320, y: 100 }}>
-                <PlayByPlay plays={plays} />
+                <PlayByPlay plays={plays} playerNames={playerNames} />
             </DraggablePanel>
 
             <DraggablePanel title="CHAT" id="chat" initialPos={{ x: window.innerWidth - 320, y: 380 }}>
-                <Chat messages={messages} onSendMessage={sendMessage} />
+                <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
             </DraggablePanel>
 
-            {results && <Results data={results} />}
+            {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 
-            {isConnecting && (
+            {(isConnecting || connectionError) && (
                 <div className="loading-modal">
                     <div className="loading-card">
-                        <div className="loading-spinner"></div>
-                        <h2>CONNECTING TO ARKHAM...</h2>
-                        <p>Establishing neural link with the gateway</p>
+                        {connectionError ? (
+                            <>
+                                <div className="error-icon">⚠️</div>
+                                <h2>CONNECTION ERROR</h2>
+                                <p>{connectionError}</p>
+                                <button className="reload-btn" onClick={() => window.location.reload()}>
+                                    RELOAD PAGE
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="loading-spinner"></div>
+                                <h2>LOADING...</h2>
+                                <p>Connecting to game server</p>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

@@ -14,21 +14,23 @@ type Play struct {
 }
 
 type Game struct {
-	UUID      string    `json:"uuid"`
-	Rack      []string  `json:"rack"`
-	Plays     []Play    `json:"plays"`
-	StartTime time.Time `json:"start_time"`
-	Duration  float64   `json:"duration"`
-	mu        sync.Mutex
+	UUID        string    `json:"uuid"`
+	Rack        []string  `json:"rack"`
+	Plays       []Play    `json:"plays"`
+	StartTime   time.Time `json:"start_time"`
+	Duration    float64   `json:"duration"`
+	LetterValue int       `json:"letter_value,omitempty"`
+	mu          sync.Mutex
 }
 
-func NewGame(uuid string, rack []string) *Game {
+func NewGame(uuid string, rack []string, letterValue int) *Game {
 	return &Game{
-		UUID:      uuid,
-		Rack:      rack,
-		Plays:     []Play{},
-		StartTime: time.Now(),
-		Duration:  60,
+		UUID:        uuid,
+		Rack:        rack,
+		Plays:       []Play{},
+		StartTime:   time.Now(),
+		Duration:    60,
+		LetterValue: letterValue,
 	}
 }
 
@@ -49,7 +51,7 @@ func (g *Game) AddPlay(player, word string, scorer *Scorer, validator Validator)
 		return Play{}, fmt.Errorf("invalid word")
 	}
 
-	score := scorer.CalculateWordScore(word)
+	score := scorer.CalculateWordScore(word, g.LetterValue)
 
 	newPlays := []Play{}
 	for _, p := range g.Plays {

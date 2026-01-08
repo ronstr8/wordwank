@@ -1,7 +1,8 @@
 .tile-wrapper {
     perspective: 1000px;
-    width: 80px;
-    height: 100px;
+    width: clamp(40px, 6vw, 80px);
+    /* Liquid scaling */
+    height: clamp(50px, 8vw, 100px);
 }
 
 .tile-inner {
@@ -22,6 +23,16 @@
     backface-visibility: hidden;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tile-wrapper.is-blank .tile-front {
+    background: linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%);
+    opacity: 0.85;
+    color: #444;
+}
+
+.tile-wrapper.is-blank .tile-letter {
+    opacity: 0.7;
 }
 
 .tile-front {
@@ -45,15 +56,15 @@
 
 .tile-letter {
     font-family: 'Luckiest Guy', cursive;
-    font-size: 3rem;
+    font-size: clamp(1.5rem, 3.5vw, 3rem);
     margin-top: -10px;
 }
 
 .tile-value {
     position: absolute;
-    bottom: 5px;
-    right: 8px;
-    font-size: 1rem;
+    bottom: 4px;
+    right: 6px;
+    font-size: clamp(0.6rem, 1.2vw, 1rem);
     font-weight: bold;
     font-family: 'Fredoka', sans-serif;
 }

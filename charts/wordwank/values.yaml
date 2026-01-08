@@ -5,8 +5,10 @@ global:
   externalPort: 80
   registry: localhost:5000
   namespace: wordwank
-  imageTag: 0.12.2
+  imageTag: 0.15.3
   imagePullPolicy: Always
+  maxPlayers: 13
+  randomLetterScoreMode: "true"
 
 # Centralized Ingress configuration
 ingress:
@@ -26,11 +28,13 @@ gatewayd:
   service:
     type: ClusterIP
     port: 8081
+  maxPlayers: 10
 
 tilemasterd:
   service:
     type: ClusterIP
     port: 3883
+  randomLetterScoreMode: false
 
 playerd:
   service:

@@ -1,15 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import './Results.css'
 
-const Results = ({ data }) => {
+const Results = ({ data, onClose, playerNames = {} }) => {
     const { results = [], summary = "" } = data || {};
     const safeResults = Array.isArray(results) ? results : [];
     const winner = safeResults.length > 0 ? safeResults[0] : null;
+    const [showDefinition, setShowDefinition] = useState(false);
 
     useEffect(() => {
-        const handleInput = () => {
-            window.location.reload();
+        const handleInput = (e) => {
+            // Only prevent closing if clicking inside the definition modal content
+            if (showDefinition && e.target.closest('.definition-modal-card')) return;
+            if (onClose) onClose();
         };
         window.addEventListener('keydown', handleInput);
         window.addEventListener('mousedown', handleInput);
@@ -17,7 +20,7 @@ const Results = ({ data }) => {
             window.removeEventListener('keydown', handleInput);
             window.removeEventListener('mousedown', handleInput);
         };
-    }, []);
+    }, [onClose, showDefinition]);
 
     return (
         <motion.div
@@ -35,8 +38,16 @@ const Results = ({ data }) => {
                 <div className="summary-banner">{summary}</div>
 
                 {winner && winner.definition && (
-                    <div className="definition-box">
-                        <strong>DEFINITION:</strong> {winner.definition}
+                    <div className="definition-prompt">
+                        <button
+                            className="meaning-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDefinition(true);
+                            }}
+                        >
+                            Wait, what does "{winner.word.toUpperCase()}" mean?
+                        </button>
                     </div>
                 )}
 
@@ -45,7 +56,7 @@ const Results = ({ data }) => {
                         <div key={i} className="player-result-group">
                             <div className={`result-row ${i === 0 ? 'winner' : ''}`}>
                                 <span className="rank">{i + 1}</span>
-                                <span className="player-id">{res.player}</span>
+                                <span className="player-id">{playerNames[res.player] || res.player}</span>
                                 <span className="player-word">{res.word}</span>
                                 <span className="player-score">{res.score} pts</span>
                                 {res.exceptions && res.exceptions.length > 0 && (
@@ -73,6 +84,26 @@ const Results = ({ data }) => {
                 </div>
                 <div className="next-game">Next game starting soon...</div>
             </div>
+            {showDefinition && winner && (
+                <div className="definition-modal-overlay" onClick={() => setShowDefinition(false)}>
+                    <motion.div
+                        className="definition-modal-card"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <header className="modal-header">
+                            <h3>{winner.word.toUpperCase()}</h3>
+                            <button className="close-modal" onClick={() => setShowDefinition(false)}>×</button>
+                        </header>
+                        <div className="modal-body scrollable">
+                            <pre className="definition-text">
+                                {winner.definition}
+                            </pre>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
     )
 }

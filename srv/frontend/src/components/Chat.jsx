@@ -17,7 +17,7 @@ const Chat = ({ messages, onSendMessage }) => {
             <div className="panel-content chat-history">
                 {(messages || []).map((msg, i) => (
                     <div key={i} className="chat-msg">
-                        <span className="chat-sender">{msg.sender}:</span>
+                        <span className="chat-sender">{msg.senderName || msg.sender}:</span>
                         <span className="chat-text">{msg.text}</span>
                     </div>
                 ))}

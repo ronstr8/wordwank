@@ -1,0 +1,30 @@
+/* Jumble Button */
+.jumble-btn {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    border: 3px solid #2c3e50;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.jumble-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.jumble-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.jumble-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

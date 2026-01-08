@@ -16,28 +16,48 @@
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
+  align-items: flex-start;
+  /* Start from top instead of center */
   min-width: 320px;
   min-height: 100vh;
   background: radial-gradient(circle at center, #2c3e50 0%, #000000 100%);
+  overflow-x: hidden;
 }
 
 #root {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: clamp(1rem, 3vh, 2rem) 1rem;
   text-align: center;
 }
 
 h1 {
   font-family: 'Luckiest Guy', cursive;
-  font-size: 4.5rem;
-  line-height: 1.1;
-  margin-bottom: 2rem;
+  font-size: clamp(2.5rem, 8vh, 4.5rem);
+  line-height: 1;
+  margin: 0.5rem 0 1rem;
   color: #f1c40f;
   text-shadow: 4px 4px 0px #e67e22, 8px 8px 0px #d35400;
-  letter-spacing: -4px;
+  letter-spacing: -2px;
+}
+
+.user-nickname {
+  font-family: 'Fredoka', sans-serif;
+  color: #bdc3c7;
+  font-size: 1.1rem;
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.user-nickname strong {
+  color: #f1c40f;
+  background: rgba(241, 196, 15, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .splat {
