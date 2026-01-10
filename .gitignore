@@ -20,27 +20,10 @@ yarn-error.log*
 target/
 **/*.rs.bk
 
-# Raku / tilemasters
-.precomp/
-**/*.rakutest.precomp
-
-# Go / gatewayd
-gatewayd/gatewayd
-**/go.sum.bak
-
-# Java / playerd
-**/target/
-!.mvn/wrapper/maven-wrapper.jar
-**/*.class
-**/*.jar
-**/*.war
-**/*.ear
-.mvn/
-
-# Helm
-charts/wordwank/charts/
-charts/wordwank/Chart.lock
-tmp-charts/
+# Helm 
+helm/Chart.lock
+helm/secrets.yaml
+helm/values.yaml
 
 # IDEs
 .vscode/

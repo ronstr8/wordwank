@@ -1,0 +1,28 @@
+apiVersion: v2
+name: wordwank
+description: Umbrella chart for the Wordwank polyglot microservices stack
+type: application
+version: 0.10.0
+appVersion: "0.10.0"
+
+dependencies:
+  - name: frontend
+    version: 0.10.0
+    repository: "file://../srv/frontend/helm"
+    condition: frontend.enabled
+  - name: wordd
+    version: 0.10.1
+    repository: "file://../srv/wordd/helm"
+    condition: wordd.enabled
+  - name: dictd
+    version: 0.10.0
+    repository: "file://../srv/dictd/helm"
+    condition: dictd.enabled
+  - name: backend
+    version: 0.10.0
+    repository: "file://../srv/backend/helm"
+    condition: backend.enabled
+  - name: postgresql
+    version: 15.5.21
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

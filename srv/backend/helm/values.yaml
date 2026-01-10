@@ -1,0 +1,13 @@
+replicaCount: 1
+image:
+  repository: localhost:5000/wordwank-backend
+  pullPolicy: Always
+  tag: "0.15.7"
+service:
+  type: ClusterIP
+  port: 3000
+database:
+  url: "dbi:Pg:dbname=wordwank;host=wordwank-postgresql"
+  user: "postgres"
+# pass: "wordwank"
+  pass: "wordwank"

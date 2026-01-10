@@ -4,9 +4,10 @@ FROM rust:latest AS builder
 WORKDIR /usr/src/wordd
 
 # Copy dependency files first for efficient caching
-#COPY Cargo.toml Cargo.lock ./
-#RUN mkdir src && echo "fn main() {}" > src/main.rs
-#RUN cargo fetch
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -f target/release/deps/wordd*
 
 # Copy actual source code separately to avoid unnecessary rebuilds
 COPY . .

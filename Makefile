@@ -2,13 +2,13 @@
 
 # Localhost is always allowed as an insecure registry by Docker
 REGISTRY = localhost:5000
-# Single point of truth for versions is charts/wordwank/values.yaml
-TAG ?= $(shell grep -m 1 "imageTag:" charts/wordwank/values.yaml | sed 's/.*imageTag:[[:space:]]*//' | tr -d ' "')
+# Single point of truth for versions is helm/values.yaml
+TAG ?= $(shell grep -m 1 "imageTag:" helm/values.yaml | sed 's/.*imageTag:[[:space:]]*//' | tr -d ' "')
 DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = wordwank
 DOMAIN = arkham.fazigu.org
 
-SERVICES = frontend gatewayd tilemasters playerd wordd dictd
+SERVICES = frontend backend wordd dictd
 
 .PHONY: all build clean deploy undeploy help $(SERVICES) minikube-setup registry-tunnel metallb-install metallb-config
 
@@ -49,13 +49,13 @@ metallb-config:
 	RANGE_START="$$BASE_IP.100"; \
 	RANGE_END="$$BASE_IP.110"; \
 	echo "Assigning MetalLB range: $$RANGE_START-$$RANGE_END"; \
-	sed "s/RANGE_START/$$RANGE_START/; s/RANGE_END/$$RANGE_END/" charts/wordwank/resources/metallb-config.yaml | kubectl apply -f -
+	sed "s/RANGE_START/$$RANGE_START/; s/RANGE_END/$$RANGE_END/" helm/resources/metallb-config.yaml | kubectl apply -f -
 
 # Step 4: Expose the Ingress to the 192.168.1.0 network
 # This requires 'socat' installed on Arkham and sudo privileges
 expose:
 	@echo "Bridging Arkham:80 to Minikube Ingress..."
-	@INGRESS_IP=$$(kubectl get ingress -n $(NAMESPACE) wordwank-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
+	@INGRESS_IP=$$(kubectl get ingress -n $(NAMESPACE) ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
 	if [ -z "$$INGRESS_IP" ]; then echo "Error: Ingress doesn't have an IP yet. Did you run make deploy and make metallb-config?"; exit 1; fi; \
 	echo "Ingress IP is $$INGRESS_IP. Starting proxy..."; \
 	sudo socat TCP4-LISTEN:80,fork,reuseaddr TCP4:$$INGRESS_IP:80
@@ -72,46 +72,35 @@ build: $(SERVICES)
 frontend: minikube-setup registry-tunnel
 	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-frontend:$(TAG) ./srv/frontend
 	docker push $(REGISTRY)/wordwank-frontend:$(TAG)
-	kubectl rollout restart deployment/wordwank-frontend -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-frontend -n $(NAMESPACE) || true
-
-gatewayd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-gatewayd:$(TAG) ./srv/gatewayd
-	docker push $(REGISTRY)/wordwank-gatewayd:$(TAG)
-	kubectl rollout restart deployment/wordwank-gatewayd -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-gatewayd -n $(NAMESPACE) || true
-
-tilemasters: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-tilemasters:$(TAG) ./srv/tilemasters
-	docker push $(REGISTRY)/wordwank-tilemasters:$(TAG)
-	kubectl rollout restart deployment/wordwank-tilemasters -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-tilemasters -n $(NAMESPACE) || true
-
-playerd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-playerd:$(TAG) ./srv/playerd
-	docker push $(REGISTRY)/wordwank-playerd:$(TAG)
-	kubectl rollout restart deployment/wordwank-playerd -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-playerd -n $(NAMESPACE) || true
+	kubectl rollout restart deployment/frontend -n $(NAMESPACE) || true
+	kubectl rollout status deployment/frontend -n $(NAMESPACE) || true
 
 wordd: minikube-setup registry-tunnel
 	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-wordd:$(TAG) ./srv/wordd
 	docker push $(REGISTRY)/wordwank-wordd:$(TAG)
-	kubectl rollout restart deployment/wordwank-wordd -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-wordd -n $(NAMESPACE) || true
+	kubectl rollout restart deployment/wordd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/wordd -n $(NAMESPACE) || true
+
+backend: minikube-setup registry-tunnel
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-backend:$(TAG) ./srv/backend
+	docker push $(REGISTRY)/wordwank-backend:$(TAG)
+	kubectl rollout restart deployment/backend -n $(NAMESPACE) || true
+	kubectl rollout status deployment/backend -n $(NAMESPACE) || true
 
 dictd: minikube-setup registry-tunnel
 	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-dictd:$(TAG) ./srv/dictd
 	docker push $(REGISTRY)/wordwank-dictd:$(TAG)
-	kubectl rollout restart deployment/wordwank-dictd -n $(NAMESPACE) || true
-	kubectl rollout status deployment/wordwank-dictd -n $(NAMESPACE) || true
+	kubectl rollout restart deployment/dictd -n $(NAMESPACE) || true
+	kubectl rollout status deployment/dictd -n $(NAMESPACE) || true
 
 # Helm Commands
 deploy: minikube-setup
-	helm dependency update ./charts/wordwank
-	helm upgrade --install wordwank ./charts/wordwank \
+	helm dependency update ./helm
+	helm upgrade --install wordwank ./helm \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
-		--values ./charts/wordwank/values.yaml \
+		--values ./helm/values.yaml \
+		--values ./helm/secrets.yaml \
 		--set global.registry=localhost:5000 \
 		--set global.domain=$(DOMAIN)
 

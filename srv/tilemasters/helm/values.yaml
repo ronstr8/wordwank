@@ -1,6 +1,0 @@
-service:
-  type: ClusterIP
-  port: 3883
-
-global:
-  registry: docker.io/wordwank

@@ -1,0 +1,18 @@
+dependencies:
+- name: frontend
+  repository: file://../srv/frontend/helm
+  version: 0.10.0
+- name: wordd
+  repository: file://../srv/wordd/helm
+  version: 0.10.1
+- name: dictd
+  repository: file://../srv/dictd/helm
+  version: 0.10.0
+- name: backend
+  repository: file://../srv/backend/helm
+  version: 0.10.0
+- name: postgresql
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.5.21
+digest: sha256:d0b6c0fc247174cef23d8cd4eb0e70e1ab8e6f3e8ae3ee2d6c8d074afdd9c7b7
+generated: "2026-01-09T16:39:27.76506021-05:00"

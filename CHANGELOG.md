@@ -11,27 +11,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
-## [0.15.3] - 2026-01-08
+## [0.15.7] - 2026-01-08
+
+### Added
+
+- **Per-Letter Randomization**: Each letter now gets its own unique random value (1-10) in Random Score Mode, rather than a single value for the whole game.
+- **WebSocket Reconnection**: The frontend now automatically attempts to reconnect if the connection is lost (e.g., after tabbing away).
+- **Tab Visibility Sync**: Connection is automatically checked and refreshed when you return to the tab.
+- **Empty State UX**: Added a "NO PLAYS THIS ROUND!" message on the results screen when no one submits a word.
 
 ### Fixed
 
-- Auto-submit now properly triggers when timer expires (added ref flag and `<= 0` check)
-- Results modal can now be clicked anywhere to close (except when viewing definition)
-- Definition button click opens modal without closing results screen
+- **Stability**: Fixed a syntax error in the frontend message loop.
+- **Config**: Ensure `tilemasterd` correctly receives the randomization flag.
+
+## [0.15.6] - 2026-01-08
+
+### UI Improvements
+
+- **Empty Round Message**: Added a friendly "NO PLAYS THIS ROUND!" message on the results screen.
+- **Styling**: New centered empty state for the results leaderboard.
+
+## [0.15.5] - 2026-01-08
+
+### Backend Fixes
+
+- **Grace period for auto-submit**: The server now waits 1.5s after the timer hits 0 before ending the game.
+- **True randomness**: Switched to `math/rand` with a nanosecond seed.
+
+### Helm Fixes
+
+- **Random Letter Score Mode**: Corrected Helm config inheritance.
+- **Log Hygiene**: Refactored CHANGELOG to resolve lint errors.
+
+## [0.15.4] - 2026-01-08
+
+### Features Added
+
+- 🧹 **Clear button** next to Jumble to instantly return all tiles to your rack.
+- Updated rack action styles.
+
+## [0.15.3] - 2026-01-08
+
+### UX Fixes
+
+- **Submission Reliability**: Auto-submit now properly triggers when timer expires.
+- **Navigation UX**: Results modal can now be clicked anywhere to close.
+- **Interactive Definitions**: Definition button click opens modal without closing results screen.
 
 ## [0.15.2] - 2026-01-08
 
-### Fixed
+### Crash Fixes
 
-- Critical circular dependency crash when clearing site data (removed `submitWord` from useEffect dependencies)
-- Auto-submit logic now inlines WebSocket send to avoid React closure issues
+- **Startup Stability**: Critical circular dependency crash when clearing site data fixed.
+- **Message Integrity**: Auto-submit logic now inlines WebSocket send.
 
 ## [0.15.1] - 2026-01-08
 
-### Fixed
+### Timer Fixes
 
-- Auto-submit on timer expiration now works correctly (fixed stale closure in useEffect)
-- React dependency array now includes all necessary values for auto-submit logic
+- **Bug Fix**: Auto-submit on timer expiration now works correctly.
+- **React Optimization**: Fixed React dependency arrays.
 
 ## [0.15.0] - 2026-01-08
 

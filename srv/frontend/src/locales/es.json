@@ -1,0 +1,50 @@
+{
+    "app": {
+        "title": "palabrapaja",
+        "playing_as": "Jugando como",
+        "rack_label": "TU ATRIL (Haz clic para jugar)",
+        "empty_rack": "¡TODAS LAS FICHAS JUGADAS!",
+        "jumble": "🔀 MEZCLAR",
+        "clear": "🧹 LIMPIAR",
+        "word_label": "TU PALABRA (Haz clic para quitar)",
+        "submit": "¡ENVIAR PALABRA!",
+        "leaderboard": "CLASIFICACIÓN",
+        "play_by_play": "JUGADA A JUGADA",
+        "chat": "CHAT",
+        "timer": "TIEMPO",
+        "select_blank": "SELECCIONA LETRA PARA COMODÍN",
+        "cancel": "CANCELAR",
+        "loading": "CARGANDO...",
+        "connecting": "Conectando al servidor del juego",
+        "connection_error": "ERROR DE CONEXIÓN",
+        "reload": "RECARGAR PÁGINA",
+        "accepted": "¡ACEPTADA!",
+        "error_word_not_found": "La palabra '{{word}}' no está en nuestro diccionario de paja."
+    },
+    "results": {
+        "title": "FIN DEL JUEGO",
+        "rank": "Rango",
+        "player": "Jugador",
+        "word": "Palabra",
+        "score": "Puntuación",
+        "play_again": "JUGAR DE NUEVO",
+        "round_over": "¡LA RONDA HA TERMINADO!",
+        "wait_what_does": "Espera, ¿qué significa \"{{word}}\"?",
+        "no_plays_round": "¡SIN JUGADAS EN ESTA RONDA!",
+        "riveting": "Todos se quedaron mirando la pantalla. Fascinante.",
+        "next_game_soon": "El próximo juego comenzará pronto...",
+        "played_same_word": "jugó la misma palabra."
+    },
+    "auth": {
+        "welcome_back": "¡Bienvenido de nuevo, explorador! ¿Listo para continuar?",
+        "last_used": "Último uso",
+        "continue_with_google": "Continuar con Google",
+        "continue_with_passkey": "Continuar con Passkey",
+        "passkey_failed": "La autenticación con Passkey falló.",
+        "privacy_hint": "Solo usamos tu correo para recuperación de cuenta y sincronizar tu cordura entre dispositivos.",
+        "logging_in": "Iniciando sesión...",
+        "register_passkey": "Registrar Passkey",
+        "passkey_registered": "¡Passkey registrado con éxito!",
+        "logout": "Cerrar sesión"
+    }
+}

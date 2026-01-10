@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-wordd
+  name: wordd
   namespace: {{ .Values.global.namespace }}
   labels:
     app: wordd
@@ -21,3 +21,10 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 2345
+          command: ["wordd"]
+          args:
+            - "--share-dir=/app/share"
+            - "--langs={{ .Values.langs | default "en,es" }}"
+            {{- if .Values.dictdHost }}
+            - "--dictd-host={{ .Values.dictdHost }}"
+            {{- end }}

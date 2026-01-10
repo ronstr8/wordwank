@@ -1,5 +1,0 @@
-apiVersion: v2
-name: gatewayd
-description: Helm chart for the Wordwank Go Gateway
-version: 0.10.0
-appVersion: "0.10.0"

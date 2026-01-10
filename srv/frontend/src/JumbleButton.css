@@ -1,12 +1,19 @@
-/* Jumble Button */
-.jumble-btn {
-    margin-top: 0.75rem;
-    padding: 0.5rem 1.5rem;
+/* Rack Actions Container */
+.rack-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 1rem;
+}
+
+/* Base style for jumble/clear buttons */
+.jumble-btn,
+.clear-btn {
+    padding: 0.6rem 2rem;
     font-size: 1rem;
     font-family: 'Fredoka', sans-serif;
     font-weight: bold;
     color: #fff;
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
     border: 3px solid #2c3e50;
     border-radius: 12px;
     cursor: pointer;
@@ -14,17 +21,36 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.jumble-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+.jumble-btn {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.clear-btn {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.jumble-btn:hover:not(:disabled),
+.clear-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-.jumble-btn:active:not(:disabled) {
+.jumble-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+}
+
+.clear-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d35400 0%, #e67e22 100%);
+}
+
+.jumble-btn:active:not(:disabled),
+.clear-btn:active:not(:disabled) {
     transform: translateY(0);
 }
 
-.jumble-btn:disabled {
+.jumble-btn:disabled,
+.clear-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    filter: grayscale(1);
 }

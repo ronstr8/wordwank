@@ -1,9 +1,0 @@
-service:
-  type: ClusterIP
-  port: 8080
-
-redis:
-  host: redis-master
-
-global:
-  registry: docker.io/wordwank

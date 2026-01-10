@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import Tile from './components/Tile'
 import Timer from './components/Timer'
 import Chat from './components/Chat'
@@ -10,8 +11,10 @@ import useSound from './hooks/useSound'
 import './App.css'
 import './LoadingModal.css'
 import './JumbleButton.css'
+import Login from './components/Login'
 
 function App() {
+    const { t, i18n } = useTranslation()
     const [rack, setRack] = useState([]) // Array of { id, letter }
     const [guess, setGuess] = useState(Array(7).fill(null)) // Array of { id, char } or null
     const [timeLeft, setTimeLeft] = useState(0)
@@ -32,6 +35,8 @@ function App() {
     const guessRef = useRef([]);
     const { play, startAmbience, toggleMute, isMuted } = useSound();
     const [playerNames, setPlayerNames] = useState({}); // Map playerID -> nickname
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthChecking, setIsAuthChecking] = useState(true);
     const autoSubmittedRef = useRef(false);
 
     useEffect(() => {
@@ -49,6 +54,7 @@ function App() {
             const resp = await fetch(apiPath);
             if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
             const data = await resp.json();
+            console.log('Leaderboard data fetched:', data);
             setLeaderboard(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Failed to fetch leaderboard:', err);
@@ -68,125 +74,170 @@ function App() {
         document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
     };
 
-    useEffect(() => {
-        let id = getCookie('wankID');
-        if (!id) {
-            id = Math.random().toString(36).substring(2, 15);
-            setCookie('wankID', id);
+    const checkAuth = async () => {
+        try {
+            const resp = await fetch('/auth/me');
+            if (resp.ok) {
+                const data = await resp.json();
+                setPlayerId(data.id);
+                playerIdRef.current = data.id;
+                setNickname(data.nickname);
+                if (data.language) i18n.changeLanguage(data.language);
+                setIsAuthenticated(true);
+                return data.id;
+            }
+        } catch (err) {
+            console.error('Auth check failed:', err);
+        } finally {
+            setIsAuthChecking(false);
         }
-        setPlayerId(id);
-        playerIdRef.current = id;
-        fetchLeaderboard();
+        return null;
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            await checkAuth();
+            fetchLeaderboard();
+        };
+        init();
+    }, []);
+
+    useEffect(() => {
+        if (!playerId) return;
 
         const isLocal = window.location.hostname === 'localhost';
         const wsHost = isLocal ? 'localhost:8081' : window.location.host;
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${id}`);
+        let socket = null;
+        let reconnectTimeout = null;
 
-        socket.onopen = () => {
-            console.log('Connected to gateway - Player:', id);
-            setWs(socket);
-            setIsConnecting(false);
-            setConnectionError(null);
-        };
+        const connect = () => {
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
 
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            setConnectionError('Failed to connect to game server');
-            setIsConnecting(false);
-        };
+            console.log('Attempting to connect to gateway...');
+            socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${playerId}`);
 
-        socket.onclose = () => {
-            console.log('Disconnected from gateway');
-            setWs(null);
-            setIsConnecting(true);
-            setConnectionError(null);
-        };
-
-        // Connection timeout - if not connected in 10 seconds, show error
-        const connectionTimeout = setTimeout(() => {
-            if (!socket || socket.readyState !== WebSocket.OPEN) {
-                console.error('Connection timeout');
-                setConnectionError('Connection timeout - please refresh the page');
+            socket.onopen = () => {
+                console.log('Connected to gateway - Player:', playerId);
+                setWs(socket);
                 setIsConnecting(false);
-                socket.close();
-            }
-        }, 10000);
+                setConnectionError(null);
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            console.log('WS MESSAGE RECEIVED:', data);
-            if (data.type === 'chat') {
-                console.log('Processing chat message:', data.payload);
-                const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
-                const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNames[data.sender];
-                setMessages(prev => [...prev, {
-                    sender: data.sender,
-                    senderName: senderName || data.sender,
-                    text: text,
-                    timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                }]);
-            } else if (data.type === 'identity') {
-                console.log('Received identity:', data.payload);
-                setNickname(data.payload.name);
-                setPlayerNames(prev => ({
-                    ...prev,
-                    [data.payload.id]: data.payload.name
-                }));
-            } else if (data.type === 'play') {
-                console.log('Processing play message:', data.payload);
-                const play = {
-                    player: data.sender,
-                    playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
-                    word: data.payload.word,
-                    score: data.payload.score,
-                    timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                };
-                setPlays(prev => {
-                    const filtered = prev.filter(p => p.player !== data.sender);
-                    return [play, ...filtered];
-                });
-                if (data.sender === playerIdRef.current) {
-                    setFeedback({ text: 'ACCEPTED!', type: 'success' });
-                    setIsLocked(true);
-                    setTimeout(() => setFeedback({ text: '', type: '' }), 15000);
-                }
-            } else if (data.type === 'error') {
-                setFeedback({ text: data.payload, type: 'error' });
-                setTimeout(() => setFeedback({ text: '', type: '' }), 15000);
-            } else if (data.type === 'game_start') {
-                const newRack = data.payload.rack.map((letter, index) => ({
-                    id: `tile-${index}-${Date.now()}`,
-                    letter
-                }));
-                setRack(newRack);
-                setTimeLeft(data.payload.time_left);
-                setLetterValue(data.payload.letter_value || 0);
-                setResults(null);
-                setPlays([]);
-                setGuess(Array(7).fill(null));
-                setIsLocked(false);
-                setFeedback({ text: '', type: '' });
-                autoSubmittedRef.current = false; // Reset for new game
-                startAmbience(); // Start background loop
-            } else if (data.type === 'timer') {
-                // Keep timer in sync with server
-                if (data.payload && data.payload.time_left !== undefined) {
+                // Auto-join the active game
+                socket.send(JSON.stringify({ type: 'join' }));
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            socket.onclose = () => {
+                console.log('Disconnected from gateway - will retry in 2s');
+                setWs(null);
+                setIsConnecting(true);
+                reconnectTimeout = setTimeout(connect, 2000);
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'chat') {
+                    const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
+                    const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNames[data.sender];
+                    setMessages(prev => [...prev, {
+                        sender: data.sender,
+                        senderName: senderName || data.sender,
+                        text: text,
+                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                    }]);
+                } else if (data.type === 'identity') {
+                    setNickname(data.payload.name);
+                    if (data.payload.language) {
+                        i18n.changeLanguage(data.payload.language);
+                    }
+                    setPlayerNames(prev => ({
+                        ...prev,
+                        [data.payload.id]: data.payload.name
+                    }));
+                } else if (data.type === 'game_start') {
+                    const newRack = data.payload.rack.map((letter, idx) => ({
+                        id: `tile-${idx}-${Date.now()}`,
+                        letter
+                    }));
+                    setRack(newRack);
                     setTimeLeft(data.payload.time_left);
+                    setLetterValue(data.payload.letter_values || 0);
+                    setResults(null);
+                    setPlays([]);
+                    setGuess(Array(7).fill(null));
+                    setIsLocked(false);
+                    setFeedback({ text: '', type: '' });
+                    autoSubmittedRef.current = false; // Reset for new game
+                    startAmbience(); // Start background loop
+                    fetchLeaderboard();
+                } else if (data.type === 'timer') {
+                    if (data.payload && data.payload.time_left !== undefined) {
+                        const newTime = Math.max(0, data.payload.time_left);
+                        setTimeLeft(newTime);
+                    }
+                } else if (data.type === 'play') {
+                    const playObj = {
+                        player: data.sender,
+                        playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
+                        word: data.payload.word,
+                        score: data.payload.score,
+                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                    };
+                    setPlays(prev => {
+                        const filtered = prev.filter(p => p.player !== data.sender);
+                        return [playObj, ...filtered];
+                    });
+                    if (data.sender === playerIdRef.current) {
+                        setFeedback({ text: t('app.accepted'), type: 'success' });
+                        setIsLocked(true);
+                        setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+                    }
+                } else if (data.type === 'error') {
+                    setFeedback({ text: data.payload, type: 'error' });
+                    setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+                } else if (data.type === 'play_result') {
+                    setPlays(prev => [...prev, {
+                        player: data.sender,
+                        playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
+                        word: data.payload.word,
+                        score: data.payload.score,
+                        id: Date.now()
+                    }]);
+                } else if (data.type === 'game_end') {
+                    const resultsData = {
+                        results: data.payload.plays || [],
+                        summary: (data.payload.plays && data.payload.plays.length > 0) ? t('results.round_over') : t('results.no_plays_round')
+                    };
+                    if (resultsData.results.length > 0 && data.payload.definition) {
+                        resultsData.results[0].definition = data.payload.definition;
+                    }
+                    setResults(resultsData);
+                    setIsLocked(true);
+                    play('game_over');
+                    fetchLeaderboard();
                 }
-            } else if (data.type === 'game_over') {
-                setResults(data.payload);
-                fetchLeaderboard();
-                setIsLocked(false);
-                play('bigsplat'); // Game end explosion
+            };
+        };
+
+        connect();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                connect();
             }
         };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
-            clearTimeout(connectionTimeout);
-            socket.close();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (socket) socket.close();
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
         };
-    }, []);
+    }, [playerId]);
 
     // Persistent state for identity
     const [nickname, setNickname] = useState("")
@@ -202,21 +253,17 @@ function App() {
 
     // Auto-submit word when timer hits 0
     useEffect(() => {
-        if (timeLeft <= 0 && !isLocked && !autoSubmittedRef.current && guess.some(g => g !== null)) {
+        if (timeLeft <= 0 && !isLocked && !autoSubmittedRef.current && guessRef.current.some(g => g !== null)) {
             // Build word from guess slots
-            const word = guess.map(g => g ? g.char : '').join('').toUpperCase();
+            const word = guessRef.current.map(g => g ? g.char : '').join('').toUpperCase().trim();
             if (word.length > 0 && ws && ws.readyState === WebSocket.OPEN) {
-                console.log('Auto-submitting word at timer end:', word);
+                console.log('AUTO-SUBMITTING:', word);
                 autoSubmittedRef.current = true;
-                // Inline submission to avoid circular dependency
-                const msg = JSON.stringify({
-                    type: 'play',
-                    payload: { word }
-                });
-                ws.send(msg);
+                ws.send(JSON.stringify({ type: 'play', payload: { word } }));
             }
         }
-    }, [timeLeft, isLocked, guess, ws]);
+    }, [timeLeft, isLocked, ws]);
+    // Wait, if guess changes while timeLeft is 0, we might want to submit? No, usually it's at the transition.
 
     const handleTileClick = (tile, source) => {
         if (isLocked || timeLeft === 0) return;
@@ -412,53 +459,159 @@ function App() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await fetch('/auth/logout', { method: 'POST' });
+            setIsAuthenticated(false);
+            setPlayerId(null);
+            setNickname("");
+            setWs(null);
+        } catch (err) {
+            console.error('Logout failed:', err);
+        }
+    };
+
+    const handleRegisterPasskey = async () => {
+        try {
+            const resp = await fetch('/auth/passkey/challenge');
+            if (!resp.ok) throw new Error('Could not get challenge');
+            const options = await resp.json();
+
+            // Convert base64 to ArrayBuffer
+            options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer;
+            options.user.id = Uint8Array.from(options.user.id, c => c.charCodeAt(0)).buffer;
+
+            if (options.excludeCredentials) {
+                options.excludeCredentials = options.excludeCredentials.map(c => ({
+                    ...c,
+                    id: Uint8Array.from(atob(c.id), ch => ch.charCodeAt(0)).buffer
+                }));
+            }
+
+            const credential = await navigator.credentials.create({
+                publicKey: options
+            });
+
+            const verifyResp = await fetch('/auth/passkey/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: credential.id,
+                    type: 'registration',
+                    rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+                    response: {
+                        attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
+                        clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+                    }
+                })
+            });
+
+            if (verifyResp.ok) {
+                setFeedback({ text: t('auth.passkey_registered'), type: 'success' });
+            } else {
+                throw new Error('Verification failed');
+            }
+        } catch (err) {
+            console.error('Passkey registration failed:', err);
+            setFeedback({ text: err.name === 'NotAllowedError' ? 'Registration cancelled' : err.message, type: 'error' });
+        } finally {
+            setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+        }
+    };
+
+    if (isAuthChecking) {
+        return (
+            <div className="loading-modal">
+                <div className="loading-card">
+                    <div className="loading-spinner"></div>
+                    <h2>{t('app.loading')}</h2>
+                    <p>{t('auth.logging_in')}</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Login onLoginSuccess={() => checkAuth()} />;
+    }
+
     return (
         <div className="game-container">
             <header>
                 <div className="header-content">
-                    <h1>wordw<span className="splat">💥</span>nk</h1>
-                    {nickname && <div className="user-nickname">Playing as: <strong>{nickname}</strong></div>}
+                    <h1>{t('app.title')}<span className="splat">💥</span>nk</h1>
+                    {nickname && <div className="user-nickname">{t('app.playing_as')}: <strong>{nickname}</strong></div>}
                 </div>
-                <button className="mute-btn" onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}>
-                    {isMuted ? '🔇' : '🔊'}
-                </button>
+                <div className="header-actions">
+                    <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
+                        🔑
+                    </button>
+                    {/* Language selection hidden for now
+                    <select
+                        className="lang-select"
+                        value={i18n.language}
+                        onChange={(e) => {
+                            const newLang = e.target.value;
+                            i18n.changeLanguage(newLang);
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    type: 'set_language',
+                                    payload: { language: newLang }
+                                }));
+                            }
+                        }}
+                    >
+                        <option value="en">EN</option>
+                        <option value="es">ES</option>
+                    </select>
+                    */}
+                    <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
+                        🚪
+                    </button>
+                    <button className="header-btn" onClick={toggleMute}>
+                        {isMuted ? '🔈' : '🔊'}
+                    </button>
+                </div>
             </header>
 
             <main className="game-area">
                 <div className="main-game-layout">
                     <div className="center-panel">
                         <div className="rack-section">
-                            <div className="section-label">YOUR RACK (Click to Play)</div>
+                            <div className="section-label">{t('app.rack_label')}</div>
                             <div className="rack-container clickable">
                                 {rack.map((tile) => (
                                     <div key={tile.id} onClick={() => moveTileToGuess(tile)}>
-                                        <Tile letter={tile.letter} value={letterValue > 0 ? letterValue : undefined} />
+                                        <Tile
+                                            letter={tile.letter}
+                                            value={typeof letterValue === 'object' ? letterValue[tile.letter] : (letterValue > 0 ? letterValue : undefined)}
+                                        />
                                     </div>
                                 ))}
-                                {rack.length === 0 && <div className="empty-rack-msg">ALL TILES PLAYED!</div>}
+                                {rack.length === 0 && <div className="empty-rack-msg">{t('app.empty_rack')}</div>}
                             </div>
                             <div className="rack-actions">
                                 <button
                                     className="jumble-btn"
                                     onClick={jumbleRack}
                                     disabled={isLocked || timeLeft === 0 || rack.length === 0}
-                                    title="Shuffle tiles"
+                                    title={t('app.jumble')}
                                 >
-                                    🔀 JUMBLE
+                                    {t('app.jumble')}
                                 </button>
                                 <button
                                     className="clear-btn"
                                     onClick={clearGuess}
                                     disabled={isLocked || timeLeft === 0 || guess.every(g => g === null)}
-                                    title="Clear all tiles from word"
+                                    title={t('app.clear')}
                                 >
-                                    🧹 CLEAR
+                                    {t('app.clear')}
                                 </button>
                             </div>
                         </div>
 
                         <div className="input-section">
-                            <div className="section-label">YOUR WORD (Click to Remove)</div>
+                            <div className="section-label">{t('app.word_label')}</div>
                             <div className="word-board">
                                 {guess.map((slot, i) => {
                                     const isFirstEmpty = guess.findIndex(g => g === null) === i;
@@ -469,7 +622,10 @@ function App() {
                                             onClick={() => slot && returnToRack(i)}
                                         >
                                             {slot ? (
-                                                <Tile letter={slot.char} value={letterValue > 0 ? letterValue : undefined} />
+                                                <Tile
+                                                    letter={slot.char}
+                                                    value={typeof letterValue === 'object' ? letterValue[slot.originalLetter || slot.char.toUpperCase()] : (letterValue > 0 ? letterValue : undefined)}
+                                                />
                                             ) : (
                                                 <div className="slot-placeholder"></div>
                                             )}
@@ -483,7 +639,7 @@ function App() {
                                     onClick={submitWord}
                                     disabled={isLocked || timeLeft === 0 || guess.every(g => g === null)}
                                 >
-                                    SUBMIT WORD!
+                                    {t('app.submit')}
                                 </button>
                                 {feedback.text && (
                                     <div className={`feedback-label ${feedback.type} visible`}>
@@ -503,7 +659,7 @@ function App() {
             {blankChoice && (
                 <div className="blank-modal-overlay">
                     <div className="blank-modal">
-                        <h3>SELECT LETTER FOR BLANK</h3>
+                        <h3>{t('app.select_blank')}</h3>
                         <div className="letter-grid">
                             {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => (
                                 <button
@@ -515,22 +671,24 @@ function App() {
                                 </button>
                             ))}
                         </div>
-                        <button className="cancel-btn" onClick={() => setBlankChoice(null)}>CANCEL</button>
+                        <button className="cancel-btn" onClick={() => setBlankChoice(null)}>{t('app.cancel')}</button>
                     </div>
                 </div>
             )}
 
-            <DraggablePanel title="LEADERBOARD" id="leaderboard" initialPos={{ x: 20, y: 100 }}>
+            <DraggablePanel title={t('app.leaderboard')} id="leaderboard" initialPos={{ x: 20, y: 100 }} initialSize={{ width: 220, height: 200 }}>
                 <Leaderboard players={leaderboard} />
             </DraggablePanel>
 
-            <DraggablePanel title="PLAY-BY-PLAY" id="plays" initialPos={{ x: window.innerWidth - 320, y: 100 }}>
+            <DraggablePanel title={t('app.play_by_play')} id="plays" initialPos={{ x: window.innerWidth - 240, y: 100 }} initialSize={{ width: 220, height: 200 }}>
                 <PlayByPlay plays={plays} playerNames={playerNames} />
             </DraggablePanel>
 
-            <DraggablePanel title="CHAT" id="chat" initialPos={{ x: window.innerWidth - 320, y: 380 }}>
+            {/* Chat hidden for now
+            <DraggablePanel title={t('app.chat')} id="chat" initialPos={{ x: window.innerWidth - 320, y: 380 }}>
                 <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
             </DraggablePanel>
+            */}
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 
@@ -540,17 +698,17 @@ function App() {
                         {connectionError ? (
                             <>
                                 <div className="error-icon">⚠️</div>
-                                <h2>CONNECTION ERROR</h2>
+                                <h2>{t('app.connection_error')}</h2>
                                 <p>{connectionError}</p>
                                 <button className="reload-btn" onClick={() => window.location.reload()}>
-                                    RELOAD PAGE
+                                    {t('app.reload')}
                                 </button>
                             </>
                         ) : (
                             <>
                                 <div className="loading-spinner"></div>
-                                <h2>LOADING...</h2>
-                                <p>Connecting to game server</p>
+                                <h2>{t('app.loading')}</h2>
+                                <p>{t('app.connecting')}</p>
                             </>
                         )}
                     </div>

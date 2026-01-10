@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import './Panel.css';
 
-const DraggablePanel = ({ title, children, id, initialPos }) => {
+const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width: 300, height: 250 } }) => {
     const [pos, setPos] = useState(initialPos);
-    const [size, setSize] = useState({ width: 300, height: 250 });
+    const [size, setSize] = useState(initialSize);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
