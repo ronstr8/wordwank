@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.17.0] - 2026-01-10
+
+### Changed - BREAKING
+
+- **Complete Scoring System Overhaul**:
+  - **Vowels (A,E,I,O,U)**: Now always worth 1 point
+  - **Q and Z**: Always worth 10 points  
+  - **Day-of-Week Letter**: First letter of current day in Buffalo, NY timezone is worth 7 points (e.g., "F" on Friday)
+  - **Other Letters**: Random value between 2-9, changes every game
+  - **Duplicate Penalty**: Players who submit duplicate words get 0 points (original player still gets +1 bonus)
+  - **Solo Player Rule**: If only one player submits in a game, everyone gets 0 points
+  - **All Tiles Bonus**: Unchanged, still +10 points for using all 7 tiles
+
+### Added
+
+- **DUPLICATE Badge**: Dupers are now marked with a red "DUPLICATE" badge in results screen
+- Day-letter calculation uses Buffalo, NY timezone (America/New_York) for consistency
+
+### Fixed
+
+- Backend now properly handles edge cases for scoring bonuses
+
 ## [0.16.0] - 2026-01-10
 
 ### Added

@@ -6,7 +6,7 @@ REGISTRY = localhost:5000
 TAG ?= $(shell grep -m 1 "imageTag:" helm/values.yaml | sed 's/.*imageTag:[[:space:]]*//' | tr -d ' "')
 DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = wordwank
-DOMAIN = arkham.fazigu.org
+DOMAIN = wordwank.fazigu.org
 
 SERVICES = frontend backend wordd dictd
 
@@ -22,7 +22,7 @@ help:
 	@echo "  make minikube-setup - Enable registry and ingress addons"
 	@echo "  make metallb-install - Install MetalLB manifests directly"
 	@echo "  make metallb-config - Configure MetalLB with a default IP range"
-	@echo "  make expose        - Proxy Arkham:80 to Minikube Ingress (run as root)"
+	@echo "  make expose        - Proxy localhost:80 to Minikube Ingress (run as root)"
 	@echo "  make <service>     - Build, Push, and Restart a specific service"
 
 # Step 1: Prepare Minikube for our production-like workflow
@@ -52,9 +52,9 @@ metallb-config:
 	sed "s/RANGE_START/$$RANGE_START/; s/RANGE_END/$$RANGE_END/" helm/resources/metallb-config.yaml | kubectl apply -f -
 
 # Step 4: Expose the Ingress to the 192.168.1.0 network
-# This requires 'socat' installed on Arkham and sudo privileges
+# This requires 'socat' installed and sudo privileges
 expose:
-	@echo "Bridging Arkham:80 to Minikube Ingress..."
+	@echo "Bridging 0.0.0.0:80 to Minikube Ingress..."
 	@INGRESS_IP=$$(kubectl get ingress -n $(NAMESPACE) ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
 	if [ -z "$$INGRESS_IP" ]; then echo "Error: Ingress doesn't have an IP yet. Did you run make deploy and make metallb-config?"; exit 1; fi; \
 	echo "Ingress IP is $$INGRESS_IP. Starting proxy..."; \

@@ -1,6 +1,6 @@
 # Global settings shared across all microservices
 global:
-  domain: arkham.fazigu.org
+  domain: wordwank.fazigu.org
   # The single port for all traffic (Frontend, API, WS)
   externalPort: 80
   registry: localhost:5000
@@ -14,7 +14,7 @@ global:
 # Centralized Ingress configuration
 ingress:
   enabled: true
-  host: arkham.fazigu.org
+  host: wordwank.fazigu.org
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "false"

@@ -2,18 +2,43 @@ package Wordwank::Game::Scorer;
 use Moose;
 use v5.36;
 use utf8;
+use DateTime;
 
-has letter_values => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    default => sub {
-        {
-            A => 1, B => 3, C => 3, D => 2, E => 1, F => 4, G => 2, H => 4, I => 1, J => 8, K => 5, L => 1,
-            M => 3, N => 1, O => 1, P => 3, Q => 10, R => 1, S => 1, T => 1, U => 2, V => 4, W => 4, X => 8,
-            Y => 4, Z => 10, '_' => 0,
-        }
+# Generate letter values for a new game based on new scoring rules
+sub generate_letter_values {
+    my $self = shift;
+    
+    # Get current day of week in Buffalo, NY (America/New_York timezone)
+    my $now = DateTime->now(time_zone => 'America/New_York');
+    my $day_name = $now->day_name;  # Monday, Tuesday, etc.
+    my $day_letter = uc(substr($day_name, 0, 1));  # M, T, W, T, F, S, S
+    
+    my %values;
+    my @vowels = qw(A E I O U);
+    my @all_letters = ('A'..'Z');
+    
+    # Initialize all letters with random values 2-9
+    for my $letter (@all_letters) {
+        $values{$letter} = 2 + int(rand(8));  # Random from 2-9
     }
-);
+    
+    # Override: Vowels always 1 point
+    for my $vowel (@vowels) {
+        $values{$vowel} = 1;
+    }
+    
+    # Override: Q and Z always 10 points
+    $values{Q} = 10;
+    $values{Z} = 10;
+    
+    # Override: Day-of-week letter is 7 points (takes precedence over everything)
+    $values{$day_letter} = 7;
+    
+    # Blank tile always 0
+    $values{'_'} = 0;
+    
+    return \%values;
+}
 
 has tile_counts => (
     is      => 'ro',
@@ -68,12 +93,11 @@ sub calculate_score {
     my ($self, $word, $custom_values) = @_;
     my $score = 0;
     
+    # custom_values is now required (generated per game)
+    return 0 unless $custom_values;
+    
     for my $char (split //, uc($word)) {
-        if ($custom_values && exists $custom_values->{$char}) {
-            $score += $custom_values->{$char};
-        } else {
-            $score += $self->letter_values->{$char} // 0;
-        }
+        $score += $custom_values->{$char} // 0;
     }
     
     return $score;

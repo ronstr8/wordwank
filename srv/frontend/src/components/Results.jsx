@@ -77,6 +77,11 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                                     <span className="player-id">{playerNames[res.player] || res.player}</span>
                                     <span className="player-word">{res.word}</span>
                                     <span className="player-score">{res.score} {t('results.score').toLowerCase()}</span>
+                                    {res.is_dupe && (
+                                        <span className="bonus-tag" style={{ background: '#e74c3c', marginLeft: '0.5rem' }}>
+                                            DUPLICATE
+                                        </span>
+                                    )}
                                 </div>
                                 {res.bonuses && res.bonuses.length > 0 && (
                                     <div className="bonus-tags">

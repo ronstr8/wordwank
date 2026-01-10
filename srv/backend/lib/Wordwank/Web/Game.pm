@@ -75,14 +75,15 @@ sub _handle_join ($self, $player) {
     if (!$active_game) {
         # Create new game
         my $rack = $app->scorer->get_random_rack;
-        # Generate random letter values if intended
-        my %vals = map { $_ => int(rand(10)) + 1 } ('A'..'Z');
+    
+        # Generate letter values using new scoring rules
+        my $vals = $app->scorer->generate_letter_values();
         
         $gid = create_uuid_as_string(UUID_V4);
         $active_game = $game_rs->create({
             id            => $gid,
             rack          => $rack,
-            letter_values => \%vals,
+            letter_values => $vals,
             started_at    => DateTime->now,
         });
 
@@ -267,6 +268,7 @@ sub _end_game ($self, $game) {
     # Track duplicates: word -> [player_ids in order]
     my %word_to_players;
     my %player_bonuses;  # player_id -> { duplicates => count, all_tiles => 10 }
+    my %is_duper;  # player_id -> 1 if they duplicated someone
     
     for my $play (@plays) {
         my $word = $play->get_column('word');
@@ -283,7 +285,7 @@ sub _end_game ($self, $game) {
         }
     }
     
-    # Calculate duplicate bonuses (original player gets 1 point per duplicate)
+    # Calculate duplicate bonuses and mark dupers
     for my $word (keys %word_to_players) {
         my $players = $word_to_players{$word};
         if (scalar(@$players) > 1) {
@@ -291,8 +293,16 @@ sub _end_game ($self, $game) {
             my $original_player = $players->[0];
             my $duplicate_count = scalar(@$players) - 1;
             $player_bonuses{$original_player}{duplicates} += $duplicate_count;
+            
+            # Mark all subsequent players as dupers
+            for my $i (1 .. $#$players) {
+                $is_duper{$players->[$i]} = 1;
+            }
         }
     }
+    
+    # Solo player rule: if only one player submitted, everyone gets 0 points
+    my $solo_game = scalar(@plays) == 1;
     
     # Build enhanced results with bonuses
     my @results;
@@ -306,7 +316,19 @@ sub _end_game ($self, $game) {
         
         my $duplicate_bonus = $bonuses->{duplicates} || 0;
         my $all_tiles_bonus = $bonuses->{all_tiles} || 0;
-        my $total_score = $base_score + $duplicate_bonus + $all_tiles_bonus;
+        
+        # NEW RULES:
+        # 1. If this player is a duper, they get 0 points for their word
+        # 2. If solo game (only one player), everyone gets 0
+        my $total_score;
+        if ($solo_game) {
+            $total_score = 0;
+        } elsif ($is_duper{$player_id}) {
+            # Duper gets 0 for their word, but original still gets +1 bonus
+            $total_score = 0;
+        } else {
+            $total_score = $base_score + $duplicate_bonus + $all_tiles_bonus;
+        }
         
         # Track highest score per player (in case of multiple plays, though we prevent this)
         if (!exists $player_total_scores{$player_id} || $total_score > $player_total_scores{$player_id}{score}) {
@@ -315,9 +337,10 @@ sub _end_game ($self, $game) {
                 player          => $play->get_column('player'),  # nickname for display
                 word            => $word,
                 score           => $total_score,
-                base_score      => $base_score,
+                base_score      => $is_duper{$player_id} ? 0 : $base_score,
                 duplicate_bonus => $duplicate_bonus,
-                all_tiles_bonus => $all_tiles_bonus,
+                all_tiles_bonus => $solo_game ? 0 : $all_tiles_bonus,
+                is_dupe         => $is_duper{$player_id} ? 1 : 0,
             };
         }
     }
@@ -343,6 +366,7 @@ sub _end_game ($self, $game) {
             player => $_->{player}, 
             word   => $_->{word}, 
             score  => $_->{score},
+            is_dupe => $_->{is_dupe},
         };
         # Add bonuses array if any exist
         my @bonuses;
