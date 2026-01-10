@@ -1,5 +1,5 @@
 replicaCount: 1
-dictdHost: "wordwank-dictd:2628"
+dictdHost: "dictd:2628"
 
 service:
   type: ClusterIP

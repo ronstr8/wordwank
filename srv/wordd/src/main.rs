@@ -80,24 +80,77 @@ fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
 }
 
 fn query_dictd(host: &str, word: &str) -> io::Result<String> {
+    info!("Connecting to dictd host: {} for word: {}", host, word);
     let mut stream = TcpStream::connect(host)?;
-    let command = format!("DEFINE * {}\n", word);
-    stream.write_all(command.as_bytes())?;
-
-    let reader = BufReader::new(stream);
-    let mut response = String::new();
-
-    for line in reader.lines() {
-        let line = line?;
-        if line.starts_with("250") {
-            // End of definition marker
-            break;
-        }
-        response.push_str(&line);
-        response.push('\n');
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
+    
+    let mut reader = BufReader::new(stream);
+    let mut line = String::new();
+    
+    // Read greeting
+    reader.read_line(&mut line)?;
+    info!("Dictd greeting: {}", line.trim());
+    if !line.starts_with("220") {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("Unexpected greeting: {}", line)));
     }
 
-    Ok(response)
+    // Send DEFINE
+    let command = format!("DEFINE * {}\n", word);
+    let stream = reader.get_mut();
+    stream.write_all(command.as_bytes())?;
+    info!("Sent DEFINE command for: {}", word);
+
+    let mut response = String::new();
+    let mut found_content = false;
+
+    loop {
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
+            Ok(0) => break, // EOF
+            Ok(_) => {
+                let trimmed = line.trim();
+                
+                // Status codes
+                if trimmed.starts_with("250") {
+                    info!("Dictd: Match finished (250)");
+                    break;
+                }
+                if trimmed.starts_with("552") {
+                    info!("Dictd: No match found (552)");
+                    return Ok(String::new());
+                }
+                if trimmed.starts_with("150") || trimmed.starts_with("151") {
+                    info!("Dictd: {}", trimmed);
+                    continue;
+                }
+                
+                // Error codes
+                if trimmed.starts_with("5") || trimmed.starts_with("4") {
+                    warn!("Dictd error: {}", trimmed);
+                    break;
+                }
+
+                // Actual content
+                if !line.starts_with('.') || line.len() > 2 {
+                    // Protocol: lines beginning with '.' are escaped. 
+                    // '..' becomes '.'
+                    // '.' alone ends the definition block (handled by 250 usually but let's be safe)
+                    let clean_line = if line.starts_with("..") { &line[1..] } else { &line };
+                    response.push_str(clean_line);
+                    if !clean_line.trim().is_empty() {
+                        found_content = true;
+                    }
+                }
+            },
+            Err(e) => {
+                warn!("Error reading from dictd: {}", e);
+                return Err(e);
+            }
+        }
+    }
+
+    info!("Dictd query complete. Found content: {}", found_content);
+    if !found_content { Ok(String::new()) } else { Ok(response) }
 }
 
 #[get("/word/{lang}/{word}")]
@@ -122,16 +175,20 @@ async fn check_word_lang(
         match query_dictd(host, &word) {
             Ok(response) => {
                 info!("Valid word queried ({}): {}", lang, word.to_uppercase());
-                HttpResponse::Ok().body(response)
+                if response.trim().is_empty() {
+                    HttpResponse::Ok().body(format!("(Definition for '{}' not found in database)", word.to_uppercase()))
+                } else {
+                    HttpResponse::Ok().body(response)
+                }
             },
             Err(_) => {
                 warn!("Failed to query dictd for word: {}. Accepting anyway.", word.to_uppercase());
-                HttpResponse::Ok().finish()
+                HttpResponse::Ok().body(format!("(Definition for '{}' not found in dictionary service)", word.to_uppercase()))
             }
         }
     } else {
         info!("Valid word without dictd lookup ({}): {}", lang, word.to_uppercase());
-        HttpResponse::Ok().finish()
+        HttpResponse::Ok().body(format!("(Dictionary service not configured for '{}')", word.to_uppercase()))
     }
 }
 
@@ -152,14 +209,20 @@ async fn check_word(
 
     if let Some(host) = &data.dictd_host {
         match query_dictd(host, &word) {
-            Ok(response) => HttpResponse::Ok().body(response),
+            Ok(response) => {
+                if response.trim().is_empty() {
+                    HttpResponse::Ok().body(format!("(Definition for '{}' not found in database)", word.to_uppercase()))
+                } else {
+                    HttpResponse::Ok().body(response)
+                }
+            },
             Err(_) => {
                 warn!("Failed to query dictd for word: {}. Accepting anyway.", word.to_uppercase());
-                HttpResponse::Ok().finish()
+                HttpResponse::Ok().body(format!("(Definition for '{}' not found in dictionary service)", word.to_uppercase()))
             }
         }
     } else {
-        HttpResponse::Ok().finish()
+        HttpResponse::Ok().body(format!("(Dictionary service not configured for '{}')", word.to_uppercase()))
     }
 }
 

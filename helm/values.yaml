@@ -9,6 +9,7 @@ global:
   imagePullPolicy: Always
   maxPlayers: 13
   randomLetterScoreMode: "true"
+  gameDuration: 30
 
 # Centralized Ingress configuration
 ingress:
@@ -46,18 +47,18 @@ backend:
   database:
     url: "dbi:Pg:dbname=wordwank;host=postgresql"
     user: "wordwank_backend"
-    pass: "PLACEHOLDER_SEE_SECRETS_YAML"
 
 # PostgreSQL dependency configuration
 postgresql:
   enabled: true
+  fullnameOverride: postgresql
   image:
     tag: "latest"
   auth:
     database: "wordwank"
     username: "wordwank_backend"
-#   password: "PLACEHOLDER_SEE_SECRETS_YAML"
-#   postgresPassword: "PLACEHOLDER_SEE_SECRETS_YAML"
   primary:
+    initdb:
+      scriptsConfigMap: db-init
     persistence:
       enabled: false # Keep it simple for dev

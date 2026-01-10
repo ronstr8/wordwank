@@ -11,31 +11,39 @@ const Results = ({ data, onClose, playerNames = {} }) => {
     const [showDefinition, setShowDefinition] = useState(false);
 
     useEffect(() => {
-        const handleInput = (e) => {
-            // Only prevent closing if clicking inside the definition modal content
-            if (showDefinition && e.target.closest('.definition-modal-card')) return;
-            if (onClose) onClose();
+        const handleKeydown = () => {
+            if (showDefinition) {
+                setShowDefinition(false);
+            } else if (onClose) {
+                onClose();
+            }
         };
-        window.addEventListener('keydown', handleInput);
-        window.addEventListener('mousedown', handleInput);
-        return () => {
-            window.removeEventListener('keydown', handleInput);
-            window.removeEventListener('mousedown', handleInput);
-        };
+
+        window.addEventListener('keydown', handleKeydown);
+        return () => window.removeEventListener('keydown', handleKeydown);
     }, [onClose, showDefinition]);
+
+    const handleOverlayClick = () => {
+        if (showDefinition) {
+            setShowDefinition(false);
+        } else if (onClose) {
+            onClose();
+        }
+    };
 
     return (
         <motion.div
             className="results-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            onClick={handleOverlayClick}
         >
             <div className="splatter-background">
                 <div className="splat-effect s1"></div>
                 <div className="splat-effect s2"></div>
                 <div className="splat-effect s3"></div>
             </div>
-            <div className="results-card">
+            <div className="results-card" onClick={(e) => !showDefinition && e.stopPropagation()}>
                 <h2>{t('results.title')}!</h2>
                 <div className="summary-banner">{summary}</div>
 
@@ -94,8 +102,12 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                 </div>
                 <div className="next-game">{t('results.next_game_soon')}</div>
             </div>
+
             {showDefinition && winner && (
-                <div className="definition-modal-overlay" onClick={() => setShowDefinition(false)}>
+                <div className="definition-modal-overlay" onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDefinition(false);
+                }}>
                     <motion.div
                         className="definition-modal-card"
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -115,7 +127,7 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                 </div>
             )}
         </motion.div>
-    )
+    );
 }
 
 export default Results

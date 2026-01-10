@@ -21,9 +21,8 @@ target/
 **/*.rs.bk
 
 # Helm 
-helm/Chart.lock
+helm/charts/
 helm/secrets.yaml
-helm/values.yaml
 
 # IDEs
 .vscode/

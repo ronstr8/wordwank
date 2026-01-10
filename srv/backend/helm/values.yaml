@@ -7,7 +7,5 @@ service:
   type: ClusterIP
   port: 3000
 database:
-  url: "dbi:Pg:dbname=wordwank;host=wordwank-postgresql"
+  url: "dbi:Pg:dbname=wordwank;host=postgresql"
   user: "postgres"
-# pass: "wordwank"
-  pass: "wordwank"

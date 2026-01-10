@@ -21,6 +21,9 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 2345
+          env:
+            - name: RUST_LOG
+              value: "info"
           command: ["wordd"]
           args:
             - "--share-dir=/app/share"

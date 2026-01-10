@@ -242,7 +242,8 @@ sub _start_game_timer ($self, $game) {
 
         if ($g->{time_left} <= 0) {
             $loop->remove($timer_id);
-            $self->_end_game($game);
+            # Buffer for network latency / last second submissions
+            Mojo::IOLoop->timer(2 => sub { $self->_end_game($game) });
         }
     });
 }
@@ -256,8 +257,8 @@ sub _end_game ($self, $game) {
         { game_id => $game->id },
         {
             join     => 'player',
-            select   => [ 'player.nickname', 'me.word', 'me.score' ],
-            as       => [ qw/player word score/ ],
+            select   => [ 'player.nickname', 'me.word', 'me.score', 'player.language' ],
+            as       => [ qw/player word score language/ ],
             order_by => { -desc => 'score' }
         }
     )->all;
@@ -268,9 +269,12 @@ sub _end_game ($self, $game) {
         score  => $_->get_column('score') 
     } } @results ];
 
-    my $winner_word = $results[0] ? $results[0]->get_column('word') : undef;
+    my $winner = $results[0];
+    my $winner_word = $winner ? $winner->get_column('word') : undef;
+    my $winner_lang = $winner ? ($winner->get_column('language') // 'en') : 'en';
 
     my $send_results = sub ($definition = undef) {
+        $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE"));
         $self->_broadcast_to_game($game->id, {
             type    => 'game_end',
             payload => {
@@ -299,9 +303,13 @@ sub _end_game ($self, $game) {
     };
 
     if ($winner_word) {
-        my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/word/en/";
-        $self->app->ua->get($wordd_url . lc($winner_word) => sub ($ua, $tx) {
-            $send_results->($tx->result->body);
+        my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/word/$winner_lang/";
+        my $full_url = $wordd_url . lc($winner_word);
+        $self->app->log->debug("Fetching winner definition: $full_url");
+        $self->app->ua->get($full_url => sub ($ua, $tx) {
+            my $res = $tx->result;
+            $self->app->log->debug("Wordd response [ " . ($res->code // 'ERR') . " ] Size: " . length($res->body // ''));
+            $send_results->($res->body);
         });
     } else {
         $send_results->();
