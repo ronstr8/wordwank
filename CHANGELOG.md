@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.16.0] - 2026-01-10
+
+### Added
+
+- **Lifetime Score Tracking**: Players now have a `lifetime_score` column that tracks cumulative points across all games
+- **Duplicate Word Bonus**: Original player gets +1 point for each other player who submits the same word
+- **All Tiles Bonus**: +10 point bonus for using all 7 tiles in a single word
+- **Chat Panel**: Re-enabled chat interface with toggle button in header
+- **Panel Persistence**: Panel positions, sizes, and visibility states now persist in localStorage
+- **Bonus Display**: End-game results now show detailed breakdowns of "Duplicates" and "All Tiles" bonuses
+
+### Fixed
+
+- **End-of-Game Splash**: Fixed critical bug where results screen wasn't showing due to incorrect player ID usage
+- **Logo Display**: Fixed "wordw💥nk" logo breaking across lines on mobile with `white-space: nowrap`
+- **Scoring Accuracy**: Backend now correctly uses player IDs for database lookups instead of nicknames
+
+### Changed
+
+- **Database Schema v0.2.0**: Added `lifetime_score INTEGER` column to `players` table
+- Tile value font size increased from `clamp(0.6rem, 1.2vw, 1rem)` to `clamp(0.75rem, 1.5vw, 1.2rem)` for better mobile readability
+- Panels (Leaderboard, Play-by-Play, Chat) now hidden by default and toggleable via header buttons
+
 ## [0.15.7] - 2026-01-08
 
 ### Added

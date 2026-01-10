@@ -250,28 +250,107 @@ sub _start_game_timer ($self, $game) {
 
 sub _end_game ($self, $game) {
     my $schema = $self->app->schema;
+    my $app = $self->app;
     $game->update({ finished_at => DateTime->now });
 
-    # Calculate final results
-    my @results = $schema->resultset('Play')->search(
+    # Fetch all plays for this game with player info
+    my @plays = $schema->resultset('Play')->search(
         { game_id => $game->id },
         {
             join     => 'player',
-            select   => [ 'player.nickname', 'me.word', 'me.score', 'player.language' ],
-            as       => [ qw/player word score language/ ],
-            order_by => { -desc => 'score' }
+            select   => [ 'me.player_id', 'player.nickname', 'me.word', 'me.score', 'player.language', 'me.created_at' ],
+            as       => [ qw/player_id player word score language created_at/ ],
+            order_by => { -asc => 'me.created_at' }
         }
     )->all;
 
-    my $payload = [ map { { 
-        player => $_->get_column('player'), 
-        word   => $_->get_column('word'), 
-        score  => $_->get_column('score') 
-    } } @results ];
+    # Track duplicates: word -> [player_ids in order]
+    my %word_to_players;
+    my %player_bonuses;  # player_id -> { duplicates => count, all_tiles => 10 }
+    
+    for my $play (@plays) {
+        my $word = $play->get_column('word');
+        my $player_id = $play->get_column('player_id');
+        
+        push @{$word_to_players{$word}}, $player_id;
+        
+        # Initialize bonus tracking for this player
+        $player_bonuses{$player_id} //= { duplicates => 0, all_tiles => 0 };
+        
+        # Check if this play used all tiles
+        if ($app->scorer->uses_all_tiles($word, $game->rack)) {
+            $player_bonuses{$player_id}{all_tiles} = 10;
+        }
+    }
+    
+    # Calculate duplicate bonuses (original player gets 1 point per duplicate)
+    for my $word (keys %word_to_players) {
+        my $players = $word_to_players{$word};
+        if (scalar(@$players) > 1) {
+            # First player is the original
+            my $original_player = $players->[0];
+            my $duplicate_count = scalar(@$players) - 1;
+            $player_bonuses{$original_player}{duplicates} += $duplicate_count;
+        }
+    }
+    
+    # Build enhanced results with bonuses
+    my @results;
+    my %player_total_scores;  # Track total scores including bonuses
+    
+    for my $play (@plays) {
+        my $player_id = $play->get_column('player_id');
+        my $word = $play->get_column('word');
+        my $base_score = $play->get_column('score');
+        my $bonuses = $player_bonuses{$player_id};
+        
+        my $duplicate_bonus = $bonuses->{duplicates} || 0;
+        my $all_tiles_bonus = $bonuses->{all_tiles} || 0;
+        my $total_score = $base_score + $duplicate_bonus + $all_tiles_bonus;
+        
+        # Track highest score per player (in case of multiple plays, though we prevent this)
+        if (!exists $player_total_scores{$player_id} || $total_score > $player_total_scores{$player_id}{score}) {
+            $player_total_scores{$player_id} = {
+                player_id       => $player_id,
+                player          => $play->get_column('player'),  # nickname for display
+                word            => $word,
+                score           => $total_score,
+                base_score      => $base_score,
+                duplicate_bonus => $duplicate_bonus,
+                all_tiles_bonus => $all_tiles_bonus,
+            };
+        }
+    }
+    
+    # Convert to sorted array
+    @results = sort { $b->{score} <=> $a->{score} } values %player_total_scores;
+    
+    # Update player cumulative scores in database
+    for my $result (@results) {
+        my $player = $schema->resultset('Player')->find($result->{player_id});
+        if ($player) {
+            $player->update({ lifetime_score => ($player->lifetime_score || 0) + $result->{score} });
+        }
+    }
 
     my $winner = $results[0];
-    my $winner_word = $winner ? $winner->get_column('word') : undef;
-    my $winner_lang = $winner ? ($winner->get_column('language') // 'en') : 'en';
+    my $winner_word = $winner ? $winner->{word} : undef;
+    my $winner_lang = $plays[0] ? ($plays[0]->get_column('language') // 'en') : 'en';
+
+    # Build payload with bonus details
+    my $payload = [ map { 
+        my $item = { 
+            player => $_->{player}, 
+            word   => $_->{word}, 
+            score  => $_->{score},
+        };
+        # Add bonuses array if any exist
+        my @bonuses;
+        push @bonuses, { 'Duplicates' => $_->{duplicate_bonus} } if $_->{duplicate_bonus} > 0;
+        push @bonuses, { 'All Tiles' => $_->{all_tiles_bonus} } if $_->{all_tiles_bonus} > 0;
+        $item->{bonuses} = \@bonuses if @bonuses;
+        $item;
+    } @results ];
 
     my $send_results = sub ($definition = undef) {
         $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE"));

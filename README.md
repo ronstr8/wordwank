@@ -102,12 +102,10 @@ avigate to your hostname to begin.
 
 All sound effects used in this project are from [Freesound](https://freesound.org/) and licensed under Creative Commons:
 
-- **placement.mp3**: <https://freesound.org/people/robbeman/sounds/495645/>
-- **buzzer.mp3**: <https://freesound.org/people/Soundwarf/sounds/387537/>
-- **bigsplat.mp3**: <https://freesound.org/people/PNMCarrieRailfan/sounds/681682/>
-- **ambience.mp3**: <https://freesound.org/people/Federicoy/sounds/834075/>
-
-## Interrobang Known Issues
+- **placement.mp3**: mug_wood1.wav by robbeman -- <https://freesound.org/s/495645/> -- License: Creative Commons 0
+- **buzzer.mp3**: panorouge.wav by Soundwarf -- <https://freesound.org/s/387537/> -- License: Creative Commons 0
+- **bigsplat.mp3**: Messy Splat 3 by FoolBoyMedia -- <https://freesound.org/s/237927/> -- License: Attribution 4.0
+- **ambience.mp3**: TV Show Intro Music by TheoJT -- <https://freesound.org/s/698508/> -- License: Attribution 4.0
 
 Special thanks to the Freesound community for their contributions.
 

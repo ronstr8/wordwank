@@ -1,5 +1,5 @@
 -- Wordwank PostgreSQL Schema
--- Version: 0.1.0
+-- Version: 0.2.0
 
 BEGIN;
 
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS players (
     real_name TEXT,                     -- From OAuth provider
     email TEXT UNIQUE,                  -- Optional, for account recovery
     language TEXT NOT NULL DEFAULT 'en',
+    lifetime_score INTEGER NOT NULL DEFAULT 0,   -- Cumulative score across all games
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_login_at TIMESTAMP WITH TIME ZONE
 );

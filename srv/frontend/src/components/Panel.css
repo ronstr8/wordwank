@@ -18,6 +18,30 @@
     cursor: move;
     user-select: none;
     border-bottom: 2px solid #2c3e50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-close-btn {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.panel-close-btn:hover {
+    color: #c0392b;
+    transform: scale(1.2);
 }
 
 .panel-body {

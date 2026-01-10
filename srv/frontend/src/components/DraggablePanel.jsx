@@ -1,14 +1,52 @@
 import { useState, useEffect } from 'react';
 import './Panel.css';
 
-const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width: 300, height: 250 } }) => {
-    const [pos, setPos] = useState(initialPos);
-    const [size, setSize] = useState(initialSize);
+const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width: 300, height: 250 }, onClose, storageKey }) => {
+    // Load saved preferences from localStorage
+    const loadFromStorage = () => {
+        if (!storageKey) return { pos: initialPos, size: initialSize };
+
+        try {
+            const saved = localStorage.getItem(`panel_${storageKey}`);
+            if (saved) {
+                const { position, size } = JSON.parse(saved);
+                return {
+                    pos: position || initialPos,
+                    size: size || initialSize
+                };
+            }
+        } catch (e) {
+            console.error('Failed to load panel preferences:', e);
+        }
+        return { pos: initialPos, size: initialSize };
+    };
+
+    const saved = loadFromStorage();
+    const [pos, setPos] = useState(saved.pos);
+    const [size, setSize] = useState(saved.size);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+    // Save to localStorage when position or size changes
+    useEffect(() => {
+        if (!storageKey) return;
+
+        try {
+            localStorage.setItem(`panel_${storageKey}`, JSON.stringify({
+                position: pos,
+                size: size
+            }));
+        } catch (e) {
+            console.error('Failed to save panel preferences:', e);
+        }
+    }, [pos, size, storageKey]);
+
     const onMouseDown = (e) => {
-        if (e.target.classList.contains('panel-header')) {
+        // Don't start drag if clicking close button
+        if (e.target.classList.contains('panel-close-btn') || e.target.closest('.panel-close-btn')) {
+            return;
+        }
+        if (e.target.classList.contains('panel-header') || e.target.closest('.panel-header')) {
             setIsDragging(true);
             setDragStart({
                 x: e.clientX - pos.x,
@@ -55,7 +93,10 @@ const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width
             onMouseDown={onMouseDown}
         >
             <div className="panel-header">
-                {title}
+                <span>{title}</span>
+                {onClose && (
+                    <button className="panel-close-btn" onClick={onClose}>×</button>
+                )}
             </div>
             <div className="panel-body">
                 {children}

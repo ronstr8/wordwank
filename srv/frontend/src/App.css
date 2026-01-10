@@ -2,6 +2,8 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     width: 100%;
     padding: 0 1rem;
 }
@@ -11,6 +13,42 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.header-toggles {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.panel-toggle {
+    background: rgba(52, 73, 94, 0.7);
+    border: 2px solid rgba(241, 196, 15, 0.3);
+    border-radius: 8px;
+    color: #ecf0f1;
+    padding: 0.5rem 1rem;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.panel-toggle:hover {
+    background: rgba(52, 73, 94, 0.9);
+    border-color: rgba(241, 196, 15, 0.6);
+    transform: translateY(-2px);
+}
+
+.panel-toggle.active {
+    background: rgba(241, 196, 15, 0.9);
+    border-color: #f1c40f;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.panel-toggle:active {
+    transform: translateY(0);
 }
 
 .mute-btn {

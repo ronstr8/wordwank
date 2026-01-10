@@ -97,6 +97,11 @@ sub can_form_word ($self, $word, $rack) {
     return 1;
 }
 
+sub uses_all_tiles ($self, $word, $rack) {
+    # Check if the word uses all 7 tiles
+    return length($word) == 7 && scalar(@$rack) == 7;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 1;

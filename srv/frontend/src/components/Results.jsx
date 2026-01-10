@@ -24,6 +24,7 @@ const Results = ({ data, onClose, playerNames = {} }) => {
     }, [onClose, showDefinition]);
 
     const handleOverlayClick = () => {
+        // Don't close results if definition panel is open - just close the definition
         if (showDefinition) {
             setShowDefinition(false);
         } else if (onClose) {
@@ -76,16 +77,20 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                                     <span className="player-id">{playerNames[res.player] || res.player}</span>
                                     <span className="player-word">{res.word}</span>
                                     <span className="player-score">{res.score} {t('results.score').toLowerCase()}</span>
-                                    {res.exceptions && res.exceptions.length > 0 && (
-                                        <div className="bonus-tags">
-                                            {res.exceptions.map((ex, j) => (
-                                                <span key={j} className="bonus-tag">
-                                                    {Object.keys(ex)[0]} (+{Object.values(ex)[0]})
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
+                                {res.bonuses && res.bonuses.length > 0 && (
+                                    <div className="bonus-tags">
+                                        {res.bonuses.map((bonus, j) => {
+                                            const bonusType = Object.keys(bonus)[0];
+                                            const bonusValue = Object.values(bonus)[0];
+                                            return (
+                                                <span key={j} className="bonus-tag">
+                                                    {bonusType} (+{bonusValue})
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
 
                                 {res.duped_by && res.duped_by.length > 0 && (
                                     <div className="duped-list">

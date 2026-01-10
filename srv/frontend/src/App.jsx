@@ -39,6 +39,41 @@ function App() {
     const [isAuthChecking, setIsAuthChecking] = useState(true);
     const autoSubmittedRef = useRef(false);
 
+    // Panel visibility with localStorage persistence
+    const loadPanelVisibility = (panelName, defaultValue = false) => {
+        try {
+            const saved = localStorage.getItem(`panel_visible_${panelName}`);
+            return saved !== null ? JSON.parse(saved) : defaultValue;
+        } catch {
+            return defaultValue;
+        }
+    };
+
+    const savePanelVisibility = (panelName, visible) => {
+        try {
+            localStorage.setItem(`panel_visible_${panelName}`, JSON.stringify(visible));
+        } catch (e) {
+            console.error('Failed to save panel visibility:', e);
+        }
+    };
+
+    const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
+    const [playByPlayVisible, setPlayByPlayVisible] = useState(() => loadPanelVisibility('playByPlay'));
+    const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
+
+    // Save visibility states to localStorage when they change
+    useEffect(() => {
+        savePanelVisibility('leaderboard', leaderboardVisible);
+    }, [leaderboardVisible]);
+
+    useEffect(() => {
+        savePanelVisibility('playByPlay', playByPlayVisible);
+    }, [playByPlayVisible]);
+
+    useEffect(() => {
+        savePanelVisibility('chat', chatVisible);
+    }, [chatVisible]);
+
     useEffect(() => {
         rackRef.current = rack;
     }, [rack]);
@@ -539,8 +574,28 @@ function App() {
         <div className="game-container">
             <header>
                 <div className="header-content">
-                    <h1>{t('app.title')}<span className="splat">💥</span>nk</h1>
+                    <h1 style={{ whiteSpace: 'nowrap' }}>wordw<span className="splat">💥</span>nk</h1>
                     {nickname && <div className="user-nickname">{t('app.playing_as')}: <strong>{nickname}</strong></div>}
+                </div>
+                <div className="header-toggles">
+                    <button
+                        className={`panel-toggle ${leaderboardVisible ? 'active' : ''}`}
+                        onClick={() => setLeaderboardVisible(!leaderboardVisible)}
+                    >
+                        Leaderboard
+                    </button>
+                    <button
+                        className={`panel-toggle ${playByPlayVisible ? 'active' : ''}`}
+                        onClick={() => setPlayByPlayVisible(!playByPlayVisible)}
+                    >
+                        Play-by-Play
+                    </button>
+                    <button
+                        className={`panel-toggle ${chatVisible ? 'active' : ''}`}
+                        onClick={() => setChatVisible(!chatVisible)}
+                    >
+                        Chat
+                    </button>
                 </div>
                 <div className="header-actions">
                     <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
@@ -676,19 +731,44 @@ function App() {
                 </div>
             )}
 
-            <DraggablePanel title={t('app.leaderboard')} id="leaderboard" initialPos={{ x: 20, y: 100 }} initialSize={{ width: 220, height: 200 }}>
-                <Leaderboard players={leaderboard} />
-            </DraggablePanel>
+            {leaderboardVisible && (
+                <DraggablePanel
+                    title={t('app.leaderboard')}
+                    id="leaderboard"
+                    initialPos={{ x: 20, y: 100 }}
+                    initialSize={{ width: 220, height: 200 }}
+                    onClose={() => setLeaderboardVisible(false)}
+                    storageKey="leaderboard"
+                >
+                    <Leaderboard players={leaderboard} />
+                </DraggablePanel>
+            )}
 
-            <DraggablePanel title={t('app.play_by_play')} id="plays" initialPos={{ x: window.innerWidth - 240, y: 100 }} initialSize={{ width: 220, height: 200 }}>
-                <PlayByPlay plays={plays} playerNames={playerNames} />
-            </DraggablePanel>
+            {playByPlayVisible && (
+                <DraggablePanel
+                    title={t('app.play_by_play')}
+                    id="plays"
+                    initialPos={{ x: window.innerWidth - 240, y: 100 }}
+                    initialSize={{ width: 220, height: 200 }}
+                    onClose={() => setPlayByPlayVisible(false)}
+                    storageKey="playByPlay"
+                >
+                    <PlayByPlay plays={plays} playerNames={playerNames} />
+                </DraggablePanel>
+            )}
 
-            {/* Chat hidden for now
-            <DraggablePanel title={t('app.chat')} id="chat" initialPos={{ x: window.innerWidth - 320, y: 380 }}>
-                <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
-            </DraggablePanel>
-            */}
+            {chatVisible && (
+                <DraggablePanel
+                    title={t('app.chat')}
+                    id="chat"
+                    initialPos={{ x: window.innerWidth - 320, y: 380 }}
+                    initialSize={{ width: 300, height: 350 }}
+                    onClose={() => setChatVisible(false)}
+                    storageKey="chat"
+                >
+                    <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
+                </DraggablePanel>
+            )}
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 
