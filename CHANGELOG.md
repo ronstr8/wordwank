@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.18.0] - 2026-01-11
+
+### Added
+
+- **SSL/HTTPS Support**: Full cert-manager integration with Let's Encrypt for automatic SSL certificate provisioning
+  - Supports both staging and production Let's Encrypt environments
+  - NAT workaround using hostAliases patch for local Minikube development
+  - `make cert-manager-setup` command for one-step installation
+  - CoreDNS failover and hostAliases solutions for HTTP-01 validation behind NAT
+- **Blank Tiles**: Added 2 blank tiles (`_`) to the game distribution (finally!)
+- Translation key `waiting_next_game` for loading state message
+
+### Fixed
+
+- **Loading State**: Shows "Waiting for next game to start..." when connecting during game transitions instead of blank screen
+- **Keyboard Input Bug**: Fixed issue where typing duplicate letters (e.g., "E", "E") would select the same tile twice
+  - Keyboard handler now checks `!t.isUsed` to find unused tiles
+  - Supports multiple copies of the same letter in rack
+- **Solo Game Scoring**: Lifetime scores no longer update when only one player participates (everyone gets 0 points as intended)
+- **Auto-Restart Behavior**: Removed 5-second auto-rejoin timer
+  - Players must now manually click "Play Again" to start next game
+  - Can chat and inspect results freely without being auto-restarted
+
+### Infrastructure
+
+- **Cert-Manager Resources**:
+  - `helm/resources/letsencrypt-issuer.yaml` - ClusterIssuer for staging and production
+  - `helm/resources/patch-cert-manager-hosts.sh` - NAT workaround script
+  - `helm/resources/coredns-custom.yaml` - DNS override (alternative solution)
+- Updated `Makefile` to proxy both HTTP (80) and HTTPS (443) in `expose` target
+- Updated README with SSL setup instructions and troubleshooting
+
+### Changed
+
+- Results screen no longer auto-closes after 5 seconds
+- Players have full control over when to start next game
+
 ## [0.17.1] - 2026-01-10
 
 ### Changed - BREAKING

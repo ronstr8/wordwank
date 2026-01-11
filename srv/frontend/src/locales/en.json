@@ -16,6 +16,7 @@
         "cancel": "CANCEL",
         "loading": "LOADING...",
         "connecting": "Connecting to game server",
+        "waiting_next_game": "Waiting for next game to start...",
         "connection_error": "CONNECTION ERROR",
         "reload": "RELOAD PAGE",
         "accepted": "ACCEPTED!",

@@ -348,11 +348,13 @@ sub _end_game ($self, $game) {
     # Convert to sorted array
     @results = sort { $b->{score} <=> $a->{score} } values %player_total_scores;
     
-    # Update player cumulative scores in database
-    for my $result (@results) {
-        my $player = $schema->resultset('Player')->find($result->{player_id});
-        if ($player) {
-            $player->update({ lifetime_score => ($player->lifetime_score || 0) + $result->{score} });
+    # Update player cumulative scores in database (skip for solo games)
+    unless ($solo_game) {
+        for my $result (@results) {
+            my$player = $schema->resultset('Player')->find($result->{player_id});
+            if ($player) {
+                $player->update({ lifetime_score => ($player->lifetime_score || 0) + $result->{score} });
+            }
         }
     }
 
@@ -386,23 +388,11 @@ sub _end_game ($self, $game) {
             }
         });
 
-        # Store clients to re-join them later
-        my $clients = $self->app->games->{$game->id}{clients};
-
         # Cleanup memory
         delete $self->app->games->{$game->id};
 
-        # Rotate to a new game after a short results period (5s)
-        Mojo::IOLoop->timer(5 => sub {
-            # Trigger handle_join for all previously connected clients
-            for my $pid (keys %$clients) {
-                my $c = $clients->{$pid};
-                # Check if controller still exists/connected
-                if ($c && $c->tx) {
-                    $c->_handle_join($schema->resultset('Player')->find($pid));
-                }
-            }
-        });
+        # Note: Players must manually click "Play Again" to join the next game
+        # No auto-restart timer
     };
 
     if ($winner_word) {

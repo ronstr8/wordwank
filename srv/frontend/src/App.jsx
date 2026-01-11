@@ -436,13 +436,13 @@ function App() {
             const currentRack = rackRef.current;
             const currentGuess = guessRef.current;
 
-            // Priority 1: Match exact letter in rack
-            const exactTile = currentRack.find(t => t.letter === char);
+            // Priority 1: Match exact letter in rack (that isn't already used)
+            const exactTile = currentRack.find(t => t.letter === char && !t.isUsed);
             if (exactTile) {
                 moveTileToGuess(exactTile);
             } else {
                 // Priority 2: Use blank if available
-                const blankTile = currentRack.find(t => t.letter === '_');
+                const blankTile = currentRack.find(t => t.letter === '_' && !t.isUsed);
                 if (blankTile) {
                     const emptyIndex = currentGuess.findIndex(g => g === null);
                     if (emptyIndex !== -1) {
@@ -783,7 +783,7 @@ function App() {
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 
-            {(isConnecting || connectionError) && (
+            {(isConnecting || connectionError || (rack.length === 0 && !results)) && (
                 <div className="loading-modal">
                     <div className="loading-card">
                         {connectionError ? (
@@ -799,7 +799,7 @@ function App() {
                             <>
                                 <div className="loading-spinner"></div>
                                 <h2>{t('app.loading')}</h2>
-                                <p>{t('app.connecting')}</p>
+                                <p>{rack.length === 0 && !isConnecting ? t('app.waiting_next_game') : t('app.connecting')}</p>
                             </>
                         )}
                     </div>
