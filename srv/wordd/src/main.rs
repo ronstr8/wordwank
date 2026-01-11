@@ -2,10 +2,9 @@ use actix_web::{get, web, App, HttpServer, HttpResponse, Responder};
 use std::collections::{HashSet, HashMap};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
-use std::sync::Arc;
 use std::net::TcpStream;
 use clap::{Command, Arg};
-use log::{error, info, warn};
+use log::{info, warn};
 use env_logger;
 use std::fs::OpenOptions;
 
@@ -81,7 +80,7 @@ fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
 
 fn query_dictd(host: &str, word: &str) -> io::Result<String> {
     info!("Connecting to dictd host: {} for word: {}", host, word);
-    let mut stream = TcpStream::connect(host)?;
+    let stream = TcpStream::connect(host)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
     
     let mut reader = BufReader::new(stream);
