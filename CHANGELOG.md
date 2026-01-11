@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.17.1] - 2026-01-10
+
+### Changed - BREAKING
+
+- **Fixed Position Tile Rack**: Tiles no longer disappear when selected. Instead, they stay in their original positions and grey out, making the game more challenging as players must remember tile locations
+
+### Added
+
+- Visual feedback for used tiles (30% opacity, greyscale filter)
+- Grid-based rack layout that maintains 7 fixed positions
+
 ## [0.17.0] - 2026-01-10
 
 ### Changed - BREAKING

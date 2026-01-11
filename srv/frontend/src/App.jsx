@@ -196,7 +196,9 @@ function App() {
                 } else if (data.type === 'game_start') {
                     const newRack = data.payload.rack.map((letter, idx) => ({
                         id: `tile-${idx}-${Date.now()}`,
-                        letter
+                        letter,
+                        position: idx,
+                        isUsed: false
                     }));
                     setRack(newRack);
                     setTimeLeft(data.payload.time_left);
@@ -341,25 +343,22 @@ function App() {
 
     const jumbleRack = () => {
         if (isLocked || timeLeft === 0) return;
-        // Fisher-Yates shuffle
+        // Fisher-Yates shuffle positions only
         setRack(prev => {
             const shuffled = [...prev];
             for (let i = shuffled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
             }
-            return shuffled;
+            // Update positions after shuffle
+            return shuffled.map((tile, idx) => ({ ...tile, position: idx }));
         });
     };
 
     const clearGuess = () => {
         if (isLocked || timeLeft === 0) return;
-        // Return all tiles from guess to rack
-        const tilesToReturn = guess.filter(slot => slot !== null).map(slot => ({
-            id: slot.id,
-            letter: slot.originalLetter || slot.char.toUpperCase()
-        }));
-        setRack(prev => [...prev, ...tilesToReturn]);
+        // Mark all tiles as unused
+        setRack(prev => prev.map(tile => ({ ...tile, isUsed: false })));
         setGuess(Array(7).fill(null));
     };
 
@@ -375,7 +374,7 @@ function App() {
     };
 
     const moveTileToGuess = (tile) => {
-        if (isLocked || timeLeft === 0) return;
+        if (isLocked || timeLeft === 0 || tile.isUsed) return;
 
         setGuess(currentGuess => {
             const emptyIndex = currentGuess.findIndex(g => g === null);
@@ -388,7 +387,8 @@ function App() {
 
             const newGuess = [...currentGuess];
             newGuess[emptyIndex] = { id: tile.id, char: tile.letter, originalLetter: tile.letter };
-            setRack(prev => prev.filter(t => t.id !== tile.id));
+            // Mark tile as used instead of removing it
+            setRack(prev => prev.map(t => t.id === tile.id ? { ...t, isUsed: true } : t));
             play('placement'); // Tile placed sound
             return newGuess;
         });
@@ -412,7 +412,8 @@ function App() {
 
             const newGuess = [...currentGuess];
             newGuess[actualIndex] = null;
-            setRack(prev => [...prev, { id: played.id, letter: played.originalLetter || played.char }]);
+            // Mark tile as unused instead of adding it back
+            setRack(prev => prev.map(t => t.id === played.id ? { ...t, isUsed: false } : t));
             return newGuess;
         });
     };
@@ -635,14 +636,24 @@ function App() {
                         <div className="rack-section">
                             <div className="section-label">{t('app.rack_label')}</div>
                             <div className="rack-container clickable">
-                                {rack.map((tile) => (
-                                    <div key={tile.id} onClick={() => moveTileToGuess(tile)}>
-                                        <Tile
-                                            letter={tile.letter}
-                                            value={typeof letterValue === 'object' ? letterValue[tile.letter] : (letterValue > 0 ? letterValue : undefined)}
-                                        />
-                                    </div>
-                                ))}
+                                {[0, 1, 2, 3, 4, 5, 6].map(position => {
+                                    const tile = rack.find(t => t.position === position);
+                                    if (!tile) return <div key={position} className="rack-slot empty" />;
+
+                                    return (
+                                        <div
+                                            key={tile.id}
+                                            className={`rack-slot ${tile.isUsed ? 'used' : ''}`}
+                                            onClick={() => !tile.isUsed && moveTileToGuess(tile)}
+                                        >
+                                            <Tile
+                                                letter={tile.letter}
+                                                value={typeof letterValue === 'object' ? letterValue[tile.letter] : (letterValue > 0 ? letterValue : undefined)}
+                                                disabled={tile.isUsed}
+                                            />
+                                        </div>
+                                    );
+                                })}
                                 {rack.length === 0 && <div className="empty-rack-msg">{t('app.empty_rack')}</div>}
                             </div>
                             <div className="rack-actions">

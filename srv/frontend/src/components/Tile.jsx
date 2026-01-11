@@ -7,12 +7,12 @@ const letterValues = {
     Y: 4, Z: 10
 };
 
-const Tile = ({ letter, value }) => {
+const Tile = ({ letter, value, disabled }) => {
     const isBlankPlayed = (letter === letter.toLowerCase() && letter !== '_' && letter !== '');
     const displayValue = isBlankPlayed ? 0 : (value !== undefined ? value : (letterValues[letter] || 0));
     return (
         <motion.div
-            className={`tile-wrapper ${isBlankPlayed ? 'is-blank' : ''}`}
+            className={`tile-wrapper ${isBlankPlayed ? 'is-blank' : ''} ${disabled ? 'disabled' : ''}`}
             initial={{ rotateY: 180 }}
             animate={{ rotateY: 0 }}
             transition={{

@@ -10,20 +10,21 @@ DOMAIN = wordwank.fazigu.org
 
 SERVICES = frontend backend wordd dictd
 
-.PHONY: all build clean deploy undeploy help $(SERVICES) minikube-setup registry-tunnel metallb-install metallb-config
+.PHONY: all build clean deploy undeploy help $(SERVICES) minikube-setup registry-tunnel metallb-install metallb-config cert-manager-setup
 
 all: build
 
 help:
 	@echo "Wordwank Build System (Minikube Optimized)"
 	@echo "Usage:"
-	@echo "  make build         - Build and PUSH all microservice Docker images"
-	@echo "  make deploy        - Install/Upgrade using Helm umbrella chart"
-	@echo "  make minikube-setup - Enable registry and ingress addons"
-	@echo "  make metallb-install - Install MetalLB manifests directly"
-	@echo "  make metallb-config - Configure MetalLB with a default IP range"
-	@echo "  make expose        - Proxy localhost:80 to Minikube Ingress (run as root)"
-	@echo "  make <service>     - Build, Push, and Restart a specific service"
+	@echo "  make build              - Build and PUSH all microservice Docker images"
+	@echo "  make deploy             - Install/Upgrade using Helm umbrella chart"
+	@echo "  make minikube-setup     - Enable registry and ingress addons"
+	@echo "  make metallb-install    - Install MetalLB manifests directly"
+	@echo "  make metallb-config     - Configure MetalLB with a default IP range"
+	@echo "  make cert-manager-setup - Install cert-manager and configure Let's Encrypt"
+	@echo "  make expose             - Proxy localhost:80/443 to Minikube Ingress (run as root)"
+	@echo "  make <service>          - Build, Push, and Restart a specific service"
 
 # Step 1: Prepare Minikube for our production-like workflow
 minikube-setup:
@@ -51,14 +52,34 @@ metallb-config:
 	echo "Assigning MetalLB range: $$RANGE_START-$$RANGE_END"; \
 	sed "s/RANGE_START/$$RANGE_START/; s/RANGE_END/$$RANGE_END/" helm/resources/metallb-config.yaml | kubectl apply -f -
 
-# Step 4: Expose the Ingress to the 192.168.1.0 network
+# Step 4: Install cert-manager and configure Let's Encrypt
+cert-manager-setup:
+	@echo "Installing cert-manager..."
+	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.2/cert-manager.yaml
+	@echo "Waiting for cert-manager to be ready..."
+	@kubectl wait --namespace cert-manager --for=condition=ready pod --selector=app.kubernetes.io/instance=cert-manager --timeout=180s || true
+	@echo "Patching cert-manager for internal domain resolution..."
+	@bash helm/resources/patch-cert-manager-hosts.sh
+	@echo "⚠️  IMPORTANT: Edit helm/resources/letsencrypt-issuer.yaml and replace email if not done yet"
+	@echo "Applying Let's Encrypt ClusterIssuer..."
+	@kubectl apply -f helm/resources/letsencrypt-issuer.yaml
+	@echo "✅ Cert-manager setup complete!"
+	@echo "   - Cert-manager configured to resolve $(DOMAIN) internally"
+	@echo "   - Using letsencrypt-prod issuer for trusted certificates"
+
+# Step 5: Expose the Ingress to the network (HTTP and HTTPS)
 # This requires 'socat' installed and sudo privileges
 expose:
-	@echo "Bridging 0.0.0.0:80 to Minikube Ingress..."
+	@echo "Bridging 0.0.0.0:80 and 0.0.0.0:443 to Minikube Ingress..."
 	@INGRESS_IP=$$(kubectl get ingress -n $(NAMESPACE) ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'); \
 	if [ -z "$$INGRESS_IP" ]; then echo "Error: Ingress doesn't have an IP yet. Did you run make deploy and make metallb-config?"; exit 1; fi; \
-	echo "Ingress IP is $$INGRESS_IP. Starting proxy..."; \
-	sudo socat TCP4-LISTEN:80,fork,reuseaddr TCP4:$$INGRESS_IP:80
+	echo "Ingress IP is $$INGRESS_IP. Starting proxies..."; \
+	echo "Starting HTTP proxy on :80..."; \
+	sudo socat TCP4-LISTEN:80,fork,reuseaddr TCP4:$$INGRESS_IP:80 & \
+	echo "Starting HTTPS proxy on :443..."; \
+	sudo socat TCP4-LISTEN:443,fork,reuseaddr TCP4:$$INGRESS_IP:443 & \
+	echo "✅ Proxies started. Press Ctrl+C to stop both."; \
+	wait
 
 # Step 5: Start a background tunnel to the Minikube registry
 registry-tunnel:

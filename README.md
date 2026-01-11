@@ -67,6 +67,20 @@ This will build all polyglot services, push them to the local Minikube registry,
 make build && make deploy && watch kubectl -n wordwank get pods
 ```
 
+### 3.5. Setup SSL Certificates (Optional but Recommended)
+
+Install cert-manager and configure Let's Encrypt for automatic SSL certificates:
+
+**Important**: First edit `helm/resources/letsencrypt-issuer.yaml` and replace the email addresses with your actual email. This email will be used for Let's Encrypt certificate expiry notifications.
+
+```bash
+make cert-manager-setup
+```
+
+This will install cert-manager and apply a NAT workaround (hostAliases patch) that allows cert-manager to perform self-checks in your local Minikube environment. The certificate should be issued within 1-2 minutes.
+
+*Note: The setup uses Let's Encrypt production by default. Your domain must be publicly accessible on port 80 for HTTP-01 validation to succeed.*
+
 ### 4. Expose to the Outer World
 
 To access the game from another machine on your home network:
@@ -77,15 +91,15 @@ To access the game from another machine on your home network:
 echo "$( minikube ip ) $( hostname )" | sudo tee -a /etc/hosts
 ```
 
-2.**Start the Bridge**: In a separate terminal/tab (as this needs to stay open for as long as you want to access the game), run the following to proxy traffic from port 80 to the Ingress:
+2.**Start the Bridge**: In a separate terminal/tab (as this needs to stay open for as long as you want to access the game), run the following to proxy HTTP (port 80) and HTTPS (port 443) traffic to the Ingress:
 
 ```bash
 make expose
 ```
 
-avigate to your hostname to begin.
+Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup) to begin.
 
-*My heathen prayers reach out to you, hoping that it works for the first time. It took me so long to get comfortable with hooking my development environment up to the outside world in a way that didn't seem hacky and better mirrored the production environment, but I think this finally gets it right. It took AI to help me. Over the five years at my last job, nobody there seemed to care or wanted to brainstorm/troubleshoot the issue.*
+*My heathen prayers reach out to you, hoping that it works the first time. It took me so long to get comfortable with hooking my development environment up to the outside world in a way that didn't seem hacky and better mirrored the production environment, but I think this finally gets it right. It took AI to help me. Over the five years at my last job, nobody there seemed to care or wanted to brainstorm/troubleshoot the issue.*
 
 ---
 

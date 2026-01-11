@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # Let's Encrypt STAGING server (for testing)
+    # Switch to production when ready: https://acme-v02.api.letsencrypt.org/directory
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Email for urgent notices and certificate expiry
+    # ⚠️ IMPORTANT: Replace with your actual email address
+    email: quinnfazigu@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt PRODUCTION server
+    # Only use when your domain is publicly accessible
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email for urgent notices and certificate expiry
+    # ⚠️ IMPORTANT: Replace with your actual email address
+    email: straightre@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
