@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.21.0] - 2026-01-11
+
+### Added
+
+- **Spanish Language Support**: Full Spanish gameplay with 79,489-word dictionary
+- **Audio Controls**: Separated background music (ambience) from master mute
+- **UI Button Grouping**: Reorganized header buttons into Account, Audio, and Language groups
+- **Locale Selector Enabled**: EN/ES switching in header dropdown
+
 ## [0.19.0] - 2026-01-11
 
 ### Added

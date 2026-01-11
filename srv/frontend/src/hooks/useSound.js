@@ -6,6 +6,11 @@ const useSound = () => {
         return saved === 'true';
     });
 
+    const [isAmbienceEnabled, setIsAmbienceEnabled] = useState(() => {
+        const saved = localStorage.getItem('wordwank_ambience_enabled');
+        return saved !== 'false'; // Default to true
+    });
+
     const soundsRef = useRef({});
 
     useEffect(() => {
@@ -25,6 +30,13 @@ const useSound = () => {
         soundsRef.current.placement.volume = 0.4;
         soundsRef.current.buzzer.volume = 0.5;
         soundsRef.current.bigsplat.volume = 0.7;
+
+        // Auto-start ambience if conditions met
+        if (!isMuted && isAmbienceEnabled) {
+            soundsRef.current.ambience.play().catch(() => {
+                console.debug('Autoplay prevented - waiting for interaction');
+            });
+        }
 
         return () => {
             // Cleanup on unmount
@@ -50,7 +62,7 @@ const useSound = () => {
     };
 
     const startAmbience = () => {
-        if (isMuted) return;
+        if (isMuted || !isAmbienceEnabled) return;
         soundsRef.current.ambience?.play().catch(() => { });
     };
 
@@ -58,15 +70,29 @@ const useSound = () => {
         soundsRef.current.ambience?.pause();
     };
 
+    const toggleAmbience = () => {
+        setIsAmbienceEnabled(prev => {
+            const newValue = !prev;
+            localStorage.setItem('wordwank_ambience_enabled', newValue.toString());
+
+            if (newValue && !isMuted) {
+                startAmbience();
+            } else {
+                stopAmbience();
+            }
+            return newValue;
+        });
+    };
+
     const toggleMute = () => {
         setIsMuted(prev => {
             const newValue = !prev;
             localStorage.setItem('wordwank_muted', newValue.toString());
 
-            // Stop ambience if muting
+            // Stop/Start ambience based on master mute and current state
             if (newValue) {
                 stopAmbience();
-            } else {
+            } else if (isAmbienceEnabled) {
                 startAmbience();
             }
 
@@ -74,7 +100,7 @@ const useSound = () => {
         });
     };
 
-    return { play, startAmbience, stopAmbience, toggleMute, isMuted };
+    return { play, startAmbience, stopAmbience, toggleAmbience, toggleMute, isMuted, isAmbienceEnabled };
 };
 
 export default useSound;

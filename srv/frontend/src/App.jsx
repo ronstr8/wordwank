@@ -33,7 +33,7 @@ function App() {
     const [letterValue, setLetterValue] = useState(0) // Fixed score if mode is on
     const rackRef = useRef([]);
     const guessRef = useRef([]);
-    const { play, startAmbience, toggleMute, isMuted } = useSound();
+    const { play, startAmbience, stopAmbience, toggleAmbience, toggleMute, isMuted, isAmbienceEnabled } = useSound();
     const [playerNames, setPlayerNames] = useState({}); // Map playerID -> nickname
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -599,34 +599,46 @@ function App() {
                     </button>
                 </div>
                 <div className="header-actions">
-                    <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
-                        🔑
-                    </button>
-                    {/* Language selection hidden for now
-                    <select
-                        className="lang-select"
-                        value={i18n.language}
-                        onChange={(e) => {
-                            const newLang = e.target.value;
-                            i18n.changeLanguage(newLang);
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(JSON.stringify({
-                                    type: 'set_language',
-                                    payload: { language: newLang }
-                                }));
-                            }
-                        }}
-                    >
-                        <option value="en">EN</option>
-                        <option value="es">ES</option>
-                    </select>
-                    */}
-                    <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
-                        🚪
-                    </button>
-                    <button className="header-btn" onClick={toggleMute}>
-                        {isMuted ? '🔈' : '🔊'}
-                    </button>
+                    {/* Group 1: Authentication */}
+                    <div className="button-group">
+                        <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
+                            🔑
+                        </button>
+                        <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
+                            🚪
+                        </button>
+                    </div>
+
+                    {/* Group 2: Audio Controls */}
+                    <div className="button-group">
+                        <button className="header-btn" onClick={toggleAmbience} title={isAmbienceEnabled ? 'Turn off background music' : 'Turn on background music'}>
+                            {isAmbienceEnabled ? '🎵' : '🔇'}
+                        </button>
+                        <button className="header-btn" onClick={toggleMute} title={isMuted ? 'Unmute all sounds' : 'Mute all sounds'}>
+                            {isMuted ? '🔈' : '🔊'}
+                        </button>
+                    </div>
+
+                    {/* Group 3: Language Selection */}
+                    <div className="button-group">
+                        <select
+                            className="lang-select"
+                            value={i18n.language}
+                            onChange={(e) => {
+                                const newLang = e.target.value;
+                                i18n.changeLanguage(newLang);
+                                if (ws && ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({
+                                        type: 'set_language',
+                                        payload: { language: newLang }
+                                    }));
+                                }
+                            }}
+                        >
+                            <option value="en">EN</option>
+                            <option value="es">ES</option>
+                        </select>
+                    </div>
                 </div>
             </header>
 

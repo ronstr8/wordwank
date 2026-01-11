@@ -3,6 +3,52 @@ use Moose;
 use v5.36;
 use utf8;
 use DateTime;
+use YAML::XS qw(LoadFile);
+use File::Spec;
+
+# Language for tile configuration (default: 'en')
+has language => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => 'en',
+);
+
+# Load tile configuration from YAML
+has _tile_config => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    builder => '_load_tile_config',
+);
+
+sub _load_tile_config {
+    my $self = shift;
+    my $lang = $self->language;
+    
+    # Path to tile config file
+    my $config_path = File::Spec->catfile(
+        'srv', 'wordd', 'share', 'words', $lang, 'tile-config.yaml'
+    );
+    
+    # Load YAML config
+    eval {
+        my $config = LoadFile($config_path);
+        return $config;
+    };
+    if ($@) {
+        warn "Failed to load tile config for $lang: $@. Using defaults.";
+        # Fallback to English hardcoded
+        return {
+            tiles => {
+                A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
+                I => 9, J => 1, K => 1, L => 4, M => 2, N => 6, O => 8, P => 2,
+                Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
+                Y => 2, Z => 1, '_' => 2,
+            },
+            unicorns => { Q => 10, Z => 10 },
+        };
+    }
+}
 
 # Generate letter values for a new game based on new scoring rules
 sub generate_letter_values {
@@ -15,23 +61,28 @@ sub generate_letter_values {
     
     my %values;
     my @vowels = qw(A E I O U);
-    my @all_letters = ('A'..'Z');
+    
+    # Get unicorns from config
+    my $unicorns = $self->_tile_config->{unicorns} // {};
+    my @all_letters = keys %{$self->_tile_config->{tiles}};
     
     # Initialize all letters with random values 2-9
     for my $letter (@all_letters) {
+        next if $letter eq '_';  # Skip blank
         $values{$letter} = 2 + int(rand(8));  # Random from 2-9
     }
     
     # Override: Vowels always 1 point
     for my $vowel (@vowels) {
-        $values{$vowel} = 1;
+        $values{$vowel} = 1 if exists $values{$vowel};
     }
     
-    # Override: Q and Z always 10 points
-    $values{Q} = 10;
-    $values{Z} = 10;
+    # Override: Unicorns always have their configured point value
+    for my $letter (keys %$unicorns) {
+        $values{$letter} = $unicorns->{$letter};
+    }
     
-    # Override: Day-of-week letter is 7 points (takes precedence over everything)
+    # Override: Day-of-week letter is 7 points (takes precedence over unicorns too)
     $values{$day_letter} = 7;
     
     # Blank tile always 0
@@ -43,12 +94,10 @@ sub generate_letter_values {
 has tile_counts => (
     is      => 'ro',
     isa     => 'HashRef',
+    lazy    => 1,
     default => sub {
-        {
-            A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2, I => 9, J => 1, K => 1, L => 4,
-            M => 2, N => 6, O => 8, P => 2, Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
-            Y => 2, Z => 1, '_' => 2,  # 2 blank tiles
-        }
+        my $self = shift;
+        return $self->_tile_config->{tiles};
     }
 );
 

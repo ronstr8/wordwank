@@ -4,7 +4,7 @@ A fast-paced word game with familiar roots. You can call it any variation of wor
 
 Wordwank is a polyglot microservices platform built as an exercise in modern developer environment practices, distributed systems, and agentic coding. It combines Perl, Rust, and Nginx into a seamless, high-performance game universe.
 
-*Yes, AI wrote a lot of this, and I like that--even emojis and emdashes I'm writing these words here, and I tweak the code as necessary, but with Antigravity, it's like I have several different coworkers to call upon to get the project done. It's a massive leap forward for productivity. Every hacker is now his own team.*
+*Yes, AI wrote a lot of this, and I like that--even emojis and em-dashes. I'm writing these words here, and tweak the code as necessary, but with Antigravity, it's like I have several different coworkers to call upon to get the project done. It's a massive leap forward for productivity. Every hacker is now his own team.*
 
 ---
 
@@ -57,7 +57,7 @@ make metallb-install
 make metallb-config
 ```
 
-*I've always struggled to get Ingress just right to better mirror production on my development environment. MetalLB and a little `socat` were the missing pieces.*
+*I've always struggled to get Ingress just right to better mirror production on my development environment. MetalLB and a little `socat` tunnel to the Ingress controller were the missing pieces.*
 
 ### 3. Build & Deploy
 
@@ -66,20 +66,6 @@ This will build all polyglot services, push them to the local Minikube registry,
 ```bash
 make build && make deploy && watch kubectl -n wordwank get pods
 ```
-
-### 3.5. Setup SSL Certificates (Optional but Recommended)
-
-Install cert-manager and configure Let's Encrypt for automatic SSL certificates:
-
-**Important**: First edit `helm/resources/letsencrypt-issuer.yaml` and replace the email addresses with your actual email. This email will be used for Let's Encrypt certificate expiry notifications.
-
-```bash
-make cert-manager-setup
-```
-
-This will install cert-manager and apply a NAT workaround (hostAliases patch) that allows cert-manager to perform self-checks in your local Minikube environment. The certificate should be issued within 1-2 minutes.
-
-*Note: The setup uses Let's Encrypt production by default. Your domain must be publicly accessible on port 80 for HTTP-01 validation to succeed.*
 
 ### 4. Expose to the Outer World
 
@@ -97,9 +83,25 @@ echo "$( minikube ip ) $( hostname )" | sudo tee -a /etc/hosts
 make expose
 ```
 
+### 5. Setup SSL Certificates (Optional but Recommended)
+
+Install cert-manager and configure Let's Encrypt for automatic SSL certificates:
+
+**Important**: First edit `helm/resources/letsencrypt-issuer.yaml` and replace the email addresses with your actual email. This email will be used for Let's Encrypt certificate expiry notifications. You can use `make cert-manager-setup` to do this automatically.
+
+```bash
+make cert-manager-setup
+```
+
+This will install cert-manager and apply a NAT workaround (hostAliases patch) that allows cert-manager to perform self-checks in your local Minikube environment. The certificate should be issued within 1-2 minutes.
+
+*Note: The setup uses Let's Encrypt production by default. Your domain must be publicly accessible on port 80 for HTTP-01 validation to succeed.*
+
+### 6. PLAYTIME
+
 Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup) to begin.
 
-*My heathen prayers reach out to you, hoping that it works the first time. It took me so long to get comfortable with hooking my development environment up to the outside world in a way that didn't seem hacky and better mirrored the production environment, but I think this finally gets it right. It took AI to help me. Over the five years at my last job, nobody there seemed to care or wanted to brainstorm/troubleshoot the issue.*
+*My heathen prayers reach out to you, hoping that it works the first time. It took me so long to get comfortable with hooking my development environment up to the outside world in a way that didn't seem hacky and better mirrored the production environment, but I think this finally gets it right. Over the five years at my last job, nobody there seemed to care or wanted to brainstorm/troubleshoot the issue. I wish I'd had Antigravity back then.*
 
 ---
 
@@ -109,19 +111,6 @@ Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup
 - **backend**: Perl (Mojolicious) service handling authentication, API, and WebSocket.
 - **wordd**: Rust-based high-speed word validator.
 - **dictd**: Dictionary definition service.
-
----
-
-## 🔊 Sound Credits
-
-All sound effects used in this project are from [Freesound](https://freesound.org/) and licensed under Creative Commons:
-
-- **placement.mp3**: mug_wood1.wav by robbeman -- <https://freesound.org/s/495645/> -- License: Creative Commons 0
-- **buzzer.mp3**: panorouge.wav by Soundwarf -- <https://freesound.org/s/387537/> -- License: Creative Commons 0
-- **bigsplat.mp3**: Messy Splat 3 by FoolBoyMedia -- <https://freesound.org/s/237927/> -- License: Attribution 4.0
-- **ambience.mp3**: TV Show Intro Music by TheoJT -- <https://freesound.org/s/698508/> -- License: Attribution 4.0
-
-Special thanks to the Freesound community for their contributions.
 
 ---
 *Created by Ron "Quinn" Straight and Antigravity using a variety of models.*
