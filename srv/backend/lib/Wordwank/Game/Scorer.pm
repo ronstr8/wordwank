@@ -6,54 +6,65 @@ use DateTime;
 use YAML::XS qw(LoadFile);
 use File::Spec;
 
-# Language for tile configuration (default: 'en')
-has language => (
-    is      => 'ro',
-    isa     => 'Str',
-    default => 'en',
-);
-
-# Load tile configuration from YAML
-has _tile_config => (
+# Cache for tile configurations keyed by language
+has _tile_config_cache => (
     is      => 'ro',
     isa     => 'HashRef',
-    lazy    => 1,
-    builder => '_load_tile_config',
+    default => sub { {} },
 );
 
-sub _load_tile_config {
-    my $self = shift;
-    my $lang = $self->language;
-    
-    # Path to tile config file
-    my $config_path = File::Spec->catfile(
-        'srv', 'wordd', 'share', 'words', $lang, 'tile-config.yaml'
-    );
-    
-    # Load YAML config
-    eval {
-        my $config = LoadFile($config_path);
-        return $config;
-    };
-    if ($@) {
-        warn "Failed to load tile config for $lang: $@. Using defaults.";
-        # Fallback to English hardcoded
-        return {
-            tiles => {
-                A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
-                I => 9, J => 1, K => 1, L => 4, M => 2, N => 6, O => 8, P => 2,
-                Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
-                Y => 2, Z => 1, '_' => 2,
-            },
-            unicorns => { Q => 10, Z => 10 },
-        };
+use HTTP::Tiny;
+use JSON::MaybeXS qw(decode_json);
+
+sub _get_tile_config ($self, $lang) {
+    if (my $cached = $self->_tile_config_cache->{$lang}) {
+        return $cached;
     }
+    
+    my $config = $self->_load_tile_config($lang);
+    $self->_tile_config_cache->{$lang} = $config;
+    return $config;
+}
+
+sub _load_tile_config ($self, $lang) {
+    
+    # wordd is the internal lexicon authority service
+    my $wordd_host = $ENV{WORDD_HOST} // 'wordd';
+    my $wordd_port = $ENV{WORDD_PORT};
+    if (!$wordd_port || $wordd_port =~ /\D/) {
+        $wordd_port = 2345;
+    }
+    my $url = "http://$wordd_host:$wordd_port/config/$lang";
+    
+    my $http = HTTP::Tiny->new(timeout => 5);
+    my $response = $http->get($url);
+    
+    if ($response->{success}) {
+        my $config = eval { decode_json($response->{content}) };
+        if ($config && $config->{tiles}) {
+            warn "Loaded dynamic tile config for $lang from wordd.";
+            return $config;
+        }
+        warn "Failed to parse wordd config for $lang: $@" if $@;
+    } else {
+        warn "Failed to fetch tile config for $lang from $url: $response->{status} $response->{reason}";
+    }
+
+    # Fallback to English hardcoded tiles if wordd is unavailable or fails
+    warn "Using hardcoded English fallback for $lang.";
+    return {
+        tiles => {
+            A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
+            I => 9, J => 1, K => 1, L => 4, M => 2, N => 6, O => 8, P => 2,
+            Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
+            Y => 2, Z => 1, '_' => 2,
+        },
+        unicorns => { Q => 10, Z => 10 },
+    };
 }
 
 # Generate letter values for a new game based on new scoring rules
-sub generate_letter_values {
-    my $self = shift;
-    
+sub generate_letter_values ($self, $lang) {
     # Get current day of week in Buffalo, NY (America/New_York timezone)
     my $now = DateTime->now(time_zone => 'America/New_York');
     my $day_name = $now->day_name;  # Monday, Tuesday, etc.
@@ -62,9 +73,10 @@ sub generate_letter_values {
     my %values;
     my @vowels = qw(A E I O U);
     
-    # Get unicorns from config
-    my $unicorns = $self->_tile_config->{unicorns} // {};
-    my @all_letters = keys %{$self->_tile_config->{tiles}};
+    # Get configuration for specific language
+    my $config = $self->_get_tile_config($lang);
+    my $unicorns = $config->{unicorns} // {};
+    my @all_letters = keys %{$config->{tiles}};
     
     # Initialize all letters with random values 2-9
     for my $letter (@all_letters) {
@@ -91,36 +103,38 @@ sub generate_letter_values {
     return \%values;
 }
 
-has tile_counts => (
+sub tile_counts ($self, $lang) {
+    return $self->_get_tile_config($lang)->{tiles};
+}
+
+sub unicorns ($self, $lang) {
+    return $self->_get_tile_config($lang)->{unicorns};
+}
+
+# Cache for bags
+has _bag_cache => (
     is      => 'ro',
     isa     => 'HashRef',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
-        return $self->_tile_config->{tiles};
+    default => sub { {} },
+);
+
+sub _get_bag ($self, $lang) {
+    if (my $cached = $self->_bag_cache->{$lang}) {
+        return $cached;
     }
-);
-
-has bag => (
-    is      => 'ro',
-    isa     => 'ArrayRef',
-    lazy    => 1,
-    builder => '_build_bag',
-);
-
-sub _build_bag {
-    my $self = shift;
+    
     my @bag;
-    my $counts = $self->tile_counts;
+    my $counts = $self->tile_counts($lang);
     for my $char (keys %$counts) {
         push @bag, ($char) x $counts->{$char};
     }
+    
+    $self->_bag_cache->{$lang} = \@bag;
     return \@bag;
 }
 
-sub get_random_rack {
-    my $self = shift;
-    my $bag = $self->bag;
+sub get_random_rack ($self, $lang) {
+    my $bag = $self->_get_bag($lang);
     my @rack;
     
     # Simple random draw
@@ -132,7 +146,7 @@ sub get_random_rack {
     
     # Ensure at least one vowel
     unless (grep { /[AEIOU]/ } @rack) {
-        return $self->get_random_rack;
+        return $self->get_random_rack($lang);
     }
     
     return \@rack;

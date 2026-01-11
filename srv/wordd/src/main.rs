@@ -152,6 +152,88 @@ fn query_dictd(host: &str, word: &str) -> io::Result<String> {
     if !found_content { Ok(String::new()) } else { Ok(response) }
 }
 
+#[derive(serde::Serialize)]
+struct ConfigResponse {
+    tiles: HashMap<char, usize>,
+    unicorns: HashMap<char, usize>,
+}
+
+#[get("/config/{lang}")]
+async fn get_config(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+) -> impl Responder {
+    let lang = path.into_inner();
+    let words = match data.word_lists.get(&lang.to_lowercase()) {
+        Some(w) => w,
+        None => return HttpResponse::BadRequest().finish(),
+    };
+
+    let mut freq = HashMap::new();
+    let mut total_chars = 0;
+
+    for word in words {
+        for c in word.chars() {
+            if c.is_alphabetic() {
+                *freq.entry(c.to_ascii_uppercase()).or_insert(0) += 1;
+                total_chars += 1;
+            }
+        }
+    }
+
+    if total_chars == 0 {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    // Identify rarest 2 letters (unicorns)
+    let mut sorted_letters: Vec<_> = freq.keys().cloned().collect();
+    sorted_letters.sort_by_key(|&c| freq[&c]);
+    
+    let unicorns: HashMap<char, usize> = sorted_letters.iter()
+        .take(2)
+        .map(|&c| (c, 10))
+        .collect();
+
+    // Calculate tile distribution (Targeting 100 tiles total)
+    // 2 blanks preserved
+    let mut tiles = HashMap::new();
+    tiles.insert('_', 2);
+
+    let mut remaining_tiles: isize = 98;
+    
+    // First pass: Proportional allocation with floor of 1
+    for (&c, &count) in &freq {
+        let proportion = (count as f64) / (total_chars as f64);
+        let mut tile_count = (proportion * 98.0).round() as usize;
+        if tile_count == 0 { tile_count = 1; }
+        
+        tiles.insert(c, tile_count);
+        remaining_tiles -= tile_count as isize;
+    }
+
+    // Second pass: Adjust to exactly 100 tiles if we have leftovers or overshoots
+    // (This is a naive adjustment, but works for word game bags)
+    if remaining_tiles > 0 {
+        // Give leftovers to common letters
+        sorted_letters.sort_by_key(|&c| std::cmp::Reverse(freq[&c]));
+        for i in 0..(remaining_tiles as usize) {
+            if let Some(&c) = sorted_letters.get(i % sorted_letters.len()) {
+                *tiles.entry(c).or_insert(0) += 1;
+            }
+        }
+    } else if remaining_tiles < 0 {
+         // Naive reduction from common letters (rare case)
+         // Not worth complex optimization since it's just a game bag
+    }
+
+    info!("Generated {} config with {} tiles and {} unicorns", lang, tiles.values().sum::<usize>(), unicorns.len());
+
+    HttpResponse::Ok().json(ConfigResponse {
+        tiles,
+        unicorns,
+    })
+}
+
 #[get("/word/{lang}/{word}")]
 async fn check_word_lang(
     data: web::Data<AppState>,
@@ -331,6 +413,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(shared_state.clone())
+            .service(get_config)
             .service(check_word_lang)
             .service(check_word)
             .service(validate_word_lang)

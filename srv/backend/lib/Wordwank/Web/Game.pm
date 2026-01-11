@@ -67,70 +67,117 @@ sub websocket ($self) {
 
 sub _handle_join ($self, $player) {
     my $app = $self->app;
-    # Find active game or start one
+    my $lang = $player->language // 'en';
+    $app->log->debug("Player " . $player->id . " ($lang) attempting to join...");
+    
+    # 1. Search for active (started) game for this player's language
     my $game_rs = $self->app->schema->resultset('Game');
-    my $active_game = $game_rs->search({ finished_at => undef }, { order_by => { -desc => 'started_at' }, rows => 1 })->single;
+    my $active_game = $game_rs->search(
+        { 
+            finished_at => undef, 
+            language    => $lang,
+            started_at  => { -not => undef }
+        }, 
+        { order_by => { -desc => 'started_at' }, rows => 1 }
+    )->single;
+
+    # Check for stale games (Zombie Recovery for started games)
+    if ($active_game) {
+        my $gid = $active_game->id;
+        my $elapsed = time - $active_game->started_at->epoch;
+        my $total_dur = $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION;
+        
+        $app->log->debug("Found active game $gid ($elapsed/$total_dur)");
+
+        if ($elapsed >= $total_dur) {
+            $app->log->debug("Found stale game $gid, rotating...");
+            $self->_end_game($active_game);
+            $active_game = undef; # Force check for pending or new game
+        }
+    }
 
     my $gid;
+    # 2. If no active (started) game, look for a pending game (started_at is NULL)
     if (!$active_game) {
-        # Create new game
-        my $rack = $app->scorer->get_random_rack;
-    
-        # Generate letter values using new scoring rules
-        my $vals = $app->scorer->generate_letter_values();
-        
-        $gid = create_uuid_as_string(UUID_V4);
-        $active_game = $game_rs->create({
-            id            => $gid,
-            rack          => $rack,
-            letter_values => $vals,
-            started_at    => DateTime->now,
-        });
+        $app->log->debug("No active game for $lang, searching for pending...");
+        $active_game = $game_rs->search(
+            { 
+                finished_at => undef, 
+                language    => $lang,
+                started_at  => undef 
+            }, 
+            { order_by => { -asc => 'created_at' }, rows => 1 }
+        )->single;
 
-        # Initialize game state in memory
-        $app->games->{$gid} = { 
-            clients   => {}, 
-            state     => $active_game,
-            time_left => $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION,
-        };
+        if ($active_game) {
+            # Start this pending game!
+            $gid = $active_game->id;
+            $app->log->debug("Starting pending $lang game $gid");
+            $active_game->update({ started_at => DateTime->now });
+            
+            # Initialize in-memory state
+            $app->games->{$gid} = {
+                clients   => {},
+                state     => $active_game,
+                time_left => $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION,
+            };
+            $self->_start_game_timer($active_game);
+        }
+        else {
+            # Fallback (should be rare with background task): Create and start immediately
+            $app->log->debug("No pending game found, creating emergency $lang game");
+            my $rack = $app->scorer->get_random_rack($lang);
+            my $vals = $app->scorer->generate_letter_values($lang);
+            
+            $gid = create_uuid_as_string(UUID_V4);
+            $active_game = $game_rs->create({
+                id            => $gid,
+                rack          => $rack,
+                letter_values => $vals,
+                language      => $lang,
+                started_at    => DateTime->now,
+            });
 
-        # Start a server-side timer for this game
-        $self->_start_game_timer($active_game);
+            $app->games->{$gid} = { 
+                clients   => {}, 
+                state     => $active_game,
+                time_left => $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION,
+            };
+            $self->_start_game_timer($active_game);
+        }
     }
     else {
+        # Active game found, ensure it's in memory
         $gid = $active_game->id;
-        # Zombie Recovery: If game is in DB but not in memory
+        $app->log->debug("Joining existing game $gid");
         if (!$app->games->{$gid}) {
-            my $elapsed = time - $active_game->started_at->epoch;
-            my $time_left = ($ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION) - $elapsed;
-            
-            if ($time_left > 0) {
-                $app->games->{$gid} = {
-                    clients   => {},
-                    state     => $active_game,
-                    time_left => $time_left,
-                };
-                $self->_start_game_timer($active_game);
-            }
-            else {
-                # This game should have ended. End it now and rotate.
-                $self->_end_game($active_game);
-                # Return early as _end_game will trigger a new join via timer
-                return;
-            }
+             # Zombie Recovery: Restart timer if missing from memory
+             my $elapsed = time - $active_game->started_at->epoch;
+             my $total_dur = $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION;
+             $app->log->debug("Recovering zombie game $gid to memory ($elapsed/$total_dur)");
+             $app->games->{$gid} = {
+                 clients   => {},
+                 state     => $active_game,
+                 time_left => $total_dur - $elapsed,
+             };
+             $self->_start_game_timer($active_game);
         }
     }
 
     # Store client in app state
     $app->games->{$gid}{clients}{$player->id} = $self;
-
-    # Send game_start with accurate time_left
+    
+    # Send game_start with accurate time_left and language-specific configs
+    my $game_lang = $active_game->language // 'en';
+    $app->log->debug("Broadcasting game_start for $gid");
     $self->send({json => {
         type    => 'game_start',
         payload => {
             uuid          => $gid,
             rack          => $active_game->rack,
             letter_values => $active_game->letter_values,
+            tile_counts   => $app->scorer->tile_counts($game_lang),
+            unicorns      => $app->scorer->unicorns($game_lang),
             time_left     => $app->games->{$gid}{time_left},
         }
     }});
@@ -179,8 +226,8 @@ sub _handle_play ($self, $player, $payload) {
     }
 
     # Non-blocking validation via wordd
-    # Use internal Kubernetes service name
-    my $lang = $player->language // 'en';
+    # Use the game's language for consistency
+    my $lang = $game_record->language // 'en';
     my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/validate/$lang/";
     
     $app->log->debug("Requesting validation from wordd: $wordd_url" . lc($word));
@@ -360,7 +407,7 @@ sub _end_game ($self, $game) {
 
     my $winner = $results[0];
     my $winner_word = $winner ? $winner->{word} : undef;
-    my $winner_lang = $plays[0] ? ($plays[0]->get_column('language') // 'en') : 'en';
+    my $winner_lang = $game->language // 'en';
 
     # Build payload with bonus details
     my $payload = [ map { 

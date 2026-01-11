@@ -1,0 +1,5 @@
+-- Migration to add language support and tracking to games
+ALTER TABLE games ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE games ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE games ALTER COLUMN started_at DROP DEFAULT;
+ALTER TABLE games ALTER COLUMN started_at DROP NOT NULL;

@@ -2,6 +2,7 @@ package Wordwank;
 use Mojo::Base 'Mojolicious', -signatures;
 use Wordwank::Schema;
 use Wordwank::Game::Scorer;
+use UUID::Tiny qw(:std);
 
 has schema => sub {
     my $self = shift;
@@ -60,6 +61,43 @@ sub startup ($self) {
 
     # HTTP API for stats
     $r->get('/players/leaderboard')->to('stats#leaderboard');
+
+    # Background task: Pre-populate games (ensure every language has a pending or active game)
+    $self->helper(prepopulate_games => sub ($c) {
+        my $schema = $c->app->schema;
+        my @langs = qw(en es);
+        
+        for my $lang (@langs) {
+            # Check if there is an active (started) or pending (created but not started) game
+            my $game = $schema->resultset('Game')->search({
+                finished_at => undef,
+                language    => $lang,
+            }, { rows => 1 })->single;
+
+            if (!$game) {
+                $c->app->log->debug("Pre-populating pending game for $lang");
+                my $rack = $c->app->scorer->get_random_rack($lang);
+                my $vals = $c->app->scorer->generate_letter_values($lang);
+                
+                $schema->resultset('Game')->create({
+                    id            => create_uuid_as_string(UUID_V4),
+                    rack          => $rack,
+                    letter_values => $vals,
+                    language      => $lang,
+                    started_at    => undef, # Pending
+                });
+            }
+        }
+    });
+
+    # Run every 10 seconds
+    Mojo::IOLoop->recurring(10 => sub {
+        my $loop = shift;
+        # We need a controller context or app context for the helper
+        # Since this is a Mojolicious app, we can just call it on the app singleton if we want, 
+        # but helpers are usually called via $c. Here we use a dummy controller or just app.
+        $self->prepopulate_games();
+    });
 }
 
 1;

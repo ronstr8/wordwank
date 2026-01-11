@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
-## [Unreleased]
+## [0.21.1] - 2026-01-11
 
-- Nothing yet. Go play a round!
+### Fixed
+
+- **Game Start Hang**: Resolved issue where players could get stuck in "Waiting for game" loop due to stale game rotation logic.
+- **Wordd Compilation**: Fixed Rust compilation errors in `wordd` service regarding type ambiguity and mismatches.
+
+### Changed
+
+- **Language-Partitioned Games**: Players are now strictly matched into games based on their language preference (EN players in EN games, ES players in ES games).
+- **Persistent Game Language**: Added `language` column to `games` table to ensure consistent tile distributions and rules for all participants.
 
 ## [0.21.0] - 2026-01-11
 

@@ -1,0 +1,94 @@
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0.5rem;
+    color: #eee;
+    font-family: inherit;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.personal-stats-section h3,
+.leaderboard-section h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.3rem;
+}
+
+.personal-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.8rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+    /* Gold */
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #aaa;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.leader-entry {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.5rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.leader-rank {
+    width: 2rem;
+    color: #888;
+    font-weight: bold;
+}
+
+.leader-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.leader-score {
+    font-weight: bold;
+    color: #4facfe;
+    /* Blue */
+}
+
+.empty-msg,
+.loading-stats {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 1rem;
+}
