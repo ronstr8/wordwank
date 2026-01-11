@@ -101,7 +101,7 @@ const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width
             <div className="panel-body">
                 {children}
             </div>
-            <div className="resize-handle" onMouseDown={(e) => {
+            <div className="resize-handle resize-handle-br" onMouseDown={(e) => {
                 e.stopPropagation();
                 const startWidth = size.width;
                 const startHeight = size.height;
@@ -112,6 +112,34 @@ const DraggablePanel = ({ title, children, id, initialPos, initialSize = { width
                     setSize({
                         width: Math.max(200, startWidth + (moveEvent.clientX - startX)),
                         height: Math.max(150, startHeight + (moveEvent.clientY - startY))
+                    });
+                };
+                const onMouseUp = () => {
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                };
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            }} />
+            <div className="resize-handle resize-handle-bl" onMouseDown={(e) => {
+                e.stopPropagation();
+                const startWidth = size.width;
+                const startHeight = size.height;
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startPosX = pos.x;
+
+                const onMouseMove = (moveEvent) => {
+                    const deltaX = moveEvent.clientX - startX;
+                    const newWidth = Math.max(200, startWidth - deltaX);
+                    setSize({
+                        width: newWidth,
+                        height: Math.max(150, startHeight + (moveEvent.clientY - startY))
+                    });
+                    // Move panel right when resizing from left to maintain right edge position
+                    setPos({
+                        x: startPosX + (startWidth - newWidth),
+                        y: pos.y
                     });
                 };
                 const onMouseUp = () => {

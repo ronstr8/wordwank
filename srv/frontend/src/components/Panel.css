@@ -54,13 +54,23 @@
 
 .resize-handle {
     position: absolute;
-    right: 0;
     bottom: 0;
     width: 15px;
     height: 15px;
+}
+
+.resize-handle-br {
+    right: 0;
     cursor: nwse-resize;
     background: linear-gradient(135deg, transparent 50%, #f1c40f 50%);
     border-radius: 0 0 10px 0;
+}
+
+.resize-handle-bl {
+    left: 0;
+    cursor: nesw-resize;
+    background: linear-gradient(225deg, transparent 50%, #f1c40f 50%);
+    border-radius: 0 0 0 10px;
 }
 
 /* Leaderboard Specific */
