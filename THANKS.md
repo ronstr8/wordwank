@@ -4,7 +4,7 @@ This project wouldn't be possible without the excellent work of others. We're gr
 
 ## Spanish Word List
 
-Our Spanish word dictionary (`srv/wordd/share/words/es/valid-words.txt`) is derived from:
+Our Spanish word dictionary (`srv/wordd/share/words/es/lexicon.txt`) is derived from:
 
 - **Source**: [Lemarios del español](http://olea.org/proyectos/lemarios/) by Ismael Olea
 - **Via**: [javierarce/palabras](https://github.com/javierarce/palabras) GitHub repository

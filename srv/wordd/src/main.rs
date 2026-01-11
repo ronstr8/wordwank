@@ -52,23 +52,23 @@ fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
 fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
     let lang_dir = format!("{}/words/{}", base_dir, lang);
     
-    let valid_path = format!("{}/valid-words.txt", lang_dir);
-    let custom_path = format!("{}/custom-words.txt", lang_dir);
-    let censored_path = format!("{}/censored-words.txt", lang_dir);
+    let valid_path = format!("{}/lexicon.txt", lang_dir);
+    let custom_path = format!("{}/insertions.txt", lang_dir);
+    let censored_path = format!("{}/exclusions.txt", lang_dir);
 
     let mut words = load_words(&valid_path)
         .unwrap_or_else(|_| {
-            warn!("Failed to load main word list for {} at {}.", lang, valid_path);
+            warn!("Failed to load main lexicon for {} at {}.", lang, valid_path);
             HashSet::new()
         });
 
     if let Ok(custom) = load_words(&custom_path) {
-        info!("Loaded {} custom words for {}.", custom.len(), lang);
+        info!("Loaded {} insertions for {}.", custom.len(), lang);
         words.extend(custom);
     }
 
     if let Ok(censored) = load_words(&censored_path) {
-        info!("Loaded {} censored words for {}.", censored.len(), lang);
+        info!("Loaded {} exclusions for {}.", censored.len(), lang);
         for word in censored {
             words.remove(&word);
         }
