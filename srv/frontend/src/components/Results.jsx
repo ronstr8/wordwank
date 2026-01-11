@@ -13,8 +13,10 @@ const Results = ({ data, onClose, playerNames = {} }) => {
     useEffect(() => {
         const handleKeydown = () => {
             if (showDefinition) {
+                // When definition is showing, close definition and return to results
                 setShowDefinition(false);
             } else if (onClose) {
+                // When results showing, close and join next game
                 onClose();
             }
         };
@@ -24,10 +26,16 @@ const Results = ({ data, onClose, playerNames = {} }) => {
     }, [onClose, showDefinition]);
 
     const handleOverlayClick = () => {
-        // Don't close results if definition panel is open - just close the definition
-        if (showDefinition) {
-            setShowDefinition(false);
-        } else if (onClose) {
+        // Any click on overlay closes results and joins next game
+        if (!showDefinition && onClose) {
+            onClose();
+        }
+    };
+
+    const handleCardClick = (e) => {
+        // Clicking on the main results card also closes and joins next game
+        // (unless definition is showing)
+        if (!showDefinition) {
             onClose();
         }
     };
@@ -44,7 +52,7 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                 <div className="splat-effect s2"></div>
                 <div className="splat-effect s3"></div>
             </div>
-            <div className="results-card" onClick={(e) => !showDefinition && e.stopPropagation()}>
+            <div className="results-card" onClick={handleCardClick}>
                 <h2>{t('results.title')}!</h2>
                 <div className="summary-banner">{summary}</div>
 
@@ -116,6 +124,7 @@ const Results = ({ data, onClose, playerNames = {} }) => {
             {showDefinition && winner && (
                 <div className="definition-modal-overlay" onClick={(e) => {
                     e.stopPropagation();
+                    // Close definition and return to results screen
                     setShowDefinition(false);
                 }}>
                     <motion.div
@@ -126,7 +135,10 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                     >
                         <header className="modal-header">
                             <h3>{winner.word.toUpperCase()}</h3>
-                            <button className="close-modal" onClick={() => setShowDefinition(false)}>×</button>
+                            <button className="close-modal" onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDefinition(false);
+                            }}>×</button>
                         </header>
                         <div className="modal-body scrollable">
                             <pre className="definition-text">

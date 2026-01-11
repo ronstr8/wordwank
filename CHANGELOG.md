@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Nothing yet. Go play a round!
 
+## [0.19.0] - 2026-01-11
+
+### Added
+
+- **Bottom-Left Resize Handles**: Draggable panels (Leaderboard, Play-by-Play, Chat) now have resize handles on both bottom corners
+  - Bottom-right: Expands width and height (original behavior)
+  - Bottom-left: Expands width to left and height down while keeping right edge anchored
+  - Both handles have visual indicators (yellow triangles) and appropriate cursors
+
+### Changed
+
+- **End-of-Game Interaction**: Improved UX for results screen
+  - Any click or keypress on results screen closes it and joins next game
+  - Exception: "Wait, what does [word] mean?" button opens definition modal
+  - Definition modal only closes back to results screen (not directly to game)
+  - Updated prompt text: "Click anywhere or press any key to play again..."
+  - Translations updated in English and Spanish
+
 ## [0.18.0] - 2026-01-11
 
 ### Added

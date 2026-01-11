@@ -33,7 +33,7 @@
         "wait_what_does": "Wait, what does \"{{word}}\" mean?",
         "no_plays_round": "NO PLAYS THIS ROUND!",
         "riveting": "Everyone just stared at the screen. Riveting.",
-        "next_game_soon": "Next game starting soon...",
+        "next_game_soon": "Click anywhere or press any key to play again...",
         "played_same_word": "played the same word."
     },
     "auth": {

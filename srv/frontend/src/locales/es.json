@@ -32,7 +32,7 @@
         "wait_what_does": "Espera, ¿qué significa \"{{word}}\"?",
         "no_plays_round": "¡SIN JUGADAS EN ESTA RONDA!",
         "riveting": "Todos se quedaron mirando la pantalla. Fascinante.",
-        "next_game_soon": "El próximo juego comenzará pronto...",
+        "next_game_soon": "Haz clic en cualquier lugar o presiona cualquier tecla para jugar de nuevo...",
         "played_same_word": "jugó la misma palabra."
     },
     "auth": {
