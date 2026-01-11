@@ -481,7 +481,8 @@ header {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    width: 40px;
+    width: auto;
+    min-width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
@@ -489,7 +490,15 @@ header {
     font-size: 1.2rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    padding: 0;
+    padding: 0 0.5rem;
+}
+
+.header-btn.wtf-btn {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 0.9rem;
+    color: #f1c40f;
+    text-shadow: 1px 1px 0 #000;
+    letter-spacing: 0.5px;
 }
 
 .header-btn:hover {
@@ -530,4 +539,77 @@ header {
 .lang-select option {
     background: #2c3e50;
     color: white;
+}
+
+/* Rules Panel Styles */
+.rules-panel {
+    padding: 0.5rem;
+    color: #ecf0f1;
+}
+
+.rules-text {
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    background: rgba(44, 62, 80, 0.5);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #f1c40f;
+}
+
+.tile-stats-section h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #f1c40f;
+}
+
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.tile-stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.4rem;
+    position: relative;
+}
+
+.tile-char {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.tile-count {
+    font-size: 0.75rem;
+    color: #bdc3c7;
+    margin-top: 2px;
+}
+
+.tile-stat-item.unicorn-gem {
+    background: rgba(241, 196, 15, 0.15);
+    border-color: #f1c40f;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.2);
+}
+
+.tile-stat-item.unicorn-gem::after {
+    content: "🦄";
+    font-size: 0.7rem;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+.tile-stat-item.unicorn-gem .tile-char {
+    color: #f1c40f;
 }

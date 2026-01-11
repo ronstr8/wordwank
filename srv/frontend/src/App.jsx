@@ -12,6 +12,7 @@ import './App.css'
 import './LoadingModal.css'
 import './JumbleButton.css'
 import Login from './components/Login'
+import PlayerStats from './components/PlayerStats'
 
 function App() {
     const { t, i18n } = useTranslation()
@@ -31,12 +32,17 @@ function App() {
     const [connectionError, setConnectionError] = useState(null)
     const [blankChoice, setBlankChoice] = useState(null) // { slotIndex, tileId }
     const [letterValue, setLetterValue] = useState(0) // Fixed score if mode is on
+    const [showRules, setShowRules] = useState(false);
+    const [showStats, setShowStats] = useState(false); // Assuming this is for a future stats panel
+    const [tileConfig, setTileConfig] = useState({ tiles: {}, unicorns: {} });
+    const [gameId, setGameId] = useState(null); // Added gameId state
     const rackRef = useRef([]);
     const guessRef = useRef([]);
     const { play, startAmbience, stopAmbience, toggleAmbience, toggleMute, isMuted, isAmbienceEnabled } = useSound();
     const [playerNames, setPlayerNames] = useState({}); // Map playerID -> nickname
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAuthChecking, setIsAuthChecking] = useState(true);
+    const [hasPasskey, setHasPasskey] = useState(false);
     const autoSubmittedRef = useRef(false);
 
     // Panel visibility with localStorage persistence
@@ -60,6 +66,7 @@ function App() {
     const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
     const [playByPlayVisible, setPlayByPlayVisible] = useState(() => loadPanelVisibility('playByPlay'));
     const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
+    const [statsVisible, setStatsVisible] = useState(() => loadPanelVisibility('stats'));
 
     // Save visibility states to localStorage when they change
     useEffect(() => {
@@ -73,6 +80,10 @@ function App() {
     useEffect(() => {
         savePanelVisibility('chat', chatVisible);
     }, [chatVisible]);
+
+    useEffect(() => {
+        savePanelVisibility('stats', statsVisible);
+    }, [statsVisible]);
 
     useEffect(() => {
         rackRef.current = rack;
@@ -90,7 +101,7 @@ function App() {
             if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
             const data = await resp.json();
             console.log('Leaderboard data fetched:', data);
-            setLeaderboard(Array.isArray(data) ? data : []);
+            setLeaderboard(data);
         } catch (err) {
             console.error('Failed to fetch leaderboard:', err);
             setLeaderboard([]);
@@ -117,6 +128,7 @@ function App() {
                 setPlayerId(data.id);
                 playerIdRef.current = data.id;
                 setNickname(data.nickname);
+                setHasPasskey(!!data.has_passkey);
                 if (data.language) i18n.changeLanguage(data.language);
                 setIsAuthenticated(true);
                 return data.id;
@@ -136,6 +148,26 @@ function App() {
         };
         init();
     }, []);
+
+    const playerNamesRef = useRef(playerNames);
+    useEffect(() => {
+        playerNamesRef.current = playerNames;
+    }, [playerNames]);
+
+    const playRef = useRef(play);
+    useEffect(() => {
+        playRef.current = play;
+    }, [play]);
+
+    const startAmbienceRef = useRef(startAmbience);
+    useEffect(() => {
+        startAmbienceRef.current = startAmbience;
+    }, [startAmbience]);
+
+    const tRef = useRef(t);
+    useEffect(() => {
+        tRef.current = t;
+    }, [t]);
 
     useEffect(() => {
         if (!playerId) return;
@@ -177,7 +209,7 @@ function App() {
                 const data = JSON.parse(event.data);
                 if (data.type === 'chat') {
                     const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
-                    const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNames[data.sender];
+                    const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNamesRef.current[data.sender];
                     setMessages(prev => [...prev, {
                         sender: data.sender,
                         senderName: senderName || data.sender,
@@ -194,22 +226,25 @@ function App() {
                         [data.payload.id]: data.payload.name
                     }));
                 } else if (data.type === 'game_start') {
-                    const newRack = data.payload.rack.map((letter, idx) => ({
+                    const { uuid, rack: newRackLetters, letter_values, time_left, tile_counts, unicorns } = data.payload;
+                    const newRack = newRackLetters.map((letter, idx) => ({
                         id: `tile-${idx}-${Date.now()}`,
                         letter,
                         position: idx,
                         isUsed: false
                     }));
+                    setGameId(uuid);
                     setRack(newRack);
-                    setTimeLeft(data.payload.time_left);
-                    setLetterValue(data.payload.letter_values || 0);
+                    setTimeLeft(time_left);
+                    setLetterValue(letter_values || 0);
+                    setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
                     setPlays([]);
                     setGuess(Array(7).fill(null));
                     setIsLocked(false);
                     setFeedback({ text: '', type: '' });
                     autoSubmittedRef.current = false; // Reset for new game
-                    startAmbience(); // Start background loop
+                    startAmbienceRef.current(); // Start background loop
                     fetchLeaderboard();
                 } else if (data.type === 'timer') {
                     if (data.payload && data.payload.time_left !== undefined) {
@@ -219,7 +254,7 @@ function App() {
                 } else if (data.type === 'play') {
                     const playObj = {
                         player: data.sender,
-                        playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
+                        playerName: data.payload.playerName || playerNamesRef.current[data.sender] || data.sender,
                         word: data.payload.word,
                         score: data.payload.score,
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
@@ -229,7 +264,7 @@ function App() {
                         return [playObj, ...filtered];
                     });
                     if (data.sender === playerIdRef.current) {
-                        setFeedback({ text: t('app.accepted'), type: 'success' });
+                        setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
                         setIsLocked(true);
                         setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
                     }
@@ -239,7 +274,7 @@ function App() {
                 } else if (data.type === 'play_result') {
                     setPlays(prev => [...prev, {
                         player: data.sender,
-                        playerName: data.payload.playerName || playerNames[data.sender] || data.sender,
+                        playerName: data.payload.playerName || playerNamesRef.current[data.sender] || data.sender,
                         word: data.payload.word,
                         score: data.payload.score,
                         id: Date.now()
@@ -247,14 +282,14 @@ function App() {
                 } else if (data.type === 'game_end') {
                     const resultsData = {
                         results: data.payload.plays || [],
-                        summary: (data.payload.plays && data.payload.plays.length > 0) ? t('results.round_over') : t('results.no_plays_round')
+                        summary: (data.payload.plays && data.payload.plays.length > 0) ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')
                     };
                     if (resultsData.results.length > 0 && data.payload.definition) {
                         resultsData.results[0].definition = data.payload.definition;
                     }
                     setResults(resultsData);
                     setIsLocked(true);
-                    play('game_over');
+                    playRef.current('game_over');
                     fetchLeaderboard();
                 }
             };
@@ -601,9 +636,14 @@ function App() {
                 <div className="header-actions">
                     {/* Group 1: Authentication */}
                     <div className="button-group">
-                        <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
-                            🔑
-                        </button>
+                        <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
+                        <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
+                        <button className="header-btn" onClick={() => setChatVisible(!chatVisible)} title="Chat">💬</button>
+                        {!hasPasskey && (
+                            <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
+                                🔑
+                            </button>
+                        )}
                         <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
                             🚪
                         </button>
@@ -763,7 +803,20 @@ function App() {
                     onClose={() => setLeaderboardVisible(false)}
                     storageKey="leaderboard"
                 >
-                    <Leaderboard players={leaderboard} />
+                    <Leaderboard players={Array.isArray(leaderboard) ? leaderboard : (leaderboard.leaders || [])} />
+                </DraggablePanel>
+            )}
+
+            {statsVisible && (
+                <DraggablePanel
+                    title="STATS"
+                    id="stats"
+                    initialPos={{ x: 40, y: 150 }}
+                    initialSize={{ width: 300, height: 400 }}
+                    onClose={() => setStatsVisible(false)}
+                    storageKey="stats"
+                >
+                    <PlayerStats data={leaderboard} />
                 </DraggablePanel>
             )}
 
@@ -790,6 +843,38 @@ function App() {
                     storageKey="chat"
                 >
                     <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
+                </DraggablePanel>
+            )}
+
+            {showRules && (
+                <DraggablePanel
+                    id="rules"
+                    title="WTF?!"
+                    icon="❓"
+                    onClose={() => setShowRules(false)}
+                    initialPos={{ x: window.innerWidth / 2 - 200, y: 150 }}
+                    initialSize={{ width: 400, height: 450 }}
+                >
+                    <div className="rules-panel">
+                        <p className="rules-text">{t('app.rules_summary')}</p>
+
+                        <div className="tile-stats-section">
+                            <h3>{t('app.tile_frequencies')}</h3>
+                            <div className="tile-grid">
+                                {Object.entries(tileConfig.tiles)
+                                    .sort(([a], [b]) => a.localeCompare(b))
+                                    .map(([char, count]) => {
+                                        const isUnicorn = tileConfig.unicorns[char];
+                                        return (
+                                            <div key={char} className={`tile-stat-item ${isUnicorn ? 'unicorn-gem' : ''}`}>
+                                                <span className="tile-char">{char === '_' ? '?' : char}</span>
+                                                <span className="tile-count">x{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </div>
                 </DraggablePanel>
             )}
 

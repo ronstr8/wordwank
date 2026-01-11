@@ -21,11 +21,21 @@ __PACKAGE__->add_columns(
     },
     started_at => {
         data_type => 'timestamp with time zone',
+        is_nullable => 1,
+    },
+    created_at => {
+        data_type => 'timestamp with time zone',
         set_on_create => 1,
     },
     finished_at => {
         data_type => 'timestamp with time zone',
         is_nullable => 1,
+    },
+    language => {
+        data_type => 'varchar',
+        size => 10,
+        is_nullable => 0,
+        default_value => 'en',
     }
 );
 

@@ -199,6 +199,7 @@ sub me ($self) {
         id => $player->id,
         nickname => $player->nickname,
         language => $player->language,
+        has_passkey => $player->passkeys->count > 0,
     });
 }
 

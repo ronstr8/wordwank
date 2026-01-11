@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 const useSound = () => {
     const [isMuted, setIsMuted] = useState(() => {
@@ -19,7 +19,8 @@ const useSound = () => {
             placement: new Audio('/sounds/placement.mp3'),
             buzzer: new Audio('/sounds/buzzer.mp3'),
             bigsplat: new Audio('/sounds/bigsplat.mp3'),
-            ambience: new Audio('/sounds/ambience.mp3')
+            ambience: new Audio('/sounds/ambience.mp3'),
+            game_over: new Audio('/sounds/game_over.mp3') // Added game_over
         };
 
         // Configure ambience for looping
@@ -30,6 +31,7 @@ const useSound = () => {
         soundsRef.current.placement.volume = 0.4;
         soundsRef.current.buzzer.volume = 0.5;
         soundsRef.current.bigsplat.volume = 0.7;
+        if (soundsRef.current.game_over) soundsRef.current.game_over.volume = 0.6;
 
         // Auto-start ambience if conditions met
         if (!isMuted && isAmbienceEnabled) {
@@ -47,7 +49,7 @@ const useSound = () => {
         };
     }, []);
 
-    const play = (soundName) => {
+    const play = useCallback((soundName) => {
         if (isMuted) return;
 
         const sound = soundsRef.current[soundName];
@@ -59,18 +61,18 @@ const useSound = () => {
             // Ignore autoplay restrictions
             console.debug('Audio play prevented:', err);
         });
-    };
+    }, [isMuted]);
 
-    const startAmbience = () => {
+    const startAmbience = useCallback(() => {
         if (isMuted || !isAmbienceEnabled) return;
         soundsRef.current.ambience?.play().catch(() => { });
-    };
+    }, [isMuted, isAmbienceEnabled]);
 
-    const stopAmbience = () => {
+    const stopAmbience = useCallback(() => {
         soundsRef.current.ambience?.pause();
-    };
+    }, []);
 
-    const toggleAmbience = () => {
+    const toggleAmbience = useCallback(() => {
         setIsAmbienceEnabled(prev => {
             const newValue = !prev;
             localStorage.setItem('wordwank_ambience_enabled', newValue.toString());
@@ -82,9 +84,9 @@ const useSound = () => {
             }
             return newValue;
         });
-    };
+    }, [isMuted, startAmbience, stopAmbience]);
 
-    const toggleMute = () => {
+    const toggleMute = useCallback(() => {
         setIsMuted(prev => {
             const newValue = !prev;
             localStorage.setItem('wordwank_muted', newValue.toString());
@@ -98,7 +100,7 @@ const useSound = () => {
 
             return newValue;
         });
-    };
+    }, [isAmbienceEnabled, startAmbience, stopAmbience]);
 
     return { play, startAmbience, stopAmbience, toggleAmbience, toggleMute, isMuted, isAmbienceEnabled };
 };
