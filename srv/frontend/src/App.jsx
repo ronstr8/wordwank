@@ -13,6 +13,7 @@ import './LoadingModal.css'
 import './JumbleButton.css'
 import Login from './components/Login'
 import PlayerStats from './components/PlayerStats'
+import PasskeySetup from './components/PasskeySetup'
 
 function App() {
     const { t, i18n } = useTranslation()
@@ -542,52 +543,8 @@ function App() {
         }
     };
 
-    const handleRegisterPasskey = async () => {
-        try {
-            const resp = await fetch('/auth/passkey/challenge');
-            if (!resp.ok) throw new Error('Could not get challenge');
-            const options = await resp.json();
-
-            // Convert base64 to ArrayBuffer
-            options.challenge = Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer;
-            options.user.id = Uint8Array.from(options.user.id, c => c.charCodeAt(0)).buffer;
-
-            if (options.excludeCredentials) {
-                options.excludeCredentials = options.excludeCredentials.map(c => ({
-                    ...c,
-                    id: Uint8Array.from(atob(c.id), ch => ch.charCodeAt(0)).buffer
-                }));
-            }
-
-            const credential = await navigator.credentials.create({
-                publicKey: options
-            });
-
-            const verifyResp = await fetch('/auth/passkey/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: credential.id,
-                    type: 'registration',
-                    rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
-                    response: {
-                        attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
-                        clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
-                    }
-                })
-            });
-
-            if (verifyResp.ok) {
-                setFeedback({ text: t('auth.passkey_registered'), type: 'success' });
-            } else {
-                throw new Error('Verification failed');
-            }
-        } catch (err) {
-            console.error('Passkey registration failed:', err);
-            setFeedback({ text: err.name === 'NotAllowedError' ? 'Registration cancelled' : err.message, type: 'error' });
-        } finally {
-            setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
-        }
+    const handleRegisterPasskeyComplete = () => {
+        setHasPasskey(true);
     };
 
     if (isAuthChecking) {
@@ -685,6 +642,9 @@ function App() {
             <main className="game-area">
                 <div className="main-game-layout">
                     <div className="center-panel">
+                        {isAuthenticated && !hasPasskey && (
+                            <PasskeySetup onComplete={handleRegisterPasskeyComplete} />
+                        )}
                         <div className="rack-section">
                             <div className="section-label">{t('app.rack_label')}</div>
                             <div className="rack-container clickable">

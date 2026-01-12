@@ -84,7 +84,7 @@ const Login = ({ onLoginSuccess }) => {
 
                     <button className="auth-btn passkey" onClick={handlePasskeyLogin} disabled={loading}>
                         <span className="icon">🔑</span>
-                        {t('auth.continue_with_passkey')}
+                        {t('auth.sign_in_with_passkey')}
                     </button>
                 </div>
 
