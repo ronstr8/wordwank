@@ -26,10 +26,6 @@ __PACKAGE__->add_columns(
         data_type => 'integer',
         is_nullable => 0,
     },
-    tiles => {
-        data_type => 'text',
-        is_nullable => 1,
-    },
     is_auto_submit => {
         data_type => 'boolean',
         default_value => 0,

@@ -138,8 +138,9 @@ sub get_random_rack ($self, $lang) {
     my @rack;
     
     # Simple random draw
+    my $rack_size = $ENV{RACK_SIZE} || 7;
     my @indices = (0 .. $#$bag);
-    for (1 .. 7) {
+    for (1 .. $rack_size) {
         my $idx = splice @indices, int(rand(@indices)), 1;
         push @rack, $bag->[$idx];
     }
@@ -152,6 +153,13 @@ sub get_random_rack ($self, $lang) {
     return \@rack;
 }
 
+sub get_length_bonus ($self, $word) {
+    my $len = length($word);
+    return 0 if $len < 6;
+    # 5 for 6, then double for each (6: 5, 7: 10, 8: 20, 9: 40...)
+    return 5 * (2 ** ($len - 6));
+}
+
 sub calculate_score {
     my ($self, $word, $custom_values) = @_;
     my $score = 0;
@@ -159,8 +167,10 @@ sub calculate_score {
     # custom_values is now required (generated per game)
     return 0 unless $custom_values;
     
-    for my $char (split //, uc($word)) {
-        $score += $custom_values->{$char} // 0;
+    for my $char (split //, $word) {
+        # Lowercase letters are blanks (0 points)
+        next if $char =~ /[[:lower:]]/;
+        $score += $custom_values->{uc($char)} // 0;
     }
     
     return $score;
@@ -183,12 +193,5 @@ sub can_form_word ($self, $word, $rack) {
     }
     return 1;
 }
-
-sub uses_all_tiles ($self, $word, $rack) {
-    # Check if the word uses all 7 tiles
-    return length($word) == 7 && scalar(@$rack) == 7;
-}
-
-__PACKAGE__->meta->make_immutable;
 
 1;

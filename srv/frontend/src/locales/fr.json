@@ -18,7 +18,7 @@
         "loading": "CHARGEMENT...",
         "connecting": "Connexion au serveur de jeu",
         "waiting_next_game": "En attente du début de la prochaine partie...",
-        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos 7 jetons pour former le mot ayant le score le plus élevé avant la fin du temps imparti. Les consonnes ont des valeurs aléatoires (2-9), tandis que les voyelles valent toujours 1 point. Chaque jour, une lettre vaut 7 points de chance. Découvrez les deux lettres rares 'Licorne' valant 10 points ! Si vous utilisez les 7 jetons, vous obtenez un bonus de +10. Attention : si vous dupliquez le mot de quelqu'un d'autre, vous obtenez 0 point, mais la première personne à l'avoir joué reçoit un bonus de +1 pour votre paresse !",
+        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les consonnes valent 2-9 points, les voyelles 1 point. Une lettre par jour vaut 7 points. Trouvez les 'Licornes' (Q et Z) pour 10 points ! Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais donnent un bonus au premier joueur !",
         "tile_frequencies": "Fréquence des Lettres",
         "connection_error": "ERREUR DE CONNEXION",
         "reload": "RECHARGER LA PAGE",
@@ -37,7 +37,11 @@
         "no_plays_round": "AUCUNE JOUÉE CETTE MANCHE !",
         "riveting": "Tout le monde est resté figé sur l'écran. Passionnant.",
         "next_game_soon": "Cliquez n'importe où ou appuyez sur une touche pour rejouer...",
-        "played_same_word": "a joué le même mot."
+        "played_same_word": "a joué le même mot.",
+        "solo_warning": "Partie en solo - Scores non enregistrés",
+        "base_score": "Score de Base",
+        "duped_you": "vous a dupliqué",
+        "duplicate_penalty": "0 point (Doublon)"
     },
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",

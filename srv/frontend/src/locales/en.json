@@ -18,7 +18,7 @@
         "loading": "LOADING...",
         "connecting": "Connecting to game server",
         "waiting_next_game": "Waiting for next game to start...",
-        "rules_summary": "Wordwank is a high-speed vocabulary duel! Use your 7 tiles to form the highest scoring word before time runs out. Consonants have random values (2-9), while vowels are always 1 point. One letter each day is worth a lucky 7 points. Discover the two rare 'Unicorn' letters worth 10 points! If you use all 7 tiles, you get a +10 bonus. Careful: if you duplicate someone else's word, you get 0 points, but the first person to play it gets a +1 bonus for your laziness!",
+        "rules_summary": "Wordwank is a high-speed vocabulary duel! Use your tiles to form the highest scoring word before time runs out. Consonants have random values (2-9), while vowels are always 1 point. One letter each day is worth 7 points. Discover the two rare 'Unicorn' letters (Q and Z) worth 10 points! Scoring is dynamic: find a Unique Word (+5) or aim for Length Bonuses (+5 for 6 letters, doubling for every letter after). Careful: duplicating a word gives you 0 points, but giving the original player a bonus!",
         "tile_frequencies": "Tile Frequencies",
         "connection_error": "CONNECTION ERROR",
         "reload": "RELOAD PAGE",
@@ -37,7 +37,11 @@
         "no_plays_round": "NO PLAYS THIS ROUND!",
         "riveting": "Everyone just stared at the screen. Riveting.",
         "next_game_soon": "Click anywhere or press any key to play again...",
-        "played_same_word": "played the same word."
+        "played_same_word": "played the same word.",
+        "solo_warning": "Solo Game - Scores not recorded",
+        "base_score": "Base Score",
+        "duped_you": "duplicated you",
+        "duplicate_penalty": "0 points (Duplicate)"
     },
     "auth": {
         "welcome_back": "Welcome back, explorer! Ready to continue?",

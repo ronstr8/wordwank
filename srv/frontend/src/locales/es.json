@@ -31,13 +31,17 @@
         "play_again": "JUGAR DE NUEVO",
         "round_over": "¡LA RONDA HA TERMINADO!",
         "waiting_next_game": "Esperando el próximo juego...",
-        "rules_summary": "¡Wordwank es un duelo de vocabulario de alta velocidad! Usa tus 7 fichas para formar la palabra con mayor puntuación antes de que se acabe el tiempo. Las consonantes tienen valores aleatorios (2-9), mientras que las vocales siempre valen 1 punto. Una letra cada día vale 7 puntos de la suerte. ¡Descubre las dos raras letras 'Unicornio' que valen 10 puntos! Si usas las 7 fichas, obtienes un bono de +10. Cuidado: si duplicas la palabra de otra persona, obtienes 0 puntos, ¡pero la primera persona en jugarla recibe un bono de +1 por tu pereza!",
+        "rules_summary": "¡Palabrapaja es un duelo de vocabulario de alta velocidad! Usa tus fichas para formar la palabra con mayor puntuación. Las consonantes tienen valores aleatorios (2-9), las vocales valen 1. Una letra cada día vale 7 puntos. ¡Busca las letras 'Unicornio' (Q y Z) que valen 10 puntos! El puntaje es dinámico: busca una Palabra Única (+5) o Bonos por Longitud (+5 por 6 letras, duplicándose por cada letra extra). ¡Cuidado: duplicar una palabra te da 0 puntos, pero le da un bono al jugador original!",
         "tile_frequencies": "Frecuencias de Fichas",
         "wait_what_does": "Espera, ¿qué significa \"{{word}}\"?",
         "no_plays_round": "¡SIN JUGADAS EN ESTA RONDA!",
         "riveting": "Todos se quedaron mirando la pantalla. Fascinante.",
         "next_game_soon": "Haz clic en cualquier lugar o presiona cualquier tecla para jugar de nuevo...",
-        "played_same_word": "jugó la misma palabra."
+        "played_same_word": "jugó la misma palabra.",
+        "solo_warning": "Juego en solitario - Puntuaciones no registradas",
+        "base_score": "Puntuación Base",
+        "duped_you": "te ha duplicado",
+        "duplicate_penalty": "0 puntos (Duplicado)"
     },
     "auth": {
         "welcome_back": "¡Bienvenido de nuevo, explorador! ¿Listo para continuar?",

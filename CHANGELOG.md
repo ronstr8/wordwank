@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.22.0] - 2026-01-13
+
+### Added
+
+- **Configurable Rack Size**: The number of tiles is now configurable via the `RACK_SIZE` environment variable (defaults to 7).
+- **Dynamic Doubling Bonuses**: Implemented a scalable bonus system: +5 for 6 letters, doubling for each additional letter (5 * 2^(len-6)).
+- **Unique Word Bonus**: Added a +5 point bonus for playing a word that no other player duplicated.
+- **Discursive Results Display**: Refactored the game-end UI to show an indented breakdown of scores (Base, Unique, Length, and Duplications).
+- **Duplication Tracking**: Explicitly lists who duplicated you and rewards them points in the results list.
+- **Solo Game Intelligence**: Added a notice for solo games where scores are not recorded, while still showing the play details.
+- **Helm Integration**: Bubbled up `rackSize` setting to the root `values.yaml` for easy stack-wide configuration.
+- **French (FR) Localization**: Preliminary support for French language gameplay.
+
+### Fixed
+
+- **End-Game Scoring Bug**: Fixed a scope issue where duplication points were being calculated but not correctly added to the total score.
+- **Blank Tile Convention**: Finalized lowercase-is-blank standard to ensure consistent 0-point scoring.
+
 ## [0.21.1] - 2026-01-11
 
 ### Fixed

@@ -10,6 +10,7 @@ global:
   maxPlayers: 13
   randomLetterScoreMode: "true"
   gameDuration: 30
+  rackSize: 7
 
 # Centralized Ingress configuration
 ingress:

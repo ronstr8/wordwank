@@ -18,7 +18,7 @@ import PasskeySetup from './components/PasskeySetup'
 function App() {
     const { t, i18n } = useTranslation()
     const [rack, setRack] = useState([]) // Array of { id, letter }
-    const [guess, setGuess] = useState(Array(7).fill(null)) // Array of { id, char } or null
+    const [guess, setGuess] = useState(Array(8).fill(null)) // Array of { id, char } or null
     const [timeLeft, setTimeLeft] = useState(0)
     const playerIdRef = useRef(null)
     const [plays, setPlays] = useState([])
@@ -227,7 +227,9 @@ function App() {
                         [data.payload.id]: data.payload.name
                     }));
                 } else if (data.type === 'game_start') {
-                    const { uuid, rack: newRackLetters, letter_values, time_left, tile_counts, unicorns } = data.payload;
+                    const { uuid, rack: newRackLetters, rack_size, letter_values, time_left, tile_counts, unicorns } = data.payload;
+                    const size = rack_size || newRackLetters.length;
+
                     const newRack = newRackLetters.map((letter, idx) => ({
                         id: `tile-${idx}-${Date.now()}`,
                         letter,
@@ -241,7 +243,7 @@ function App() {
                     setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
                     setPlays([]);
-                    setGuess(Array(7).fill(null));
+                    setGuess(Array(size).fill(null));
                     setIsLocked(false);
                     setFeedback({ text: '', type: '' });
                     autoSubmittedRef.current = false; // Reset for new game
@@ -282,8 +284,9 @@ function App() {
                     }]);
                 } else if (data.type === 'game_end') {
                     const resultsData = {
-                        results: data.payload.plays || [],
-                        summary: (data.payload.plays && data.payload.plays.length > 0) ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')
+                        results: data.payload.results || [],
+                        summary: data.payload.summary || (data.payload.results && data.payload.results.length > 0 ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')),
+                        is_solo: data.payload.is_solo || false
                     };
                     if (resultsData.results.length > 0 && data.payload.definition) {
                         resultsData.results[0].definition = data.payload.definition;
@@ -342,25 +345,10 @@ function App() {
         if (isLocked || timeLeft === 0) return;
 
         if (source === 'rack') {
-            // Find first empty slot
-            const emptyIndex = guess.findIndex(g => g === null);
-            if (emptyIndex !== -1) {
-                if (tile.letter === '_') {
-                    setBlankChoice({ slotIndex: emptyIndex, tileId: tile.id });
-                } else {
-                    const newGuess = [...guess];
-                    newGuess[emptyIndex] = { id: tile.id, char: tile.letter };
-                    setGuess(newGuess);
-                    setRack(prev => prev.filter(t => t.id !== tile.id));
-                }
-            }
+            moveTileToGuess(tile);
         } else {
             // Return to rack
-            const slotIndex = source;
-            const playedTile = guess[slotIndex];
-            const originalLetter = rack.find(t => t.id === playedTile.id)?.letter || playedTile.char; // Approximation
-
-            setRack(prev => [...prev, { id: playedTile.id, letter: playedTile.id.includes('_') ? '_' : playedTile.char }]); // This is complex, let's simplify
+            returnToRack(source);
         }
     };
 
@@ -372,7 +360,8 @@ function App() {
         // Convert to lowercase to indicate it's a blank (0 points)
         newGuess[slotIndex] = { id: tileId, char: letter.toLowerCase(), originalLetter: '_' };
         setGuess(newGuess);
-        setRack(prev => prev.filter(t => t.id !== tileId));
+        // Mark tile as used instead of removing it
+        setRack(prev => prev.map(t => t.id === tileId ? { ...t, isUsed: true } : t));
         setBlankChoice(null);
         play('placement'); // Tile placed sound
     };
@@ -395,7 +384,7 @@ function App() {
         if (isLocked || timeLeft === 0) return;
         // Mark all tiles as unused
         setRack(prev => prev.map(tile => ({ ...tile, isUsed: false })));
-        setGuess(Array(7).fill(null));
+        setGuess(Array(8).fill(null));
     };
 
     const returnTile = (slotIndex) => {
@@ -439,7 +428,7 @@ function App() {
                 [...currentGuess].reverse().findIndex(g => g !== null);
 
             const actualIndex = slotIndex !== undefined ? slotIndex :
-                (targetIndex === -1 ? -1 : 6 - targetIndex);
+                (targetIndex === -1 ? -1 : currentGuess.length - 1 - targetIndex);
 
             if (actualIndex === -1) return currentGuess;
 
@@ -505,7 +494,8 @@ function App() {
     };
 
     const submitWord = () => {
-        const word = guess.map(g => g ? g.char : '').join('').toUpperCase().trim();
+        const word = guess.map(g => g ? g.char : '').join('').trim();
+
         console.log('Submitting word attempt:', word);
         if (word.length === 0 || !ws) {
             console.log('Submission failed: word empty or WS null');
@@ -514,6 +504,18 @@ function App() {
 
         const msg = JSON.stringify({ type: 'play', payload: { word } });
         console.log('SENDING PLAY:', msg);
+
+        // Tiered celebratory effects
+        const len = word.length;
+        if (len === 6) {
+            play('placement'); // Placeholder for squirt
+        } else if (len === 7) {
+            play('placement');
+            setTimeout(() => play('placement'), 150);
+        } else if (len >= 8) {
+            play('bigsplat');
+        }
+
         ws.send(msg);
     };
 
@@ -644,7 +646,7 @@ function App() {
                         <div className="rack-section">
                             <div className="section-label">{t('app.rack_label')}</div>
                             <div className="rack-container clickable">
-                                {[0, 1, 2, 3, 4, 5, 6].map(position => {
+                                {Array.from({ length: rack.length }).map((_, position) => {
                                     const tile = rack.find(t => t.position === position);
                                     if (!tile) return <div key={position} className="rack-slot empty" />;
 
@@ -689,12 +691,18 @@ function App() {
                             <div className="word-board">
                                 {guess.map((slot, i) => {
                                     const isFirstEmpty = guess.findIndex(g => g === null) === i;
+                                    const isBonusSlot = i >= 5; // Slots 6+ (indices 5+)
+                                    const bonusPoints = isBonusSlot ? 5 * Math.pow(2, i - 5) : 0;
+
                                     return (
                                         <div
                                             key={i}
-                                            className={`board-slot ${slot ? 'filled' : 'empty'} ${isFirstEmpty && !isLocked && timeLeft > 0 ? 'focused' : ''}`}
+                                            className={`board-slot ${slot ? 'filled' : 'empty'} ${isFirstEmpty && !isLocked && timeLeft > 0 ? 'focused' : ''} ${isBonusSlot ? 'bonus' : ''}`}
                                             onClick={() => slot && returnToRack(i)}
                                         >
+                                            {isBonusSlot && slot && (
+                                                <div className="slot-badge">+{bonusPoints}</div>
+                                            )}
                                             {slot ? (
                                                 <Tile
                                                     letter={slot.char}
@@ -814,6 +822,27 @@ function App() {
                     <div className="rules-panel">
                         <p className="rules-text">{t('app.rules_summary')}</p>
 
+                        <div className="rules-legend">
+                            <div className="legend-item">
+                                <span className="legend-icon">🦄</span>
+                                <div>
+                                    <strong>Unicorns (Q & Z)</strong>: Worth 10 pts. Very rare, very powerful.
+                                </div>
+                            </div>
+                            <div className="legend-item">
+                                <span className="legend-icon">⭐</span>
+                                <div>
+                                    <strong>Unique Word Bonus</strong>: find a word no one else did for +5 pts.
+                                </div>
+                            </div>
+                            <div className="legend-item">
+                                <span className="legend-icon">🚀</span>
+                                <div>
+                                    <strong>Length Bonus</strong>: starts at 6 letters (+5) and doubles every letter after.
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="tile-stats-section">
                             <h3>{t('app.tile_frequencies')}</h3>
                             <div className="tile-grid">
@@ -832,33 +861,36 @@ function App() {
                         </div>
                     </div>
                 </DraggablePanel>
-            )}
+            )
+            }
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 
-            {(isConnecting || connectionError || (rack.length === 0 && !results)) && (
-                <div className="loading-modal">
-                    <div className="loading-card">
-                        {connectionError ? (
-                            <>
-                                <div className="error-icon">⚠️</div>
-                                <h2>{t('app.connection_error')}</h2>
-                                <p>{connectionError}</p>
-                                <button className="reload-btn" onClick={() => window.location.reload()}>
-                                    {t('app.reload')}
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <div className="loading-spinner"></div>
-                                <h2>{t('app.loading')}</h2>
-                                <p>{rack.length === 0 && !isConnecting ? t('app.waiting_next_game') : t('app.connecting')}</p>
-                            </>
-                        )}
+            {
+                (isConnecting || connectionError || (rack.length === 0 && !results)) && (
+                    <div className="loading-modal">
+                        <div className="loading-card">
+                            {connectionError ? (
+                                <>
+                                    <div className="error-icon">⚠️</div>
+                                    <h2>{t('app.connection_error')}</h2>
+                                    <p>{connectionError}</p>
+                                    <button className="reload-btn" onClick={() => window.location.reload()}>
+                                        {t('app.reload')}
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="loading-spinner"></div>
+                                    <h2>{t('app.loading')}</h2>
+                                    <p>{rack.length === 0 && !isConnecting ? t('app.waiting_next_game') : t('app.connecting')}</p>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
 

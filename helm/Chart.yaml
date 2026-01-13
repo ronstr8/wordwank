@@ -3,7 +3,7 @@ name: wordwank
 description: Umbrella chart for the Wordwank polyglot microservices stack
 type: application
 version: 0.14.0
-appVersion: "0.21.0"
+appVersion: "0.22.0"
 
 dependencies:
   - name: frontend

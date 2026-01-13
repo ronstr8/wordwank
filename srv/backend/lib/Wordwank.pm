@@ -30,6 +30,27 @@ sub startup ($self) {
     # Helpers
     $self->helper(schema => sub ($c) { $c->app->schema });
 
+    # Simple i18n dictionary for backend summaries
+    my $translations = {
+        en => {
+            'results.winner_summary' => "%s won with %d points (Word: %s)",
+            'results.no_winner'      => "No one played a word this round. Wankers.",
+        },
+        es => {
+            'results.winner_summary' => "%s ganó con %d puntos (Palabra: %s)",
+            'results.no_winner'      => "Nadie jugó una palabra. Pajilleros.",
+        },
+        fr => {
+            'results.winner_summary' => "%s a gagné avec %d points (Mot: %s)",
+            'results.no_winner'      => "Personne n'a joué de mot. Branleurs.",
+        },
+    };
+
+    $self->helper(t => sub ($c, $key, $lang = undef) {
+        $lang ||= 'en';
+        return $translations->{$lang}{$key} || $translations->{en}{$key} || $key;
+    });
+
     # OAuth2 Configuration (Google)
     $self->plugin('OAuth2' => {
         google => {
@@ -65,7 +86,7 @@ sub startup ($self) {
     # Background task: Pre-populate games (ensure every language has a pending or active game)
     $self->helper(prepopulate_games => sub ($c) {
         my $schema = $c->app->schema;
-        my @langs = qw(en es);
+        my @langs = qw(en es fr);
         
         for my $lang (@langs) {
             # Check if there is an active (started) or pending (created but not started) game
@@ -79,13 +100,18 @@ sub startup ($self) {
                 my $rack = $c->app->scorer->get_random_rack($lang);
                 my $vals = $c->app->scorer->generate_letter_values($lang);
                 
-                $schema->resultset('Game')->create({
-                    id            => create_uuid_as_string(UUID_V4),
-                    rack          => $rack,
-                    letter_values => $vals,
-                    language      => $lang,
-                    started_at    => undef, # Pending
-                });
+                eval {
+                    $schema->resultset('Game')->create({
+                        id            => create_uuid_as_string(UUID_V4),
+                        rack          => $rack,
+                        letter_values => $vals,
+                        language      => $lang,
+                        started_at    => undef, # Pending
+                    });
+                    1; # Return true on success
+                } or do {
+                    $c->app->log->warn("Failed to create game for $lang: $@");
+                };
             }
         }
     });
@@ -93,9 +119,16 @@ sub startup ($self) {
     # Run every 10 seconds
     Mojo::IOLoop->recurring(10 => sub {
         my $loop = shift;
-        # We need a controller context or app context for the helper
-        # Since this is a Mojolicious app, we can just call it on the app singleton if we want, 
-        # but helpers are usually called via $c. Here we use a dummy controller or just app.
+        # Re-seed srand to ensure preforked workers don't share identical PRNG state.
+        # Avoid 'ps' as it's often missing in minimal containers.
+        if (open my $fh, '<:raw', '/dev/urandom') {
+            read $fh, my $buf, 4;
+            srand(unpack('L', $buf) ^ $$ ^ time);
+            close $fh;
+        } else {
+            srand(time ^ $$ ^ int(rand(1000000)));
+        }
+        
         $self->prepopulate_games();
     });
 }

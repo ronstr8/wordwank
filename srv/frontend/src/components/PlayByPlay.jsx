@@ -8,7 +8,7 @@ const PlayByPlay = ({ plays }) => {
                 <div key={i} className="play-entry">
                     <span className="timestamp">[{play.timestamp}]</span>
                     <span className="play-message">
-                        <strong>{play.playerName || play.player}</strong> played a word worth <strong>{play.score}</strong> points.
+                        <strong>{play.playerName || play.player}</strong> played <strong>{play.word}</strong> for <strong>{play.score}</strong> pts.
                     </span>
                 </div>
             ))}

@@ -196,13 +196,13 @@ sub _handle_chat ($self, $player, $payload) {
 }
 
 sub _handle_play ($self, $player, $payload) {
-    my $word = uc($payload->{word} // '');
+    my $word  = $payload->{word} // '';
     my $game_data = $self->_get_player_game($player->id);
     return unless $game_data;
 
     my $game_record = $game_data->{state};
     my $app = $self->app;
-    $app->log->debug("Player " . $player->id . " attempted word: $word");
+    $app->log->debug("Player " . $player->id . " attempted: $word");
 
     # Prevent double submissions
     my $existing = $app->schema->resultset('Play')->find({
@@ -245,7 +245,7 @@ sub _handle_play ($self, $player, $payload) {
                 word      => $word,
                 score     => $score,
             });
-
+            $app->log->debug("Recorded play for player " . $player->id . " in game " . $game_record->id . ": $word ($score pts)");
             $self->_broadcast_to_player_game($player->id, {
                 type      => 'play',
                 sender    => $player->id,
@@ -254,6 +254,7 @@ sub _handle_play ($self, $player, $payload) {
                     word       => $word,
                     score      => $score,
                     playerName => $player->nickname,
+                    msg        => "You played $word for $score pts!",
                 }
             });
         }
@@ -262,7 +263,7 @@ sub _handle_play ($self, $player, $payload) {
             # Word is invalid or wordd is down
             $self->send({json => {
                 type    => 'error',
-                payload => "The word '$word' is not in our dictionary of wank."
+                payload => "The word '$word' is not amongst our wanking lexicon."
             }});
         }
     });
@@ -301,7 +302,6 @@ sub _end_game ($self, $game) {
     my $app = $self->app;
     $game->update({ finished_at => DateTime->now });
 
-    # Fetch all plays for this game with player info
     my @plays = $schema->resultset('Play')->search(
         { game_id => $game->id },
         {
@@ -312,23 +312,28 @@ sub _end_game ($self, $game) {
         }
     )->all;
 
-    # Track duplicates: word -> [player_ids in order]
+    my $found_plays = scalar(@plays);
+    $app->log->debug("Ending game " . $game->id . " - Found $found_plays plays");
+
     my %word_to_players;
-    my %player_bonuses;  # player_id -> { duplicates => count, all_tiles => 10 }
+    my %player_bonuses;  # player_id -> { duplicates => count, length_bonus => count, unique => count, duped_by => [ { name => nickname, bonus => 1 } ] }
     my %is_duper;  # player_id -> 1 if they duplicated someone
+    my %player_id_to_nickname;
     
     for my $play (@plays) {
         my $word = $play->get_column('word');
         my $player_id = $play->get_column('player_id');
         
         push @{$word_to_players{$word}}, $player_id;
+        $player_id_to_nickname{$player_id} = $play->get_column('player');
         
         # Initialize bonus tracking for this player
-        $player_bonuses{$player_id} //= { duplicates => 0, all_tiles => 0 };
+        $player_bonuses{$player_id} //= { duplicates => 0, unique => 0, length_bonus => 0, duped_by => [] };
         
-        # Check if this play used all tiles
-        if ($app->scorer->uses_all_tiles($word, $game->rack)) {
-            $player_bonuses{$player_id}{all_tiles} = 10;
+        # Calculate length bonus
+        my $bonus = $app->scorer->get_length_bonus($word);
+        if ($bonus > 0) {
+            $player_bonuses{$player_id}{length_bonus} = $bonus;
         }
     }
     
@@ -343,8 +348,17 @@ sub _end_game ($self, $game) {
             
             # Mark all subsequent players as dupers
             for my $i (1 .. $#$players) {
-                $is_duper{$players->[$i]} = 1;
+                my $duper_id = $players->[$i];
+                $is_duper{$duper_id} = 1;
+                push @{$player_bonuses{$original_player}{duped_by}}, {
+                    name  => $player_id_to_nickname{$duper_id},
+                    bonus => 1,
+                };
             }
+        } else {
+            # Unique word bonus (+5)
+            my $player_id = $players->[0];
+            $player_bonuses{$player_id}{unique} = 5;
         }
     }
     
@@ -362,7 +376,8 @@ sub _end_game ($self, $game) {
         my $bonuses = $player_bonuses{$player_id};
         
         my $duplicate_bonus = $bonuses->{duplicates} || 0;
-        my $all_tiles_bonus = $bonuses->{all_tiles} || 0;
+        my $unique_bonus = $bonuses->{unique} || 0;
+        my $length_bonus = $bonuses->{length_bonus} || 0;
         
         # NEW RULES:
         # 1. If this player is a duper, they get 0 points for their word
@@ -374,7 +389,7 @@ sub _end_game ($self, $game) {
             # Duper gets 0 for their word, but original still gets +1 bonus
             $total_score = 0;
         } else {
-            $total_score = $base_score + $duplicate_bonus + $all_tiles_bonus;
+            $total_score = $base_score + $duplicate_bonus + $unique_bonus + $length_bonus;
         }
         
         # Track highest score per player (in case of multiple plays, though we prevent this)
@@ -386,7 +401,9 @@ sub _end_game ($self, $game) {
                 score           => $total_score,
                 base_score      => $is_duper{$player_id} ? 0 : $base_score,
                 duplicate_bonus => $duplicate_bonus,
-                all_tiles_bonus => $solo_game ? 0 : $all_tiles_bonus,
+                unique_bonus    => $solo_game ? 0 : $unique_bonus,
+                length_bonus    => $solo_game ? 0 : $length_bonus,
+                duped_by        => $bonuses->{duped_by} // [],
                 is_dupe         => $is_duper{$player_id} ? 1 : 0,
             };
         }
@@ -410,17 +427,20 @@ sub _end_game ($self, $game) {
     my $winner_lang = $game->language // 'en';
 
     # Build payload with bonus details
-    my $payload = [ map { 
+    my $results_payload = [ map { 
         my $item = { 
             player => $_->{player}, 
             word   => $_->{word}, 
             score  => $_->{score},
+            base_score => $_->{base_score},
             is_dupe => $_->{is_dupe},
+            duped_by => $_->{duped_by},
         };
         # Add bonuses array if any exist
         my @bonuses;
         push @bonuses, { 'Duplicates' => $_->{duplicate_bonus} } if $_->{duplicate_bonus} > 0;
-        push @bonuses, { 'All Tiles' => $_->{all_tiles_bonus} } if $_->{all_tiles_bonus} > 0;
+        push @bonuses, { 'Unique Word' => $_->{unique_bonus} } if $_->{unique_bonus} > 0;
+        push @bonuses, { 'Length Bonus' => $_->{length_bonus} } if $_->{length_bonus} > 0;
         $item->{bonuses} = \@bonuses if @bonuses;
         $item;
     } @results ];
@@ -428,13 +448,15 @@ sub _end_game ($self, $game) {
     my $send_results = sub ($definition = undef) {
         $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE"));
         $self->_broadcast_to_game($game->id, {
-            type    => 'game_end',
-            payload => {
-                plays      => $payload,
+            type      => 'game_end',
+            timestamp => time,
+            payload   => {
+                results => $results_payload,
+                is_solo => $solo_game,
+                summary => $winner ? sprintf($self->t('results.winner_summary', $winner_lang), $winner->{player}, $winner->{score}, $winner->{word}) : $self->t('results.no_winner', $winner_lang),
                 definition => $definition,
             }
         });
-
         # Cleanup memory
         delete $self->app->games->{$game->id};
 

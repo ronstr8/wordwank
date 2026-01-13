@@ -2,15 +2,10 @@ import Tile from './Tile'
 import './TileRow.css'
 
 const TileRow = ({ letters = [] }) => {
-    // Always show 7 slots, fill with empty strings if needed
-    const displayLetters = [...letters];
-    while (displayLetters.length < 7) {
-        displayLetters.push('');
-    }
-
+    // Show exactly the number of letters provided
     return (
         <div className="tile-row">
-            {displayLetters.map((letter, i) => (
+            {letters.map((letter, i) => (
                 <Tile key={i} letter={letter} />
             ))}
         </div>
