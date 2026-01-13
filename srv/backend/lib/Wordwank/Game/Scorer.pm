@@ -45,7 +45,7 @@ sub _load_tile_config ($self, $lang) {
             warn "Loaded dynamic tile config for $lang from wordd.";
             return $config;
         }
-        warn "Failed to parse wordd config for $lang: $@" if $@;
+        warn "Failed to parse tile config for $lang from $url: $@" if $@;
     } else {
         warn "Failed to fetch tile config for $lang from $url: $response->{status} $response->{reason}";
     }

@@ -4,6 +4,9 @@ A fast-paced word game with familiar roots. You can call it any variation of wor
 
 Wordwank is a polyglot microservices platform built as an exercise in modern developer environment practices, distributed systems, and agentic coding. It combines Perl, Rust, and Nginx into a seamless, high-performance game universe.
 
+> [!NOTE]
+> The latest development version of the game is running at [wordwank.fazigu.org](https://wordwank.fazigu.org). It is sometimes stable, sometimes crashing into the abyss, and often filled with extra annoying bugs. You have been warned.
+
 *Yes, AI wrote a lot of this, and I like that--even emojis and em-dashes. I'm writing these words here, and tweak the code as necessary, but with Antigravity, it's like I have several different coworkers to call upon to get the project done. It's a massive leap forward for productivity. Every hacker is now his own team.*
 
 ---

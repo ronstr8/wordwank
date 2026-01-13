@@ -596,11 +596,6 @@ function App() {
                         <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
                         <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
                         <button className="header-btn" onClick={() => setChatVisible(!chatVisible)} title="Chat">💬</button>
-                        {!hasPasskey && (
-                            <button className="header-btn" onClick={handleRegisterPasskey} title={t('auth.register_passkey')}>
-                                🔑
-                            </button>
-                        )}
                         <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
                             🚪
                         </button>
@@ -634,6 +629,7 @@ function App() {
                         >
                             <option value="en">EN</option>
                             <option value="es">ES</option>
+                            <option value="fr">FR</option>
                         </select>
                     </div>
                 </div>
