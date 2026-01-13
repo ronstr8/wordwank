@@ -41,7 +41,9 @@
         "solo_warning": "Juego en solitario - Puntuaciones no registradas",
         "base_score": "Puntuación Base",
         "duped_you": "te ha duplicado",
-        "duplicate_penalty": "0 puntos (Duplicado)"
+        "duplicate_penalty": "0 puntos (Duplicado)",
+        "solo_wanker": "Lamentablemente, un pajillero solitario no recibe puntos.",
+        "definition_link": "Definición"
     },
     "auth": {
         "welcome_back": "¡Bienvenido de nuevo, explorador! ¿Listo para continuar?",

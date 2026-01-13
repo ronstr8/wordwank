@@ -41,7 +41,8 @@
         "solo_warning": "Partie en solo - Scores non enregistrés",
         "base_score": "Score de Base",
         "duped_you": "vous a dupliqué",
-        "duplicate_penalty": "0 point (Doublon)"
+        "duplicate_penalty": "0 point (Doublon)",
+        "solo_wanker": "Malheureusement, un branleur solitaire ne reçoit aucun point."
     },
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",

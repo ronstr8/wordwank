@@ -7,35 +7,29 @@ const Results = ({ data, onClose, playerNames = {} }) => {
     const { t } = useTranslation();
     const { results = [], summary = "", is_solo = false } = data || {};
     const safeResults = Array.isArray(results) ? results : [];
-    const winner = safeResults.length > 0 ? safeResults[0] : null;
-    const [showDefinition, setShowDefinition] = useState(false);
+    const [activeWord, setActiveWord] = useState(null);
 
     useEffect(() => {
         const handleKeydown = () => {
-            if (showDefinition) {
-                // When definition is showing, close definition and return to results
-                setShowDefinition(false);
+            if (activeWord) {
+                setActiveWord(null);
             } else if (onClose) {
-                // When results showing, close and join next game
                 onClose();
             }
         };
 
         window.addEventListener('keydown', handleKeydown);
         return () => window.removeEventListener('keydown', handleKeydown);
-    }, [onClose, showDefinition]);
+    }, [onClose, activeWord]);
 
     const handleOverlayClick = () => {
-        // Any click on overlay closes results and joins next game
-        if (!showDefinition && onClose) {
+        if (!activeWord && onClose) {
             onClose();
         }
     };
 
     const handleCardClick = (e) => {
-        // Clicking on the main results card also closes and joins next game
-        // (unless definition is showing)
-        if (!showDefinition) {
+        if (!activeWord && onClose) {
             onClose();
         }
     };
@@ -54,26 +48,6 @@ const Results = ({ data, onClose, playerNames = {} }) => {
             </div>
             <div className="results-card" onClick={handleCardClick}>
                 <h2>{t('results.title')}!</h2>
-                <div className="summary-banner">{summary}</div>
-                {is_solo && (
-                    <div className="solo-warning">
-                        ⚠️ {t('results.solo_warning', 'Solo Game - Scores not recorded')}
-                    </div>
-                )}
-
-                {winner && winner.definition && (
-                    <div className="definition-prompt">
-                        <button
-                            className="meaning-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowDefinition(true);
-                            }}
-                        >
-                            {t('results.wait_what_does', { word: winner.word.toUpperCase() })}
-                        </button>
-                    </div>
-                )}
 
                 <div className="results-list">
                     {safeResults.length === 0 ? (
@@ -84,14 +58,14 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                         </div>
                     ) : (
                         safeResults.map((res, i) => (
-                            <div key={i} className="player-result-group">
-                                <div className={`result-row ${i === 0 ? 'winner' : ''}`}>
+                            <div key={i} className={`player-result-bubble ${i === 0 ? 'winner' : ''}`}>
+                                <div className="bubble-header">
                                     <span className="rank">{i + 1}</span>
                                     <span className="player-id">{playerNames[res.player] || res.player}</span>
                                     <span className="player-word">{res.word}</span>
                                     <span className="player-score">{res.score} {t('results.score').toLowerCase()}</span>
                                 </div>
-                                <div className="result-details">
+                                <div className="bubble-details">
                                     <div className="detail-item">
                                         <em>{t('results.base_score', 'Base Score')}:</em> {res.base_score || 0}
                                     </div>
@@ -109,24 +83,39 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                                             ↳ {duper.name} {t('results.duped_you', 'duplicated you')} (+{duper.bonus})
                                         </div>
                                     ))}
-                                    {res.is_dupe && (
+                                    {!!res.is_dupe && (
                                         <div className="detail-item dupe-warning">
                                             ⚠️ {t('results.duplicate_penalty', '0 points (Duplicate)')}
                                         </div>
+                                    )}
+                                    {res.definition && (
+                                        <button
+                                            className="definition-link"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveWord({ word: res.word, text: res.definition });
+                                            }}
+                                        >
+                                            📖 {t('results.definition_link')}
+                                        </button>
                                     )}
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
+                {is_solo && (
+                    <div className="solo-wanker-note">
+                        {t('results.solo_wanker')}
+                    </div>
+                )}
                 <div className="next-game">{t('results.next_game_soon')}</div>
             </div>
 
-            {showDefinition && winner && (
+            {activeWord && (
                 <div className="definition-modal-overlay" onClick={(e) => {
                     e.stopPropagation();
-                    // Close definition and return to results screen
-                    setShowDefinition(false);
+                    setActiveWord(null);
                 }}>
                     <motion.div
                         className="definition-modal-card"
@@ -135,15 +124,15 @@ const Results = ({ data, onClose, playerNames = {} }) => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <header className="modal-header">
-                            <h3>{winner.word.toUpperCase()}</h3>
+                            <h3>{activeWord.word.toUpperCase()}</h3>
                             <button className="close-modal" onClick={(e) => {
                                 e.stopPropagation();
-                                setShowDefinition(false);
+                                setActiveWord(null);
                             }}>×</button>
                         </header>
                         <div className="modal-body scrollable">
                             <pre className="definition-text">
-                                {winner.definition}
+                                {activeWord.text}
                             </pre>
                         </div>
                     </motion.div>

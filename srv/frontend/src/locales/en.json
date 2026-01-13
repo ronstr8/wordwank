@@ -41,7 +41,9 @@
         "solo_warning": "Solo Game - Scores not recorded",
         "base_score": "Base Score",
         "duped_you": "duplicated you",
-        "duplicate_penalty": "0 points (Duplicate)"
+        "duplicate_penalty": "0 points (Duplicate)",
+        "solo_wanker": "Unfortunately, a lonely wanker gets no points.",
+        "definition_link": "Definition"
     },
     "auth": {
         "welcome_back": "Welcome back, explorer! Ready to continue?",

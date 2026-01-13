@@ -35,14 +35,17 @@ sub startup ($self) {
         en => {
             'results.winner_summary' => "%s won with %d points (Word: %s)",
             'results.no_winner'      => "No one played a word this round. Wankers.",
+            'results.solo_wanker'    => "Unfortunately, a lonely wanker gets no points.",
         },
         es => {
             'results.winner_summary' => "%s ganó con %d puntos (Palabra: %s)",
             'results.no_winner'      => "Nadie jugó una palabra. Pajilleros.",
+            'results.solo_wanker'    => "Lamentablemente, un pajillero solitario no recibe puntos.",
         },
         fr => {
             'results.winner_summary' => "%s a gagné avec %d points (Mot: %s)",
             'results.no_winner'      => "Personne n'a joué de mot. Branleurs.",
+            'results.solo_wanker'    => "Malheureusement, un branleur solitaire ne reçoit aucun point.",
         },
     };
 

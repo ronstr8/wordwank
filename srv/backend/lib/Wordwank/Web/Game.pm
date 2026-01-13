@@ -383,9 +383,7 @@ sub _end_game ($self, $game) {
         # 1. If this player is a duper, they get 0 points for their word
         # 2. If solo game (only one player), everyone gets 0
         my $total_score;
-        if ($solo_game) {
-            $total_score = 0;
-        } elsif ($is_duper{$player_id}) {
+        if ($is_duper{$player_id}) {
             # Duper gets 0 for their word, but original still gets +1 bonus
             $total_score = 0;
         } else {
@@ -401,8 +399,8 @@ sub _end_game ($self, $game) {
                 score           => $total_score,
                 base_score      => $is_duper{$player_id} ? 0 : $base_score,
                 duplicate_bonus => $duplicate_bonus,
-                unique_bonus    => $solo_game ? 0 : $unique_bonus,
-                length_bonus    => $solo_game ? 0 : $length_bonus,
+                unique_bonus    => $unique_bonus,
+                length_bonus    => $length_bonus,
                 duped_by        => $bonuses->{duped_by} // [],
                 is_dupe         => $is_duper{$player_id} ? 1 : 0,
             };
