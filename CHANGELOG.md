@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added (0.23.0)
 
+- **Game Icons**: Added a favicon.ico and manifest to the root of the project.
 - **Global Win Broadcasts**: When a game ends, the winner's word and score are announced globally to all connected clients on the server.
 - **Persistent Play-by-Play**: The game mechanics log now persists across multiple games, with a "--- New Game Started ---" separator to maintain context.
 - **Session Join Notifications**: Real-time system messages notify all players in a game when a new participant joins the session.

@@ -1,20 +1,22 @@
 {
-    "name": "wordwank",
-    "short_name": "wordwank",
-    "icons": [
-        {
-            "src": "/.well-known/icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "/.well-known/icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ],
-    "theme_color": "#2c3e50",
-    "background_color": "#2c3e50",
-    "display": "standalone",
-    "start_url": "/"
+  "name": "Wordwank",
+  "short_name": "wordwank",
+  "icons": [
+    {
+      "src": "/.well-known/favicon/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/.well-known/favicon/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#2c3e50",
+  "background_color": "#2c3e50",
+  "display": "standalone",
+  "start_url": "/"
 }
