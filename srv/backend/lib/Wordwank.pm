@@ -36,16 +36,28 @@ sub startup ($self) {
             'results.winner_summary' => "%s won with %d points (Word: %s)",
             'results.no_winner'      => "No one played a word this round. Wankers.",
             'results.solo_wanker'    => "Unfortunately, a lonely wanker gets no points.",
+            'results.elsegame_announce' => "Elsegame, {winner} pulls {word} from [{rack}], beating {others}.",
+            'app.player_joined'      => "{name} joined the session.",
+            'error.missing_letters'  => "Nice try, but those letters aren't on your rack. Wanker.",
+            'error.word_not_found_lexicon' => "The word '%s' is not amongst our wanking lexicon.",
         },
         es => {
             'results.winner_summary' => "%s ganó con %d puntos (Palabra: %s)",
             'results.no_winner'      => "Nadie jugó una palabra. Pajilleros.",
             'results.solo_wanker'    => "Lamentablemente, un pajillero solitario no recibe puntos.",
+            'results.elsegame_announce' => "Elsegame, {winner} saca {word} de [{rack}], superando a {others}.",
+            'app.player_joined'      => "{name} se unió a la sesión.",
+            'error.missing_letters'  => "Buen intento, pero esas letras no están en tu atril. Pajillero.",
+            'error.word_not_found_lexicon' => "La palabra '%s' no está en nuestro léxico de paja.",
         },
         fr => {
             'results.winner_summary' => "%s a gagné avec %d points (Mot: %s)",
             'results.no_winner'      => "Personne n'a joué de mot. Branleurs.",
             'results.solo_wanker'    => "Malheureusement, un branleur solitaire ne reçoit aucun point.",
+            'results.elsegame_announce' => "Elsegame, {winner} tire {word} de [{rack}], battant {others}.",
+            'app.player_joined'      => "{name} a rejoint la session.",
+            'error.missing_letters'  => "Bien essayé, mais ces lettres ne sont pas sur votre chevalet. Branleur.",
+            'error.word_not_found_lexicon' => "Le mot '%s' ne fait pas partie de notre lexique de branlette.",
         },
     };
 

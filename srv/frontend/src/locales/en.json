@@ -2,7 +2,7 @@
     "app": {
         "title": "wordwank",
         "playing_as": "Playing as",
-        "player_joined": "{name} joined the session.",
+        "player_joined": "{{name}} joined the session.",
         "rack_label": "YOUR RACK (Click to Play)",
         "empty_rack": "ALL TILES PLAYED!",
         "jumble": "🔀 JUMBLE",
@@ -24,7 +24,11 @@
         "connection_error": "CONNECTION ERROR",
         "reload": "RELOAD PAGE",
         "accepted": "ACCEPTED!",
-        "error_word_not_found": "The word '{{word}}' is not in our dictionary of wank."
+        "error_word_not_found": "The word '{{word}}' is not in our dictionary of wank.",
+        "donate_title": "DONATE",
+        "donate_desc": "Love the game? Great, so do I! Hi, I'm Ron \"Quinn\" Straight, and I wrote this thing with my artificial friends. I'm an old gen-X hacker with two girls in college, and I've been unemployed for over a year, so every two bits helps. Whenever you're feeling it. Love you, man.",
+        "donate_or": "OR",
+        "donate_footer": "Thank you so much for choosing to wank your words with us."
     },
     "results": {
         "title": "GAME OVER",

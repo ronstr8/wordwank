@@ -695,3 +695,124 @@ header {
 .tile-stat-item.unicorn-gem .tile-char {
     color: #f1c40f;
 }
+
+/* Donation Panel Styles */
+.donation-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    text-align: center;
+    color: #ecf0f1;
+    font-family: 'Fredoka', sans-serif;
+}
+
+.donation-emoji {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    animation: heartBeat 2s infinite ease-in-out;
+}
+
+.donation-text {
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    color: #bdc3c7;
+}
+
+.donation-options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.donation-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-family: 'Luckiest Guy', cursive;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.donation-link.paypal {
+    background: #0070ba;
+    color: white;
+    box-shadow: 0 4px 0 #005a96;
+}
+
+.donation-link.paypal:hover {
+    background: #0081d6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #005a96;
+}
+
+.donation-link.stripe-placeholder {
+    background: #635bff;
+    color: white;
+    box-shadow: 0 4px 0 #4f48cc;
+}
+
+.donation-link.stripe-placeholder:hover {
+    background: #7a73ff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #4f48cc;
+}
+
+.donation-link span:first-child {
+    font-size: 1.2rem;
+}
+
+.donation-subtitle {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+.donation-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.donation-divider::before,
+.donation-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.donation-footer {
+    font-size: 0.85rem;
+    font-style: italic;
+    opacity: 0.6;
+}
+
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.1); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.1); }
+    70% { transform: scale(1); }
+}
+
+.header-btn.don-btn {
+    font-size: 1.3rem;
+}
+
+.header-btn.don-btn:hover {
+    background: rgba(255, 105, 180, 0.2);
+    border-color: pink;
+}

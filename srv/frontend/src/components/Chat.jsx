@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import './Panel.css'
 
 const Chat = ({ messages, onSendMessage }) => {
+    const { t } = useTranslation();
     const [input, setInput] = useState('')
 
     const handleSend = (e) => {
@@ -18,7 +20,7 @@ const Chat = ({ messages, onSendMessage }) => {
                 {(messages || []).map((msg, i) => (
                     <div key={i} className="chat-msg">
                         <span className="chat-sender">{msg.senderName || msg.sender}:</span>
-                        <span className="chat-text">{msg.text}</span>
+                        <span className="chat-text">{msg.sender === 'SYSTEM' ? t(msg.text) : msg.text}</span>
                     </div>
                 ))}
             </div>

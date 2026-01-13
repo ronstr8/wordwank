@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.24.0] - 2026-01-13
+
+### Added (0.24.0)
+
+- **Donation Feature**: Added a "huggy face" (🤗) icon to the header that opens a donation panel.
+- **Configurable PayPal**: The donation link is now configurable via `src/config.js` or `VITE_PAYPAL_EMAIL` environment variable.
+- **Player Join Notifications**: Real-time chat messages now broadcast when a player joins the session (with multilingual support).
+- **Identity Broadcasting**: Backend now shouts player identities to all clients, ensuring nicknames are correctly mapped in the UI immediately upon joining.
+
+### Fixed (0.24.0)
+
+- **Localization Placeholders**: Resolved issues where backend broadcast messages showed raw keys instead of translated text.
+- **Multilingual Sync**: Synchronized English, Spanish, and French localization files with new donation strings and fixed inconsistent interpolation markers.
+- **UI Distinctions**: Fixed a bug where identity messages would override the current user's nickname if they originated from another player.
+
 ## [0.23.0] - 2026-01-13
 
 ### Added (0.23.0)

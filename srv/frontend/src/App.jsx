@@ -14,6 +14,7 @@ import './JumbleButton.css'
 import Login from './components/Login'
 import PlayerStats from './components/PlayerStats'
 import PasskeySetup from './components/PasskeySetup'
+import { CONFIG } from './config'
 
 function App() {
     const { t, i18n } = useTranslation()
@@ -34,6 +35,7 @@ function App() {
     const [blankChoice, setBlankChoice] = useState(null) // { slotIndex, tileId }
     const [letterValue, setLetterValue] = useState(0) // Fixed score if mode is on
     const [showRules, setShowRules] = useState(false);
+    const [showDonations, setShowDonations] = useState(false);
     const [showStats, setShowStats] = useState(false); // Assuming this is for a future stats panel
     const [tileConfig, setTileConfig] = useState({ tiles: {}, unicorns: {} });
     const [gameId, setGameId] = useState(null); // Added gameId state
@@ -218,9 +220,11 @@ function App() {
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                     }]);
                 } else if (data.type === 'identity') {
-                    setNickname(data.payload.name);
-                    if (data.payload.language) {
-                        i18n.changeLanguage(data.payload.language);
+                    if (data.payload.id === playerIdRef.current) {
+                        setNickname(data.payload.name);
+                        if (data.payload.language) {
+                            i18n.changeLanguage(data.payload.language);
+                        }
                     }
                     setPlayerNames(prev => ({
                         ...prev,
@@ -606,6 +610,7 @@ function App() {
                     {/* Group 1: Authentication */}
                     <div className="button-group">
                         <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
+                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
                         <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
                         <button className="header-btn" onClick={() => setChatVisible(!chatVisible)} title="Chat">💬</button>
                         <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
@@ -871,8 +876,55 @@ function App() {
                         </div>
                     </div>
                 </DraggablePanel>
-            )
-            }
+            )}
+
+            {showDonations && (
+                <DraggablePanel
+                    id="donations"
+                    title={t('app.donate_title')}
+                    icon="🤗"
+                    onClose={() => setShowDonations(false)}
+                    initialPos={{ x: window.innerWidth / 2 - 175, y: 200 }}
+                    initialSize={{ width: 350, height: 380 }}
+                >
+                    <div className="donation-panel">
+                        <div className="donation-emoji">🥰</div>
+                        <p className="donation-text">
+                            {t('app.donate_desc')}
+                        </p>
+
+                        <div className="donation-options">
+                            <a
+                                href="https://www.paypal.com/donate/?hosted_button_id=QUINNFAZIGU"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="donation-link paypal"
+                                onClick={(e) => {
+                                    // If using a simple donation link or email
+                                    e.preventDefault();
+                                    window.open(`https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=${CONFIG.PAYPAL_EMAIL}&item_name=Support+Wordwank&currency_code=USD`, '_blank');
+                                }}
+                            >
+                                <span>PayPal</span>
+                                <span className="donation-subtitle">Use your existing account</span>
+                            </a>
+
+                            <div className="donation-divider">
+                                <span>{t('app.donate_or')}</span>
+                            </div>
+
+                            <button className="donation-link stripe-placeholder" onClick={() => alert('Coming soon! This will be a Stripe link supporting Apple & Google Pay.')}>
+                                <span>Apple / Google Pay</span>
+                                <span className="donation-subtitle">Quick one-tap support via Stripe</span>
+                            </button>
+                        </div>
+
+                        <p className="donation-footer">
+                            {t('app.donate_footer')}
+                        </p>
+                    </div>
+                </DraggablePanel>
+            )}
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
 

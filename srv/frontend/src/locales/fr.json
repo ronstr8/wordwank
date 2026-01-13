@@ -2,7 +2,7 @@
     "app": {
         "title": "mot-branlette",
         "playing_as": "Jouant en tant que",
-        "player_joined": "{name} a rejoint la session.",
+        "player_joined": "{{name}} a rejoint la session.",
         "rack_label": "VOTRE CHEVALET (Cliquez pour Jouer)",
         "empty_rack": "TOUTES LES LETTRES JOUÉES !",
         "jumble": "🔀 MÉLANGER",
@@ -19,12 +19,16 @@
         "loading": "CHARGEMENT...",
         "connecting": "Connexion au serveur de jeu",
         "waiting_next_game": "En attente du début de la prochaine partie...",
-        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les consonnes valent 2-9 points, les voyelles 1 point. Une lettre par jour vaut 7 points. Trouvez les 'Licornes' (Q et Z) pour 10 points ! Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais donnent un bonus au premier joueur !",
-        "tile_frequencies": "Fréquence des Lettres",
         "connection_error": "ERREUR DE CONNEXION",
         "reload": "RECHARGER LA PAGE",
         "accepted": "ACCEPTÉ !",
-        "error_word_not_found": "Le mot '{{word}}' n'est pas dans notre dictionnaire."
+        "error_word_not_found": "Le mot '{{word}}' n'est pas dans notre dictionnaire.",
+        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les consonnes valent 2-9 points, les voyelles 1 point. Une lettre par jour vaut 7 points. Trouvez les 'Licornes' (Q et Z) pour 10 points ! Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais donnent un bonus au premier joueur !",
+        "tile_frequencies": "Fréquence des Lettres",
+        "donate_title": "FAIRE UN DON",
+        "donate_desc": "Vous aimez le jeu ? Super, moi aussi ! Salut, je suis Ron \"Quinn\" Straight, et j'ai écrit ce truc avec mes amis artificiels. Je suis un vieux hacker de la génération X avec deux filles à l'université, et je suis au chômage depuis plus d'un ans, donc chaque petit geste compte. Quand vous le sentez. Je vous aime, les gars.",
+        "donate_or": "OU",
+        "donate_footer": "Merci beaucoup d'avoir choisi de branler vos mots avec nous."
     },
     "results": {
         "title": "PARTIE TERMINÉE",

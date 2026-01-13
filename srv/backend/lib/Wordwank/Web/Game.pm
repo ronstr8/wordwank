@@ -181,6 +181,30 @@ sub _handle_join ($self, $player) {
             time_left     => $app->games->{$gid}{time_left},
         }
     }});
+
+    # Notify others and broadcast identity
+    my $join_msg = $self->t('app.player_joined', $game_lang);
+    my $nickname = $player->nickname;
+    $join_msg =~ s/\{name\}/$nickname/g;
+
+    $self->_broadcast_to_game($gid, {
+        type    => 'chat',
+        sender  => 'SYSTEM',
+        payload => {
+            text       => $join_msg,
+            senderName => 'SYSTEM',
+        },
+        timestamp => time,
+    });
+
+    # Also broadcast identity so other clients update their playerNames map
+    $self->_broadcast_to_game($gid, {
+        type    => 'identity',
+        payload => { 
+            id   => $player->id, 
+            name => $nickname
+        }
+    });
 }
 
 sub _handle_chat ($self, $player, $payload) {
@@ -221,7 +245,7 @@ sub _handle_play ($self, $player, $payload) {
         $app->log->debug("Word '$word' FAILED rack check");
         return $self->send({json => {
             type    => 'error',
-            payload => "Nice try, but those letters aren't on your rack. Wanker."
+            payload => $self->t('error.missing_letters', $lang)
         }});
     }
 
@@ -272,7 +296,7 @@ sub _handle_play ($self, $player, $payload) {
             # Word is invalid or wordd is down
             $self->send({json => {
                 type    => 'error',
-                payload => "The word '$word' is not amongst our wanking lexicon."
+                payload => sprintf($self->t('error.word_not_found_lexicon', $lang), $word)
             }});
         }
     });
