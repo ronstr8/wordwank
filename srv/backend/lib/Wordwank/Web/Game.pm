@@ -246,17 +246,26 @@ sub _handle_play ($self, $player, $payload) {
                 score     => $score,
             });
             $app->log->debug("Recorded play for player " . $player->id . " in game " . $game_record->id . ": $word ($score pts)");
-            $self->_broadcast_to_player_game($player->id, {
-                type      => 'play',
-                sender    => $player->id,
-                timestamp => time,
-                payload   => {
-                    word       => $word,
-                    score      => $score,
-                    playerName => $player->nickname,
-                    msg        => "You played $word for $score pts!",
-                }
-            });
+            # Broadcast to all players in the game, but obfuscate word/score for others
+            my $game_clients = $game_data->{clients} // {};
+            my $timestamp = time;
+            for my $pid (keys %$game_clients) {
+                my $c = $game_clients->{$pid};
+                next unless $c && $c->tx;
+
+                my $is_sender = $pid eq $player->id;
+                $c->send({json => {
+                    type      => 'play',
+                    sender    => $player->id,
+                    timestamp => $timestamp,
+                    payload   => {
+                        playerName => $player->nickname,
+                        word       => $is_sender ? $word : undef,
+                        score      => $score,
+                        msg        => $is_sender ? "You played $word for $score pts!" : $player->nickname . " played a word for $score pts!",
+                    }
+                }});
+            }
         }
         else {
             $app->log->debug("Word '$word' REJECTED by wordd. Status: " . ($res->code // 'unknown'));
@@ -362,8 +371,9 @@ sub _end_game ($self, $game) {
         }
     }
     
-    # Solo player rule: if only one player submitted, everyone gets 0 points
-    my $solo_game = scalar(@plays) == 1;
+    # Solo player rule: if only one unique player submitted, it's a practice session
+    my %seen_players = map { $_->get_column('player_id') => 1 } @plays;
+    my $solo_game = (keys %seen_players) <= 1;
     
     # Build enhanced results with bonuses
     my @results;
@@ -411,18 +421,47 @@ sub _end_game ($self, $game) {
     @results = sort { $b->{score} <=> $a->{score} } values %player_total_scores;
     
     # Update player cumulative scores in database (skip for solo games)
-    unless ($solo_game) {
+    if (!$solo_game) {
+        $app->log->debug("Updating lifetime scores for " . scalar(@results) . " players in game " . $game->id);
         for my $result (@results) {
-            my$player = $schema->resultset('Player')->find($result->{player_id});
+            my $player = $schema->resultset('Player')->find($result->{player_id});
             if ($player) {
-                $player->update({ lifetime_score => ($player->lifetime_score || 0) + $result->{score} });
+                my $old_score = $player->lifetime_score || 0;
+                my $new_score = $old_score + $result->{score};
+                $player->update({ lifetime_score => $new_score });
+                $app->log->debug("Player " . $player->id . " score: $old_score -> $new_score (+" . $result->{score} . ")");
             }
         }
+    } else {
+        $app->log->debug("Solo game detected (" . (keys %seen_players) . " players) - Skipping lifetime score updates for game " . $game->id);
     }
 
     my $winner = $results[0];
     my $winner_word = $winner ? $winner->{word} : undef;
     my $winner_lang = $game->language // 'en';
+
+    # Global Win Broadcast (Skip for solo games)
+    if (!$solo_game && $winner && $winner->{score} > 0) {
+        my @other_words = map { $_->{word} } grep { $_->{player_id} ne $winner->{player_id} } @results;
+        my $others_str = @other_words ? join(', ', @other_words) : 'nobody';
+        my $rack_str = join(' ', @{$game->rack});
+        
+        my $announce_msg = $self->t('results.elsegame_announce', $winner_lang);
+        $announce_msg =~ s/\{winner\}/$winner->{player}/g;
+        $announce_msg =~ s/\{word\}/$winner->{word}/g;
+        $announce_msg =~ s/\{rack\}/$rack_str/g;
+        $announce_msg =~ s/\{others\}/$others_str/g;
+
+        $app->broadcast_all_clients({
+            type    => 'chat',
+            sender  => 'SYSTEM',
+            payload => {
+                text       => $announce_msg,
+                senderName => 'Elsegame',
+            },
+            timestamp => time,
+        });
+    }
 
     # Build payload with bonus details
     my $results_payload = [ map { 

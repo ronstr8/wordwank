@@ -113,6 +113,22 @@
     padding-bottom: 5px;
 }
 
+.play-entry.separator {
+    text-align: center;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    margin: 10px 0;
+    padding-top: 5px;
+    opacity: 0.8;
+}
+
+.new-game-marker {
+    font-weight: bold;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    color: #f1c40f;
+    text-transform: uppercase;
+}
+
 .timestamp {
     color: #95a5a6;
     margin-right: 8px;

@@ -86,6 +86,20 @@ sub startup ($self) {
     # HTTP API for stats
     $r->get('/players/leaderboard')->to('stats#leaderboard');
 
+    # Global Broadcast Helper (broadcasts to EVERY connected client in EVERY game)
+    $self->helper(broadcast_all_clients => sub ($c, $msg) {
+        my $app = $c->app;
+        for my $gid (keys %{$app->games}) {
+            my $game_clients = $app->games->{$gid}{clients} // {};
+            for my $pid (keys %$game_clients) {
+                my $client = $game_clients->{$pid};
+                if ($client && $client->tx) {
+                    $client->send({json => $msg});
+                }
+            }
+        }
+    });
+
     # Background task: Pre-populate games (ensure every language has a pending or active game)
     $self->helper(prepopulate_games => sub ($c) {
         my $schema = $c->app->schema;

@@ -242,7 +242,10 @@ function App() {
                     setLetterValue(letter_values || 0);
                     setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
-                    setPlays([]);
+                    setPlays(prev => [
+                        { type: 'separator', timestamp: new Date().toLocaleTimeString() },
+                        ...prev
+                    ]);
                     setGuess(Array(size).fill(null));
                     setIsLocked(false);
                     setFeedback({ text: '', type: '' });
@@ -444,8 +447,15 @@ function App() {
     };
 
     const handleGlobalKeyDown = (e) => {
-        // Ignore if typing in an input (like chat) or results is open
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        // Ignore if typing in an input, textarea, or content-editable element
+        if (
+            e.target.tagName === 'INPUT' ||
+            e.target.tagName === 'TEXTAREA' ||
+            e.target.isContentEditable ||
+            e.target.closest('.chat-input-area') // Extra safety for our own chat
+        ) return;
+
+        // Only handle keys if results modal isn't open and game is active
         if (isLocked || timeLeft === 0 || results) return;
 
         if (e.key === 'Backspace') {
@@ -826,7 +836,7 @@ function App() {
                             <div className="legend-item">
                                 <span className="legend-icon">🦄</span>
                                 <div>
-                                    <strong>Unicorns (Q & Z)</strong>: Worth 10 pts. Very rare, very powerful.
+                                    <strong>Unicorns (see below)</strong>: Two tiles worth 10 pts. Very rare, very powerful.
                                 </div>
                             </div>
                             <div className="legend-item">

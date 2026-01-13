@@ -2,6 +2,7 @@
     "app": {
         "title": "palabrapaja",
         "playing_as": "Jugando como",
+        "player_joined": "{name} se unió a la sesión.",
         "rack_label": "TU ATRIL (Haz clic para jugar)",
         "empty_rack": "¡TODAS LAS FICHAS JUGADAS!",
         "jumble": "🔀 MEZCLAR",
@@ -43,7 +44,8 @@
         "duped_you": "te ha duplicado",
         "duplicate_penalty": "0 puntos (Duplicado)",
         "solo_wanker": "Lamentablemente, un pajillero solitario no recibe puntos.",
-        "definition_link": "Definición"
+        "definition_link": "Definición",
+        "elsegame_announce": "Elsegame, {winner} saca {word} de [{rack}], superando a {others}."
     },
     "auth": {
         "welcome_back": "¡Bienvenido de nuevo, explorador! ¿Listo para continuar?",

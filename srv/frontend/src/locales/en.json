@@ -2,6 +2,7 @@
     "app": {
         "title": "wordwank",
         "playing_as": "Playing as",
+        "player_joined": "{name} joined the session.",
         "rack_label": "YOUR RACK (Click to Play)",
         "empty_rack": "ALL TILES PLAYED!",
         "jumble": "🔀 JUMBLE",
@@ -43,7 +44,8 @@
         "duped_you": "duplicated you",
         "duplicate_penalty": "0 points (Duplicate)",
         "solo_wanker": "Unfortunately, a lonely wanker gets no points.",
-        "definition_link": "Definition"
+        "definition_link": "Definition",
+        "elsegame_announce": "Elsegame, {winner} pulls {word} from [{rack}], beating {others}."
     },
     "auth": {
         "welcome_back": "Welcome back, explorer! Ready to continue?",

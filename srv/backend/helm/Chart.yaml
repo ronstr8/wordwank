@@ -3,4 +3,4 @@ name: backend
 description: A Helm chart for the Wordwank Perl Backend
 type: application
 version: 0.10.0
-appVersion: "0.22.0"
+appVersion: "0.23.0"

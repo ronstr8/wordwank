@@ -2,6 +2,7 @@
     "app": {
         "title": "mot-branlette",
         "playing_as": "Jouant en tant que",
+        "player_joined": "{name} a rejoint la session.",
         "rack_label": "VOTRE CHEVALET (Cliquez pour Jouer)",
         "empty_rack": "TOUTES LES LETTRES JOUÉES !",
         "jumble": "🔀 MÉLANGER",
@@ -42,7 +43,9 @@
         "base_score": "Score de Base",
         "duped_you": "vous a dupliqué",
         "duplicate_penalty": "0 point (Doublon)",
-        "solo_wanker": "Malheureusement, un branleur solitaire ne reçoit aucun point."
+        "solo_wanker": "Malheureusement, un branleur solitaire ne reçoit aucun point.",
+        "definition_link": "Définition",
+        "elsegame_announce": "Elsegame, {winner} tire {word} de [{rack}], battant {others}."
     },
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",
