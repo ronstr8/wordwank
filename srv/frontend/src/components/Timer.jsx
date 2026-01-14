@@ -6,12 +6,11 @@ const Timer = ({ seconds, total }) => {
 
     return (
         <div className="timer-container">
-            <div className="timer-label">TIME</div>
             <div className="timer-bar-bg">
                 <motion.div
                     className="timer-bar-fill"
-                    initial={{ height: '100%' }}
-                    animate={{ height: `${percentage}%` }}
+                    initial={{ width: '100%' }}
+                    animate={{ width: `${percentage}%` }}
                     transition={{ duration: 0.5 }}
                 />
             </div>

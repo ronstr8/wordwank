@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.25.0] - 2026-01-14
+
+### Changed (0.25.0)
+
+- **Mobile-Friendly Timer**: Transformed the bulky vertical timer into a sleek horizontal line that scales with the tile rack.
+- **Improved UI Layout**: Moved the timer below the rack for better mobile UX and preventing accidental clicks.
+- **Dynamic Timer Duration**: The timer now dynamically scales its total duration based on server-side configuration instead of being hardcoded.
+
+### Fixed (0.25.0)
+
+- **Rack Scaling**: Resolved an issue where tiles would wrap prematurely on mobile devices.
+- **Timer Width Alignment**: Corrected the timer bar's width to precisely match the tiles currently in play.
+
 ## [0.24.0] - 2026-01-13
 
 ### Added (0.24.0)

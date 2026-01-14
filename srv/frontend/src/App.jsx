@@ -22,6 +22,7 @@ function App() {
     const [rack, setRack] = useState([]) // Array of { id, letter }
     const [guess, setGuess] = useState(Array(8).fill(null)) // Array of { id, char } or null
     const [timeLeft, setTimeLeft] = useState(0)
+    const [totalTime, setTotalTime] = useState(30) // Default to 30, updated on game_start
     const playerIdRef = useRef(null)
     const [plays, setPlays] = useState([])
     const [messages, setMessages] = useState([])
@@ -117,7 +118,7 @@ function App() {
             const resp = await fetch(apiPath);
             if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
             const data = await resp.json();
-            console.log('Leaderboard data fetched:', data);
+
             setLeaderboard(data);
         } catch (err) {
             console.error('Failed to fetch leaderboard:', err);
@@ -198,7 +199,7 @@ function App() {
         const connect = () => {
             if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
 
-            console.log('Attempting to connect to gateway...');
+
             socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${playerId}`);
 
             socket.onopen = () => {
@@ -257,6 +258,7 @@ function App() {
                     setGameId(uuid);
                     setRack(newRack);
                     setTimeLeft(time_left);
+                    setTotalTime(time_left || 30);
                     setLetterValue(letter_values || 0);
                     setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
@@ -354,7 +356,7 @@ function App() {
             // Build word from guess slots
             const word = guessRef.current.map(g => g ? g.char : '').join('').toUpperCase().trim();
             if (word.length > 0 && ws && ws.readyState === WebSocket.OPEN) {
-                console.log('AUTO-SUBMITTING:', word);
+
                 autoSubmittedRef.current = true;
                 ws.send(JSON.stringify({ type: 'play', payload: { word } }));
             }
@@ -531,7 +533,7 @@ function App() {
         }
 
         const msg = JSON.stringify({ type: 'play', payload: { word } });
-        console.log('SENDING PLAY:', msg);
+
 
         // Tiered celebratory effects
         const len = word.length;
@@ -554,7 +556,7 @@ function App() {
                 type: 'chat',
                 payload: text
             });
-            console.log('SENDING CHAT:', msg);
+
             ws.send(msg);
         } else {
             console.log('Chat blocked: WS null');
@@ -726,26 +728,29 @@ function App() {
                         )}
                         <div className="rack-section">
                             <div className="section-label">{t('app.rack_label')}</div>
-                            <div className="rack-container clickable">
-                                {Array.from({ length: rack.length }).map((_, position) => {
-                                    const tile = rack.find(t => t.position === position);
-                                    if (!tile) return <div key={position} className="rack-slot empty" />;
+                            <div className="rack-content">
+                                <div className="rack-container clickable">
+                                    {Array.from({ length: rack.length }).map((_, position) => {
+                                        const tile = rack.find(t => t.position === position);
+                                        if (!tile) return <div key={position} className="rack-slot empty" />;
 
-                                    return (
-                                        <div
-                                            key={tile.id}
-                                            className={`rack-slot ${tile.isUsed ? 'used' : ''}`}
-                                            onClick={() => !tile.isUsed && moveTileToGuess(tile)}
-                                        >
-                                            <Tile
-                                                letter={tile.letter}
-                                                value={typeof letterValue === 'object' ? letterValue[tile.letter] : (letterValue > 0 ? letterValue : undefined)}
-                                                disabled={tile.isUsed}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                                {rack.length === 0 && <div className="empty-rack-msg">{t('app.empty_rack')}</div>}
+                                        return (
+                                            <div
+                                                key={tile.id}
+                                                className={`rack-slot ${tile.isUsed ? 'used' : ''}`}
+                                                onClick={() => !tile.isUsed && moveTileToGuess(tile)}
+                                            >
+                                                <Tile
+                                                    letter={tile.letter}
+                                                    value={typeof letterValue === 'object' ? letterValue[tile.letter] : (letterValue > 0 ? letterValue : undefined)}
+                                                    disabled={tile.isUsed}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                    {rack.length === 0 && <div className="empty-rack-msg">{t('app.empty_rack')}</div>}
+                                </div>
+                                <Timer seconds={timeLeft} total={totalTime} />
                             </div>
                             <div className="rack-actions">
                                 <button
@@ -813,9 +818,7 @@ function App() {
                         </div>
                     </div>
 
-                    <div className="timer-sidebar">
-                        <Timer seconds={timeLeft} total={60} />
-                    </div>
+
                 </div>
             </main>
 
