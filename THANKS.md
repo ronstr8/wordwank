@@ -24,6 +24,16 @@ Special thanks to the Freesound community for their contributions.
 
 ---
 
+## Fonts
+
+We use the following beautiful typefaces from [Google Fonts](https://fonts.google.com/):
+
+- **Luckiest Guy**: Designed by [Astigmatic (Brian J. Bonislawsky)](https://fonts.google.com/specimen/Luckiest+Guy/about). Licensed under [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+- **Fredoka**: Designed by [Milena Brandão and Ben Nathan](https://fonts.google.com/specimen/Fredoka/about). Licensed under [SIL Open Font License, Version 1.1](https://openfontlicense.org/).
+- **Outfit**: Designed by [Rodrigo Fuenzalida](https://fonts.google.com/specimen/Outfit/about). Licensed under [SIL Open Font License, Version 1.1](https://openfontlicense.org/).
+
+---
+
 ## Open Source Dependencies
 
 This project uses many excellent open source libraries. See `package.json`, `cpanfile`, `Cargo.toml`, and `pom.xml` for complete dependency lists.
