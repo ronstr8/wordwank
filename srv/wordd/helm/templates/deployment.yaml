@@ -23,7 +23,7 @@ spec:
             - containerPort: 2345
           env:
             - name: RUST_LOG
-              value: "info"
+              value: {{ .Values.global.logLevel | default .Values.logLevel | quote }}
           command: ["wordd"]
           args:
             - "--share-dir=/app/share"

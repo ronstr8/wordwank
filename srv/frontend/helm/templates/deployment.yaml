@@ -19,6 +19,14 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 80
+          volumeMounts:
+            - name: config-volume
+              mountPath: /usr/share/nginx/html/runtime-config.js
+              subPath: runtime-config.js
+      volumes:
+        - name: config-volume
+          configMap:
+            name: frontend-config
 ---
 apiVersion: v1
 kind: Service

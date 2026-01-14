@@ -76,9 +76,26 @@
 }
 
 .player-result-bubble.winner {
-    background: rgba(241, 196, 15, 0.1);
+    background: rgba(241, 196, 15, 0.2);
     border-color: #f1c40f;
-    box-shadow: 0 4px 15px rgba(241, 196, 15, 0.15);
+}
+
+.results-overlay.focus-mode {
+    background: rgba(0, 0, 0, 0.95);
+}
+
+.results-overlay.focus-mode .results-card {
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+.focus-results-label {
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 2rem;
+    color: #f1c40f;
+    margin-bottom: 2rem;
+    text-align: center;
 }
 
 .bubble-header {

@@ -11,6 +11,7 @@ global:
   randomLetterScoreMode: "true"
   gameDuration: 30
   rackSize: 7
+  logLevel: debug
 
 # Centralized Ingress configuration
 ingress:

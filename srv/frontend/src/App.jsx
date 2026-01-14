@@ -14,6 +14,7 @@ import './JumbleButton.css'
 import Login from './components/Login'
 import PlayerStats from './components/PlayerStats'
 import PasskeySetup from './components/PasskeySetup'
+import Sidebar from './components/Sidebar'
 import { CONFIG } from './config'
 
 function App() {
@@ -47,6 +48,19 @@ function App() {
     const [isAuthChecking, setIsAuthChecking] = useState(true);
     const [hasPasskey, setHasPasskey] = useState(false);
     const autoSubmittedRef = useRef(false);
+    const [isFocusMode, setIsFocusMode] = useState(() => {
+        try {
+            const saved = localStorage.getItem('focus_mode');
+            return saved !== null ? JSON.parse(saved) : false;
+        } catch {
+            return false;
+        }
+    });
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('focus_mode', JSON.stringify(isFocusMode));
+    }, [isFocusMode]);
 
     // Panel visibility with localStorage persistence
     const loadPanelVisibility = (panelName, defaultValue = false) => {
@@ -580,77 +594,129 @@ function App() {
     }
 
     return (
-        <div className="game-container">
-            <header>
-                <div className="header-content">
-                    <h1 style={{ whiteSpace: 'nowrap' }}>wordw<span className="splat">💥</span>nk</h1>
-                    {nickname && <div className="user-nickname">{t('app.playing_as')}: <strong>{nickname}</strong></div>}
-                </div>
-                <div className="header-toggles">
-                    <button
-                        className={`panel-toggle ${leaderboardVisible ? 'active' : ''}`}
-                        onClick={() => setLeaderboardVisible(!leaderboardVisible)}
-                    >
-                        Leaderboard
-                    </button>
-                    <button
-                        className={`panel-toggle ${playByPlayVisible ? 'active' : ''}`}
-                        onClick={() => setPlayByPlayVisible(!playByPlayVisible)}
-                    >
-                        Play-by-Play
-                    </button>
-                    <button
-                        className={`panel-toggle ${chatVisible ? 'active' : ''}`}
-                        onClick={() => setChatVisible(!chatVisible)}
-                    >
-                        Chat
-                    </button>
-                </div>
-                <div className="header-actions">
-                    {/* Group 1: Authentication */}
-                    <div className="button-group">
-                        <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
-                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
-                        <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
-                        <button className="header-btn" onClick={() => setChatVisible(!chatVisible)} title="Chat">💬</button>
-                        <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
-                            🚪
-                        </button>
+        <div className={`game-container ${isFocusMode ? 'focus-mode' : ''}`}>
+            <Sidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                isFocusMode={isFocusMode}
+                setIsFocusMode={setIsFocusMode}
+                leaderboardVisible={leaderboardVisible}
+                setLeaderboardVisible={setLeaderboardVisible}
+                playByPlayVisible={playByPlayVisible}
+                setPlayByPlayVisible={setPlayByPlayVisible}
+                chatVisible={chatVisible}
+                setChatVisible={setChatVisible}
+                statsVisible={statsVisible}
+                setStatsVisible={setStatsVisible}
+                showRules={showRules}
+                setShowRules={setShowRules}
+                showDonations={showDonations}
+                setShowDonations={setShowDonations}
+                isMuted={isMuted}
+                toggleMute={toggleMute}
+                isAmbienceEnabled={isAmbienceEnabled}
+                toggleAmbience={toggleAmbience}
+                language={i18n.language}
+                onLanguageChange={(lang) => {
+                    i18n.changeLanguage(lang);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: 'set_language',
+                            payload: { language: lang }
+                        }));
+                    }
+                }}
+                handleLogout={handleLogout}
+                nickname={nickname}
+                autoClose={() => setSidebarOpen(false)}
+            />
+
+            {!isFocusMode && (
+                <header>
+                    <div className="header-left">
+                        <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+                        <div className="header-content">
+                            <h1 style={{ whiteSpace: 'nowrap' }}>wordw<span className="splat">💥</span>nk</h1>
+                            {nickname && <div className="user-nickname">{t('app.playing_as')}: <strong>{nickname}</strong></div>}
+                        </div>
                     </div>
 
-                    {/* Group 2: Audio Controls */}
-                    <div className="button-group">
-                        <button className="header-btn" onClick={toggleAmbience} title={isAmbienceEnabled ? 'Turn off background music' : 'Turn on background music'}>
-                            {isAmbienceEnabled ? '🎵' : '🔇'}
-                        </button>
-                        <button className="header-btn" onClick={toggleMute} title={isMuted ? 'Unmute all sounds' : 'Mute all sounds'}>
-                            {isMuted ? '🔈' : '🔊'}
-                        </button>
-                    </div>
-
-                    {/* Group 3: Language Selection */}
-                    <div className="button-group">
-                        <select
-                            className="lang-select"
-                            value={i18n.language}
-                            onChange={(e) => {
-                                const newLang = e.target.value;
-                                i18n.changeLanguage(newLang);
-                                if (ws && ws.readyState === WebSocket.OPEN) {
-                                    ws.send(JSON.stringify({
-                                        type: 'set_language',
-                                        payload: { language: newLang }
-                                    }));
-                                }
-                            }}
+                    <div className="header-toggles desktop-only">
+                        <button
+                            className={`panel-toggle ${leaderboardVisible ? 'active' : ''}`}
+                            onClick={() => setLeaderboardVisible(!leaderboardVisible)}
                         >
-                            <option value="en">EN</option>
-                            <option value="es">ES</option>
-                            <option value="fr">FR</option>
-                        </select>
+                            Leaderboard
+                        </button>
+                        <button
+                            className={`panel-toggle ${playByPlayVisible ? 'active' : ''}`}
+                            onClick={() => setPlayByPlayVisible(!playByPlayVisible)}
+                        >
+                            Play-by-Play
+                        </button>
+                        <button
+                            className={`panel-toggle ${chatVisible ? 'active' : ''}`}
+                            onClick={() => setChatVisible(!chatVisible)}
+                        >
+                            Chat
+                        </button>
                     </div>
-                </div>
-            </header>
+
+                    <div className="header-actions desktop-only">
+                        {/* Group 1: Authentication */}
+                        <div className="button-group">
+                            <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
+                            <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
+                            <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
+                            <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
+                                🚪
+                            </button>
+                        </div>
+
+                        {/* Group 2: Audio Controls */}
+                        <div className="button-group">
+                            <button className="header-btn" onClick={toggleAmbience} title={isAmbienceEnabled ? 'Turn off background music' : 'Turn on background music'}>
+                                {isAmbienceEnabled ? '🎵' : '🔇'}
+                            </button>
+                            <button className="header-btn" onClick={toggleMute} title={isMuted ? 'Unmute all sounds' : 'Mute all sounds'}>
+                                {isMuted ? '🔈' : '🔊'}
+                            </button>
+                        </div>
+
+                        {/* Group 3: Language Selection */}
+                        <div className="button-group">
+                            <select
+                                className="lang-select"
+                                value={i18n.language}
+                                onChange={(e) => {
+                                    const newLang = e.target.value;
+                                    i18n.changeLanguage(newLang);
+                                    if (ws && ws.readyState === WebSocket.OPEN) {
+                                        ws.send(JSON.stringify({
+                                            type: 'set_language',
+                                            payload: { language: newLang }
+                                        }));
+                                    }
+                                }}
+                            >
+                                <option value="en">EN</option>
+                                <option value="es">ES</option>
+                                <option value="fr">FR</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="header-actions mobile-only">
+                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
+                    </div>
+                </header>
+            )}
+
+            {isFocusMode && (
+                <button className="focus-exit-btn" onClick={() => setIsFocusMode(false)} title="Exit Focus Mode">
+                    ✕
+                </button>
+            )}
 
             <main className="game-area">
                 <div className="main-game-layout">
@@ -773,24 +839,24 @@ function App() {
                 </div>
             )}
 
-            {leaderboardVisible && (
+            {!isFocusMode && leaderboardVisible && (
                 <DraggablePanel
                     title={t('app.leaderboard')}
                     id="leaderboard"
-                    initialPos={{ x: 20, y: 100 }}
-                    initialSize={{ width: 220, height: 200 }}
+                    initialPos={{ x: 20, y: 150 }}
+                    initialSize={{ width: 250, height: 400 }}
                     onClose={() => setLeaderboardVisible(false)}
                     storageKey="leaderboard"
                 >
-                    <Leaderboard players={Array.isArray(leaderboard) ? leaderboard : (leaderboard.leaders || [])} />
+                    <Leaderboard players={leaderboard.leaders || []} />
                 </DraggablePanel>
             )}
 
-            {statsVisible && (
+            {!isFocusMode && statsVisible && (
                 <DraggablePanel
-                    title="STATS"
+                    title="Stats"
                     id="stats"
-                    initialPos={{ x: 40, y: 150 }}
+                    initialPos={{ x: window.innerWidth / 2 - 150, y: 150 }}
                     initialSize={{ width: 300, height: 400 }}
                     onClose={() => setStatsVisible(false)}
                     storageKey="stats"
@@ -799,20 +865,20 @@ function App() {
                 </DraggablePanel>
             )}
 
-            {playByPlayVisible && (
+            {!isFocusMode && playByPlayVisible && (
                 <DraggablePanel
                     title={t('app.play_by_play')}
-                    id="plays"
-                    initialPos={{ x: window.innerWidth - 240, y: 100 }}
-                    initialSize={{ width: 220, height: 200 }}
+                    id="play-by-play"
+                    initialPos={{ x: 20, y: 570 }}
+                    initialSize={{ width: 300, height: 200 }}
                     onClose={() => setPlayByPlayVisible(false)}
                     storageKey="playByPlay"
                 >
-                    <PlayByPlay plays={plays} playerNames={playerNames} />
+                    <PlayByPlay plays={plays} />
                 </DraggablePanel>
             )}
 
-            {chatVisible && (
+            {!isFocusMode && chatVisible && (
                 <DraggablePanel
                     title={t('app.chat')}
                     id="chat"
@@ -825,7 +891,7 @@ function App() {
                 </DraggablePanel>
             )}
 
-            {showRules && (
+            {!isFocusMode && showRules && (
                 <DraggablePanel
                     id="rules"
                     title="WTF?!"
@@ -878,55 +944,43 @@ function App() {
                 </DraggablePanel>
             )}
 
-            {showDonations && (
+            {!isFocusMode && showDonations && (
                 <DraggablePanel
                     id="donations"
                     title={t('app.donate_title')}
-                    icon="🤗"
                     onClose={() => setShowDonations(false)}
-                    initialPos={{ x: window.innerWidth / 2 - 175, y: 200 }}
-                    initialSize={{ width: 350, height: 380 }}
+                    initialPos={{ x: window.innerWidth / 2 - 150, y: 200 }}
+                    initialSize={{ width: 300, height: 400 }}
                 >
                     <div className="donation-panel">
-                        <div className="donation-emoji">🥰</div>
-                        <p className="donation-text">
-                            {t('app.donate_desc')}
-                        </p>
+                        <div className="donation-emoji">🤗</div>
+                        <p className="donation-text">{t('app.donate_desc')}</p>
 
                         <div className="donation-options">
                             <a
-                                href="https://www.paypal.com/donate/?hosted_button_id=QUINNFAZIGU"
+                                href={`https://www.paypal.com/donate/?business=${encodeURIComponent(CONFIG.PAYPAL_EMAIL)}&no_recurring=0&currency_code=USD`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="donation-link paypal"
-                                onClick={(e) => {
-                                    // If using a simple donation link or email
-                                    e.preventDefault();
-                                    window.open(`https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=${CONFIG.PAYPAL_EMAIL}&item_name=Support+Wordwank&currency_code=USD`, '_blank');
-                                }}
                             >
                                 <span>PayPal</span>
-                                <span className="donation-subtitle">Use your existing account</span>
+                                <span className="donation-subtitle">Fast & Secure</span>
                             </a>
 
-                            <div className="donation-divider">
-                                <span>{t('app.donate_or')}</span>
-                            </div>
+                            <div className="donation-divider">{t('app.donate_or')}</div>
 
-                            <button className="donation-link stripe-placeholder" onClick={() => alert('Coming soon! This will be a Stripe link supporting Apple & Google Pay.')}>
-                                <span>Apple / Google Pay</span>
-                                <span className="donation-subtitle">Quick one-tap support via Stripe</span>
-                            </button>
+                            <div className="donation-link stripe-placeholder">
+                                <span>Stripe</span>
+                                <span className="donation-subtitle">Coming Soon</span>
+                            </div>
                         </div>
 
-                        <p className="donation-footer">
-                            {t('app.donate_footer')}
-                        </p>
+                        <p className="donation-footer">{t('app.donate_footer')}</p>
                     </div>
                 </DraggablePanel>
             )}
 
-            {results && <Results data={results} onClose={joinGame} playerNames={playerNames} />}
+            {results && <Results data={results} onClose={joinGame} playerNames={playerNames} isFocusMode={isFocusMode} />}
 
             {
                 (isConnecting || connectionError || (rack.length === 0 && !results)) && (

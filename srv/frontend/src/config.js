@@ -4,6 +4,9 @@ export const CONFIG = {
 
     // Feature Toggles
     STRIPE_ENABLED: import.meta.env.VITE_STRIPE_ENABLED === 'true',
+
+    // Runtime Configuration
+    LOG_LEVEL: window.WORDWANK_CONFIG?.LOG_LEVEL || import.meta.env.VITE_LOG_LEVEL || 'info',
 };
 
 export default CONFIG;

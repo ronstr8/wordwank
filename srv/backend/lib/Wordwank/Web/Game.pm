@@ -13,6 +13,7 @@ sub generate_procedural_name ($id) {
 }
 
 sub websocket ($self) {
+    $self->reseed_prng();
     $self->inactivity_timeout(3600);
 
     my $player_id = $self->param('id') || 'anon-' . int(rand(1000000));
@@ -130,13 +131,24 @@ sub _handle_join ($self, $player) {
             my $vals = $app->scorer->generate_letter_values($lang);
             
             $gid = create_uuid_as_string(UUID_V4);
-            $active_game = $game_rs->create({
-                id            => $gid,
-                rack          => $rack,
-                letter_values => $vals,
-                language      => $lang,
-                started_at    => DateTime->now,
-            });
+            $active_game = eval {
+                $game_rs->create({
+                    id            => $gid,
+                    rack          => $rack,
+                    letter_values => $vals,
+                    language      => $lang,
+                    started_at    => DateTime->now,
+                });
+            };
+            
+            if ($@) {
+                my $err = $@;
+                if ($err =~ /unique constraint/i) {
+                     $app->log->debug("UUID collision or concurrent creation detected for $gid, retrying join...");
+                     return $self->_handle_join($player); # Tail-recursive retry
+                }
+                die $err; # Rethrow other errors
+            }
 
             $app->games->{$gid} = { 
                 clients   => {}, 
@@ -240,6 +252,8 @@ sub _handle_play ($self, $player, $payload) {
 
     # Verify word can be formed from rack
     my $rack = $game_record->rack;
+    my $lang = $game_record->language // 'en';
+
     $app->log->debug("Checking word '$word' against player rack: @$rack");
     unless ($app->scorer->can_form_word($word, $rack)) {
         $app->log->debug("Word '$word' FAILED rack check");
@@ -251,7 +265,6 @@ sub _handle_play ($self, $player, $payload) {
 
     # Non-blocking validation via wordd
     # Use the game's language for consistency
-    my $lang = $game_record->language // 'en';
     my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/validate/$lang/";
     
     $app->log->debug("Requesting validation from wordd: $wordd_url" . lc($word));

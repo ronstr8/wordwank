@@ -47,6 +47,8 @@ spec:
                   key: google-client-secret
             - name: MOJO_LISTEN
               value: "http://*:3000"
+            - name: MOJO_LOG_LEVEL
+              value: {{ .Values.global.logLevel | default .Values.logLevel | quote }}
             - name: GAME_DURATION
               value: {{ .Values.global.gameDuration | quote }}
             - name: RACK_SIZE

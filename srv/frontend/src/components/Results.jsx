@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import './Results.css'
 
-const Results = ({ data, onClose, playerNames = {} }) => {
+const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
     const { t } = useTranslation();
     const { results = [], summary = "", is_solo = false } = data || {};
     const safeResults = Array.isArray(results) ? results : [];
@@ -36,18 +36,23 @@ const Results = ({ data, onClose, playerNames = {} }) => {
 
     return (
         <motion.div
-            className="results-overlay"
+            className={`results-overlay ${isFocusMode ? 'focus-mode' : ''}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={handleOverlayClick}
         >
             <div className="splatter-background">
                 <div className="splat-effect s1"></div>
-                <div className="splat-effect s2"></div>
-                <div className="splat-effect s3"></div>
+                {!isFocusMode && (
+                    <>
+                        <div className="splat-effect s2"></div>
+                        <div className="splat-effect s3"></div>
+                    </>
+                )}
             </div>
             <div className="results-card" onClick={handleCardClick}>
-                <h2>{t('results.title')}!</h2>
+                {!isFocusMode && <h2>{t('results.title')}!</h2>}
+                {isFocusMode && <div className="focus-results-label">Round Over</div>}
 
                 <div className="results-list">
                     {safeResults.length === 0 ? (

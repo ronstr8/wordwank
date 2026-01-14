@@ -801,11 +801,25 @@ header {
 }
 
 @keyframes heartBeat {
-    0% { transform: scale(1); }
-    14% { transform: scale(1.1); }
-    28% { transform: scale(1); }
-    42% { transform: scale(1.1); }
-    70% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    14% {
+        transform: scale(1.1);
+    }
+
+    28% {
+        transform: scale(1);
+    }
+
+    42% {
+        transform: scale(1.1);
+    }
+
+    70% {
+        transform: scale(1);
+    }
 }
 
 .header-btn.don-btn {
@@ -815,4 +829,169 @@ header {
 .header-btn.don-btn:hover {
     background: rgba(255, 105, 180, 0.2);
     border-color: pink;
+}
+
+/* Responsive Classes */
+.desktop-only {
+    display: flex !important;
+}
+
+.mobile-only {
+    display: none !important;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mobile-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #f1c40f;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+/* Focus Mode */
+.game-container.focus-mode {
+    padding: 0;
+    background: #000;
+}
+
+.game-container.focus-mode .main-game-layout {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 1rem;
+}
+
+.game-container.focus-mode .section-label {
+    display: none;
+}
+
+.game-container.focus-mode .timer-sidebar {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    z-index: 1000;
+}
+
+.focus-exit-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.2s;
+}
+
+.focus-exit-btn:hover {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: #e74c3c;
+}
+
+/* Mobile Media Queries */
+@media (max-width: 900px) {
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    header {
+        padding: 0.5rem 1rem;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .user-nickname {
+        font-size: 0.8rem;
+    }
+
+    .main-game-layout {
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1.5rem;
+        border-radius: 0;
+        background: none;
+        border: none;
+    }
+
+    .timer-sidebar {
+        width: 100%;
+        height: auto;
+        justify-content: center;
+    }
+
+    .rack-container {
+        padding: 0.5rem;
+        gap: 5px;
+    }
+
+    .word-board {
+        gap: 5px;
+        padding: 1rem 0.5rem 0.5rem;
+    }
+
+    .board-slot {
+        width: clamp(35px, 11vw, 60px);
+        height: clamp(45px, 14vw, 80px);
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1.2rem;
+    }
+
+    /* Panels on mobile */
+    .panel-draggable {
+        left: 5vw !important;
+        top: 10vh !important;
+        width: 90vw !important;
+        height: 80vh !important;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    .rack-slot {
+        width: 45px;
+        height: 55px;
+    }
+
+    .board-slot {
+        width: clamp(30px, 10vw, 45px);
+        height: clamp(40px, 13vw, 60px);
+    }
 }

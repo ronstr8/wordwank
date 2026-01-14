@@ -30,6 +30,20 @@ sub startup ($self) {
     # Helpers
     $self->helper(schema => sub ($c) { $c->app->schema });
 
+    # Re-seed PRNG helper
+    $self->helper(reseed_prng => sub ($c) {
+        if (open my $fh, '<:raw', '/dev/urandom') {
+            read $fh, my $buf, 4;
+            srand(unpack('L', $buf) ^ $$ ^ time);
+            close $fh;
+        } else {
+            srand(time ^ $$ ^ int(rand(1000000)));
+        }
+    });
+
+    # Initial seed
+    $self->reseed_prng();
+
     # Simple i18n dictionary for backend summaries
     my $translations = {
         en => {
@@ -129,6 +143,7 @@ sub startup ($self) {
                 my $rack = $c->app->scorer->get_random_rack($lang);
                 my $vals = $c->app->scorer->generate_letter_values($lang);
                 
+                # Attempt to create, ignore if someone else beat us to it (duplicate ID or same criteria)
                 eval {
                     $schema->resultset('Game')->create({
                         id            => create_uuid_as_string(UUID_V4),
@@ -139,7 +154,12 @@ sub startup ($self) {
                     });
                     1; # Return true on success
                 } or do {
-                    $c->app->log->warn("Failed to create game for $lang: $@");
+                    my $err = $@ || 'unknown error';
+                    if ($err =~ /unique constraint/i) {
+                        $c->app->log->debug("Game already exists for $lang, skipping pre-population");
+                    } else {
+                        $c->app->log->warn("Failed to create game for $lang: $err");
+                    }
                 };
             }
         }
@@ -148,16 +168,8 @@ sub startup ($self) {
     # Run every 10 seconds
     Mojo::IOLoop->recurring(10 => sub {
         my $loop = shift;
-        # Re-seed srand to ensure preforked workers don't share identical PRNG state.
-        # Avoid 'ps' as it's often missing in minimal containers.
-        if (open my $fh, '<:raw', '/dev/urandom') {
-            read $fh, my $buf, 4;
-            srand(unpack('L', $buf) ^ $$ ^ time);
-            close $fh;
-        } else {
-            srand(time ^ $$ ^ int(rand(1000000)));
-        }
-        
+        # Re-seed to prevent identical UUIDs in preforked workers
+        $self->reseed_prng();
         $self->prepopulate_games();
     });
 }

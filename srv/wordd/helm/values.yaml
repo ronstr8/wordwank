@@ -1,5 +1,6 @@
 replicaCount: 1
 dictdHost: "dictd:2628"
+logLevel: debug
 
 service:
   type: ClusterIP

@@ -3,6 +3,7 @@ image:
   repository: localhost:5000/wordwank-backend
   pullPolicy: Always
   tag: "0.23.0"
+  logLevel: debug
 service:
   type: ClusterIP
   port: 3000
