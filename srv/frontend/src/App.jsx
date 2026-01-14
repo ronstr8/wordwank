@@ -943,6 +943,9 @@ function App() {
                                     })}
                             </div>
                         </div>
+                        <div className="rules-footer">
+                            v{__APP_VERSION__}
+                        </div>
                     </div>
                 </DraggablePanel>
             )}

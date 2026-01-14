@@ -129,6 +129,9 @@ const Sidebar = ({
                             <span className="sidebar-icon">🚪</span>
                             Logout
                         </button>
+                        <div className="sidebar-version">
+                            v{__APP_VERSION__}
+                        </div>
                     </div>
                 </div>
             </div>

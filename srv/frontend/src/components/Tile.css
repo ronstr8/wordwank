@@ -1,8 +1,7 @@
 .tile-wrapper {
     perspective: 1000px;
-    width: clamp(40px, 6vw, 80px);
-    /* Liquid scaling */
-    height: clamp(50px, 8vw, 100px);
+    width: var(--tile-w);
+    height: var(--tile-h);
 }
 
 .tile-inner {

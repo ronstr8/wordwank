@@ -1,3 +1,8 @@
+:root {
+    --tile-w: clamp(40px, 6vw, 80px);
+    --tile-h: clamp(50px, 8vw, 100px);
+}
+
 header {
     display: flex;
     justify-content: space-between;
@@ -134,8 +139,10 @@ header {
     letter-spacing: 2px;
 }
 
-.rack-container {
+.rack-container,
+.word-board {
     display: flex;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
     background: rgba(0, 0, 0, 0.3);
@@ -144,6 +151,32 @@ header {
     border: 2px dashed rgba(255, 255, 255, 0.1);
     min-height: 100px;
     width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+    gap: 10px;
+}
+
+.rack-slot,
+.board-slot {
+    width: var(--tile-w);
+    height: var(--tile-h);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.rack-slot {
+    cursor: pointer;
+}
+
+.rack-slot.used {
+    cursor: default;
+}
+
+.board-slot {
+    border: 2px dashed rgba(255, 255, 255, 0.1);
 }
 
 .rack-content {
@@ -220,29 +253,10 @@ header {
 
 .rack-container.clickable {
     cursor: pointer;
-    flex-wrap: wrap;
-    gap: 10px;
 }
 
 .word-board {
-    display: flex;
-    gap: clamp(5px, 1vw, 10px);
-    background: rgba(0, 0, 0, 0.2);
-    padding: clamp(1.5rem, 2vh, 2rem) clamp(0.5rem, 1.5vh, 1rem) clamp(0.5rem, 1.5vh, 1rem);
-    border-radius: 15px;
     margin: 0.5rem 0;
-}
-
-.board-slot {
-    width: clamp(40px, 6vw, 80px);
-    /* Match tile scaling */
-    height: clamp(50px, 8vw, 100px);
-    border-radius: 8px;
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.2s;
 }
 
 .board-slot.filled {
@@ -649,6 +663,16 @@ header {
     color: #f1c40f;
 }
 
+.rules-footer {
+    margin-top: 1.5rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    font-family: 'Fredoka', sans-serif;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 0.5rem;
+}
+
 .tile-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
@@ -945,19 +969,22 @@ header {
         display: none;
     }
 
-    .rack-container {
-        padding: 0.5rem;
-        gap: 5px;
+    :root {
+        --tile-w: clamp(32px, 9.5vw, 42px);
+        --tile-h: clamp(42px, 12.5vw, 58px);
     }
 
+    .rack-container,
     .word-board {
-        gap: 5px;
-        padding: 1rem 0.5rem 0.5rem;
+        padding: 0.5rem;
+        gap: 6px;
+        max-width: none;
     }
 
+    .rack-slot,
     .board-slot {
-        width: clamp(35px, 11vw, 60px);
-        height: clamp(45px, 14vw, 80px);
+        width: clamp(32px, 9.5vw, 42px);
+        height: clamp(42px, 12.5vw, 58px);
     }
 
     .submit-btn {
@@ -976,17 +1003,12 @@ header {
 }
 
 @media (max-width: 480px) {
+    :root {
+        --tile-w: clamp(28px, 9.5vw, 40px);
+        --tile-h: clamp(38px, 12.5vw, 55px);
+    }
+
     header h1 {
         font-size: 1.2rem;
-    }
-
-    .rack-slot {
-        width: 45px;
-        height: 55px;
-    }
-
-    .board-slot {
-        width: clamp(30px, 10vw, 45px);
-        height: clamp(40px, 13vw, 60px);
     }
 }

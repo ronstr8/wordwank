@@ -143,6 +143,15 @@
     border-color: #e74c3c;
 }
 
+.sidebar-version {
+    margin-top: 2rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.2);
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1px;
+}
+
 .sidebar-lang-picker {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
