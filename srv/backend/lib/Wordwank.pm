@@ -53,7 +53,7 @@ sub startup ($self) {
             'results.elsegame_announce' => "Elsegame, {winner} pulls {word} from [{rack}], beating {others}.",
             'app.player_joined'      => "{name} joined the session.",
             'error.missing_letters'  => "Nice try, but those letters aren't on your rack. Wanker.",
-            'error.word_not_found_lexicon' => "The word '%s' is not amongst our wanking lexicon.",
+            'error.word_not_found_lexicon' => "The word '%s' is not within our wanking lexicon.",
         },
         es => {
             'results.winner_summary' => "%s ganó con %d puntos (Palabra: %s)",

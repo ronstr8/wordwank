@@ -513,7 +513,7 @@ sub _end_game ($self, $game) {
         # Add bonuses array if any exist
         my @bonuses;
         push @bonuses, { 'Duplicates' => $_->{duplicate_bonus} } if $_->{duplicate_bonus} > 0;
-        push @bonuses, { 'Unique Word' => $_->{unique_bonus} } if $_->{unique_bonus} > 0;
+        push @bonuses, { 'Unique Play' => $_->{unique_bonus} } if $_->{unique_bonus} > 0;
         push @bonuses, { 'Length Bonus' => $_->{length_bonus} } if $_->{length_bonus} > 0;
         $item->{bonuses} = \@bonuses if @bonuses;
         $item;

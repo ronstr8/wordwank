@@ -68,7 +68,7 @@ const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
                                     <span className="rank">{i + 1}</span>
                                     <span className="player-id">{playerNames[res.player] || res.player}</span>
                                     <span className="player-word">{res.word}</span>
-                                    <span className="player-score">{res.score} {t('results.score').toLowerCase()}</span>
+                                    <span className="player-score">{res.score}</span>
                                 </div>
                                 <div className="bubble-details">
                                     <div className="detail-item">
