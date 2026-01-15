@@ -129,6 +129,43 @@
     transform: none !important;
 }
 
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.auth-btn.anonymous {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.auth-btn.anonymous:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #f1c40f;
+    transform: translateY(-2px);
+}
+
+.anonymous-hint {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    margin-top: -0.5rem;
+}
+
 .auth-error {
     margin-top: 1.5rem;
     color: #ff4d4d;

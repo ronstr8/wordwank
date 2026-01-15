@@ -154,6 +154,8 @@ header {
     max-width: 800px;
     box-sizing: border-box;
     gap: 10px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .rack-slot,
@@ -165,6 +167,8 @@ header {
     justify-content: center;
     align-items: center;
     transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .rack-slot {

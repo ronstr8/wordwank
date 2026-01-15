@@ -103,6 +103,7 @@ sub startup ($self) {
     $auth->get('/google/callback')->to('auth#google_callback')->name('google_callback');
     $auth->get('/me')->to('auth#me');
     $auth->post('/logout')->to('auth#logout');
+    $auth->post('/anonymous')->to('auth#anonymous_login');
     $auth->get('/passkey/challenge')->to('auth#passkey_challenge');
     $auth->post('/passkey/verify')->to('auth#passkey_verify');
 

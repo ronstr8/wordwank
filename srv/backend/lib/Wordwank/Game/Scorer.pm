@@ -59,7 +59,7 @@ sub _load_tile_config ($self, $lang) {
             Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
             Y => 2, Z => 1, '_' => 2,
         },
-        unicorns => { Q => 10, Z => 10 },
+        unicorns => { J => 10, Q => 10 },
     };
 }
 
@@ -92,6 +92,12 @@ sub generate_letter_values ($self, $lang) {
     # Override: Unicorns always have their configured point value
     for my $letter (keys %$unicorns) {
         $values{$letter} = $unicorns->{$letter};
+    }
+    
+    # HARD OVERRIDE: For English, ensure J and Q are always unicorns regardless of wordd config
+    if ($lang eq 'en') {
+        $values{J} = 10;
+        $values{Q} = 10;
     }
     
     # Override: Day-of-week letter is 7 points (takes precedence over unicorns too)

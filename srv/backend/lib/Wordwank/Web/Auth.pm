@@ -180,6 +180,23 @@ sub passkey_verify ($self) {
     }
 }
 
+sub anonymous_login ($self) {
+    my $schema = $self->app->schema;
+    
+    # Create a new anonymous player
+    # ID is random, nickname is procedural
+    my $player_id = 'anon-' . int(rand(1000000)) . '-' . time;
+    my $nickname = Wordwank::Web::Game::generate_procedural_name($player_id);
+    
+    my $player = $schema->resultset('Player')->create({
+        id       => $player_id,
+        nickname => $nickname,
+    });
+    
+    $self->_create_session($player);
+    $self->render(json => { success => 1, id => $player_id, nickname => $nickname });
+}
+
 sub me ($self) {
     my $session_id = $self->cookie('ww_session');
     if (!$session_id) {

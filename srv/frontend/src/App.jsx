@@ -703,7 +703,7 @@ function App() {
                             >
                                 <option value="en">EN</option>
                                 <option value="es">ES</option>
-                                <option value="fr">FR</option>
+                                {/* <option value="fr">FR</option> */}
                             </select>
                         </div>
                     </div>

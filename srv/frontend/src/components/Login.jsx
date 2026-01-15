@@ -64,6 +64,25 @@ const Login = ({ onLoginSuccess }) => {
         }
     };
 
+    const handleAnonymousLogin = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const resp = await fetch('/auth/anonymous', { method: 'POST' });
+            if (resp.ok) {
+                localStorage.setItem('ww_last_login', 'anonymous');
+                onLoginSuccess();
+            } else {
+                setError(t('auth.anonymous_failed', 'Anonymous login failed.'));
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-overlay">
             <div className="login-card">
@@ -86,6 +105,16 @@ const Login = ({ onLoginSuccess }) => {
                         <span className="icon">🔑</span>
                         {t('auth.sign_in_with_passkey')}
                     </button>
+
+                    <div className="auth-divider">
+                        <span>{t('app.donate_or', 'OR')}</span>
+                    </div>
+
+                    <button className="auth-btn anonymous" onClick={handleAnonymousLogin} disabled={loading}>
+                        <span className="icon">👤</span>
+                        {t('auth.play_anonymously')}
+                    </button>
+                    <p className="anonymous-hint">{t('auth.anonymous_disclaimer')}</p>
                 </div>
 
                 {error && <div className="auth-error">{error}</div>}

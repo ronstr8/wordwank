@@ -410,7 +410,10 @@ sub _end_game ($self, $game) {
     
     # Solo player rule: if only one unique player submitted, it's a practice session
     my %seen_players = map { $_->get_column('player_id') => 1 } @plays;
-    my $solo_game = (keys %seen_players) <= 1;
+    my $num_seen = scalar(keys %seen_players);
+    my $solo_game = ($num_seen <= 1);
+    
+    $app->log->debug("Solo check: $num_seen unique players seen in game " . $game->id . ". Result: " . ($solo_game ? "SOLO" : "COMPETITIVE"));
     
     # Build enhanced results with bonuses
     my @results;

@@ -2,6 +2,8 @@
     perspective: 1000px;
     width: var(--tile-w);
     height: var(--tile-h);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .tile-inner {
