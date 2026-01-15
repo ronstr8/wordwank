@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Tile from './components/Tile'
 import Timer from './components/Timer'
@@ -16,6 +16,7 @@ import PlayerStats from './components/PlayerStats'
 import PasskeySetup from './components/PasskeySetup'
 import Sidebar from './components/Sidebar'
 import { CONFIG } from './config'
+import './components/Toast.css'
 
 function App() {
     const { t, i18n } = useTranslation()
@@ -58,6 +59,7 @@ function App() {
         }
     });
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
         localStorage.setItem('focus_mode', JSON.stringify(isFocusMode));
@@ -289,6 +291,17 @@ function App() {
                         const filtered = prev.filter(p => p.player !== data.sender);
                         return [playObj, ...filtered];
                     });
+
+                    // Toast Notification for Mobile/Subtle UI
+                    const score = data.payload.score;
+                    const isSplat = score >= 40;
+                    const toastMsg = `${playObj.playerName} played ${playObj.word} for ${score} pts. ${isSplat ? '💥' : ''}`;
+                    showToast(toastMsg, isSplat);
+
+                    if (isSplat) {
+                        playRef.current('bigsplat');
+                    }
+
                     if (data.sender === playerIdRef.current) {
                         setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
                         setIsLocked(true);
@@ -337,6 +350,14 @@ function App() {
             if (reconnectTimeout) clearTimeout(reconnectTimeout);
         };
     }, [playerId]);
+
+    const showToast = useCallback((message, isSplat = false) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, isSplat }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 2000); // 2 seconds as requested
+    }, []);
 
     // Persistent state for identity
     const [nickname, setNickname] = useState("")
@@ -987,6 +1008,14 @@ function App() {
             )}
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} isFocusMode={isFocusMode} />}
+
+            <div className="toast-container">
+                {toasts.map(toast => (
+                    <div key={toast.id} className={`toast ${toast.isSplat ? 'splat' : ''}`}>
+                        {toast.message}
+                    </div>
+                ))}
+            </div>
 
             {
                 (isConnecting || connectionError || (rack.length === 0 && !results)) && (

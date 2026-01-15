@@ -156,6 +156,7 @@ header {
     gap: 10px;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .rack-slot,
@@ -169,6 +170,7 @@ header {
     transition: all 0.2s;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .rack-slot {

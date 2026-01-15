@@ -9,17 +9,19 @@ sub leaderboard ($self) {
 
     # Global Top 10
     my $rs = $schema->resultset('Player')->search(
-        {},
+        {
+            lifetime_score => { '>' => 0 },
+        },
         {
             join     => 'plays',
             select   => [
                 'me.nickname',
-                { sum => 'plays.score', -as => 'total_score' },
+                'me.lifetime_score',
                 { count => 'plays.id', -as => 'plays_count' }
             ],
             as       => [qw/nickname total_score plays_count/],
-            group_by => [qw/me.id me.nickname/],
-            order_by => [ { -desc => 'total_score' } ],
+            group_by => [qw/me.id me.nickname me.lifetime_score/],
+            order_by => [ { -desc => 'me.lifetime_score' } ],
             limit    => 10,
         }
     );
@@ -52,11 +54,11 @@ sub leaderboard ($self) {
                 join     => 'plays',
                 select   => [
                     'me.nickname',
-                    { sum => 'plays.score', -as => 'total_score' },
+                    'me.lifetime_score',
                     { count => 'plays.id', -as => 'plays_count' }
                 ],
                 as       => [qw/nickname total_score plays_count/],
-                group_by => [qw/me.id me.nickname/],
+                group_by => [qw/me.id me.nickname me.lifetime_score/],
             }
         );
         if ($player_stats) {
