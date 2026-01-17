@@ -49,7 +49,10 @@
         "duped_you": "vous a dupliqué",
         "duplicate_penalty": "0 point (Doublon)",
         "solo_wanker": "Malheureusement, un branleur solitaire ne reçoit aucun point.",
-        "definition_link": "Définition"
+        "definition_link": "Définition",
+        "winner_summary": "{{name}} a gagné avec {{score}} points (Mot: {{word}})",
+        "no_winner": "Personne n'a joué de mot. Branleurs.",
+        "elsegame_announce": "Elsegame, {{winner}} tire {{word}} de [{{rack}}], battant {{others}}."
     },
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",
@@ -64,5 +67,8 @@
         "register_passkey": "Enregistrer une Passkey",
         "passkey_registered": "Passkey enregistrée avec succès !",
         "logout": "Déconnexion"
+    },
+    "error": {
+        "missing_letters": "Bien essayé, mas ces lettres ne sont pas sur votre chevalet. Branleur."
     }
 }

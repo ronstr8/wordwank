@@ -23,10 +23,15 @@ spec:
             - name: config-volume
               mountPath: /usr/share/nginx/html/runtime-config.js
               subPath: runtime-config.js
+            - name: locales-volume
+              mountPath: /usr/share/nginx/html/locales
       volumes:
         - name: config-volume
           configMap:
             name: frontend-config
+        - name: locales-volume
+          configMap:
+            name: wordwank-locales
 ---
 apiVersion: v1
 kind: Service

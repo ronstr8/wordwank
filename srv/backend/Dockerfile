@@ -22,8 +22,8 @@ RUN cpanm --notest --installdeps .
 # Copy application code
 COPY . .
 
-# Copy application code
-COPY . .
+# Run tests
+RUN prove -lr t/
 
 # Expose Mojolicious port
 EXPOSE 3000

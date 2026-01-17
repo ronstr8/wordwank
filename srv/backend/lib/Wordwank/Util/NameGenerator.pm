@@ -17,29 +17,41 @@ sub generate ($self, $seed_str = undef) {
         srand($hash);
     }
 
-    my $syllables = 2 + int(rand(2)); # 2 or 3 syllables
+    my $syllables = 4 + int(rand(3));
     my $name = "";
+	my $used_blends = 0;
+	my $got_consonant = rand() > .5;
     
     for (my $i = 0; $i < $syllables; $i++) {
-        # Consonant (or blend)
-        if (rand() < 0.3) {
-            $name .= $C_BLENDS[int(rand(@C_BLENDS))];
-        } else {
-            $name .= $CONSONANTS[int(rand(@CONSONANTS))];
-        }
-        
-        # Vowel (or blend)
-        if (rand() < 0.2) {
-            $name .= $V_BLENDS[int(rand(@V_BLENDS))];
-        } else {
-            $name .= $VOWELS[int(rand(@VOWELS))];
-        }
-        
-        # Optional tail consonant
-        if (rand() < 0.4) {
-             $name .= $CONSONANTS[int(rand(@CONSONANTS))];
-        }
+		my $grab_consonant = $got_consonant ? rand() < 0.01 : 1;
+
+		if ($grab_consonant) {
+			# Consonant (or blend)
+			if ($used_blends < 2 && rand() < 0.3) {
+				$used_blends++;
+				$name .= $C_BLENDS[int(rand(@C_BLENDS))];
+			} else {
+				$name .= $CONSONANTS[int(rand(@CONSONANTS))];
+			}
+
+			$got_consonant = 1;
+		} else {
+			# Vowel (or blend)
+			if ($used_blends < 2 && rand() < 0.2) {
+				$used_blends++;
+				$name .= $V_BLENDS[int(rand(@V_BLENDS))];
+			} else {
+				$name .= $VOWELS[int(rand(@VOWELS))];
+			}
+
+			$got_consonant = 0;
+		}
     }
+
+	# Optional tail consonant
+	if (rand() < 0.4) {
+		 $name .= $CONSONANTS[int(rand(@CONSONANTS))];
+	}
 
     # Capitalize first letter
     return ucfirst($name);

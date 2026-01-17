@@ -8,8 +8,6 @@ const Sidebar = ({
     setIsFocusMode,
     leaderboardVisible,
     setLeaderboardVisible,
-    playByPlayVisible,
-    setPlayByPlayVisible,
     chatVisible,
     setChatVisible,
     statsVisible,
@@ -71,13 +69,6 @@ const Sidebar = ({
                         >
                             <span className="sidebar-icon">🏆</span>
                             Leaderboard
-                        </button>
-                        <button
-                            className={`sidebar-btn ${playByPlayVisible ? 'active' : ''}`}
-                            onClick={() => handleAction(() => setPlayByPlayVisible(!playByPlayVisible))}
-                        >
-                            <span className="sidebar-icon">🎬</span>
-                            Play-by-Play
                         </button>
                         <button
                             className={`sidebar-btn ${chatVisible ? 'active' : ''}`}

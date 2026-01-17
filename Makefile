@@ -115,7 +115,14 @@ dictd: minikube-setup registry-tunnel
 	kubectl rollout status deployment/dictd -n $(NAMESPACE) || true
 
 # Helm Commands
-deploy: minikube-setup
+sync-locales:
+	@echo "Syncing locales to helm chart..."
+	@rm -rf helm/share
+	@mkdir -p helm/share
+	@cp -a srv/backend/share/locale helm/share/
+	@echo "✅ Locales synced to helm/share/locale"
+
+deploy: minikube-setup sync-locales
 	helm dependency update ./helm
 	helm upgrade --install wordwank ./helm \
 		--namespace $(NAMESPACE) \
@@ -128,9 +135,21 @@ deploy: minikube-setup
 undeploy:
 	helm uninstall wordwank --namespace $(NAMESPACE)
 
+# Hot-reload i18n via ConfigMap
+locales: sync-locales
+	@echo "Updating shared locales ConfigMap..."
+	@kubectl create configmap wordwank-locales \
+		--namespace $(NAMESPACE) \
+		--from-file=en.json=helm/share/locale/en.json \
+		--from-file=es.json=helm/share/locale/es.json \
+		--from-file=fr.json=helm/share/locale/fr.json \
+		--dry-run=client -o yaml | kubectl apply --namespace $(NAMESPACE) -f -
+	@echo "✅ ConfigMap updated. Pods will pick up changes within 5 minutes."
+
 # Cleanup
 clean:
 	@echo "Cleaning up local artifacts..."
+	rm -rf helm/share
 	rm -rf srv/frontend/dist
 	rm -rf srv/frontend/node_modules
 	rm -rf srv/wordd/target

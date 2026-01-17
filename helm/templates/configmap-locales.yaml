@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordwank-locales
+  namespace: {{ .Values.global.namespace }}
+data:
+  en.json: |-
+{{ .Files.Get "share/locale/en.json" | indent 4 }}
+  es.json: |-
+{{ .Files.Get "share/locale/es.json" | indent 4 }}
+  fr.json: |-
+{{ .Files.Get "share/locale/fr.json" | indent 4 }}

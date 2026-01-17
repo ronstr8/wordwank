@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.27.0] - 2026-01-17
+
+### Added (0.27.0)
+
+- **Backend Test Suite**: Implemented a comprehensive test suite in `t/scorer.t` for core game logic (scoring, rack generation, word validation).
+- **Build-Time Verification**: Integrated Perl `prove` into the backend `Dockerfile` to ensure all tests pass during the container build process.
+- **Shared i18n ConfigMap**: Refactored the entire localization system to use a shared Kubernetes ConfigMap. Both frontend and backend now consume unified JSON files from a single source of truth.
+- **Hot Reloading**: Enabled hot-reloading for translations. The backend re-scans for changes every 5 minutes, and the frontend fetches locales dynamically via `i18next-http-backend`.
+
+### Changed (0.27.0)
+
+- **Guaranteed Playable Racks**: Enhanced the rack generation algorithm to guarantee at least one vowel and one consonant in every game rack across all languages.
+- **Wank-Centric Locales**: Updated the "word not found" error message across English ("We don't wank..."), Spanish ("No pajilleamos..."), and French ("On ne branle pas...") for brand consistency.
+- **Multilingual Sync**: Synchronized all frontend and backend translation keys and unified interpolation syntax to `{{variable}}`.
+
+## [0.26.0] - 2026-01-16
+
+### Changed (0.26.0)
+
+- **Toastification**: Replaced the persistent Play-by-Play panel with a modern system of ephemeral toast notifications for all game events.
+- **Grouped Join Toasts**: When joining a session, players now see a summarized toast ("X, Y and you start...") instead of individual entries.
+- **Elsegame Redirects**: Notifications from other game rooms are now redirected to toasts instead of cluttering the chat window.
+- **Cleaner Join UI**: Mid-game joins now use a dedicated toast ("Z joined the duel") and no longer spam the chat history.
+
+### Removed (0.26.0)
+
+- **Play-by-Play Panel**: Completely removed the panel, its state management, toggle buttons, and historical tracking to reduce UI clutter and memory usage.
+
 ## [0.25.0] - 2026-01-14
 
 ### Changed (0.25.0)
@@ -58,35 +86,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.21.1] - 2026-01-11
 
-### Fixed
+### Fixed (0.21.1)
 
 - **Game Start Hang**: Resolved issue where players could get stuck in "Waiting for game" loop due to stale game rotation logic.
 - **Wordd Compilation**: Fixed Rust compilation errors in `wordd` service regarding type ambiguity and mismatches.
 
-### Changed
+### Changed (0.21.1)
 
 - **Language-Partitioned Games**: Players are now strictly matched into games based on their language preference (EN players in EN games, ES players in ES games).
 - **Persistent Game Language**: Added `language` column to `games` table to ensure consistent tile distributions and rules for all participants.
 
 ## [0.21.0] - 2026-01-11
 
-### Added
+### Added (0.21.0)
 
 - **Spanish Language Support**: Full Spanish gameplay with 79,489-word dictionary
-- **Audio Controls**: Separated background music (ambience) from master mute
+- **Audio Controls (0.21.0)**: Separated background music (ambience) from master mute
 - **UI Button Grouping**: Reorganized header buttons into Account, Audio, and Language groups
 - **Locale Selector Enabled**: EN/ES switching in header dropdown
 
 ## [0.19.0] - 2026-01-11
 
-### Added
+### Added (0.19.0)
 
 - **Bottom-Left Resize Handles**: Draggable panels (Leaderboard, Play-by-Play, Chat) now have resize handles on both bottom corners
   - Bottom-right: Expands width and height (original behavior)
   - Bottom-left: Expands width to left and height down while keeping right edge anchored
   - Both handles have visual indicators (yellow triangles) and appropriate cursors
 
-### Changed
+### Changed (0.19.0)
 
 - **End-of-Game Interaction**: Improved UX for results screen
   - Any click or keypress on results screen closes it and joins next game
@@ -97,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.18.0] - 2026-01-11
 
-### Added
+### Added (0.18.0)
 
 - **SSL/HTTPS Support**: Full cert-manager integration with Let's Encrypt for automatic SSL certificate provisioning
   - Supports both staging and production Let's Encrypt environments
@@ -107,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Blank Tiles**: Added 2 blank tiles (`_`) to the game distribution (finally!)
 - Translation key `waiting_next_game` for loading state message
 
-### Fixed
+### Fixed (0.18.0)
 
 - **Loading State**: Shows "Waiting for next game to start..." when connecting during game transitions instead of blank screen
 - **Keyboard Input Bug**: Fixed issue where typing duplicate letters (e.g., "E", "E") would select the same tile twice
@@ -118,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Players must now manually click "Play Again" to start next game
   - Can chat and inspect results freely without being auto-restarted
 
-### Infrastructure
+### Infrastructure (0.18.0)
 
 - **Cert-Manager Resources**:
   - `helm/resources/letsencrypt-issuer.yaml` - ClusterIssuer for staging and production
@@ -127,25 +155,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Updated `Makefile` to proxy both HTTP (80) and HTTPS (443) in `expose` target
 - Updated README with SSL setup instructions and troubleshooting
 
-### Changed
+### Changed (0.17.1)
 
 - Results screen no longer auto-closes after 5 seconds
 - Players have full control over when to start next game
 
 ## [0.17.1] - 2026-01-10
 
-### Changed - BREAKING
+### Changed - BREAKING (0.17.1)
 
 - **Fixed Position Tile Rack**: Tiles no longer disappear when selected. Instead, they stay in their original positions and grey out, making the game more challenging as players must remember tile locations
 
-### Added
+### Added (0.17.1)
 
 - Visual feedback for used tiles (30% opacity, greyscale filter)
 - Grid-based rack layout that maintains 7 fixed positions
 
 ## [0.17.0] - 2026-01-10
 
-### Changed - BREAKING
+### Changed - BREAKING (0.17.0)
 
 - **Complete Scoring System Overhaul**:
   - **Vowels (A,E,I,O,U)**: Now always worth 1 point
@@ -156,18 +184,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **Solo Player Rule**: If only one player submits in a game, everyone gets 0 points
   - **All Tiles Bonus**: Unchanged, still +10 points for using all 7 tiles
 
-### Added
+### Added (0.17.0)
 
 - **DUPLICATE Badge**: Dupers are now marked with a red "DUPLICATE" badge in results screen
 - Day-letter calculation uses Buffalo, NY timezone (America/New_York) for consistency
 
-### Fixed
+### Fixed (0.17.0) (0.17.0)
 
 - Backend now properly handles edge cases for scoring bonuses
 
 ## [0.16.0] - 2026-01-10
 
-### Added
+### Added (0.16.0)
 
 - **Lifetime Score Tracking**: Players now have a `lifetime_score` column that tracks cumulative points across all games
 - **Duplicate Word Bonus**: Original player gets +1 point for each other player who submits the same word
@@ -176,13 +204,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Panel Persistence**: Panel positions, sizes, and visibility states now persist in localStorage
 - **Bonus Display**: End-game results now show detailed breakdowns of "Duplicates" and "All Tiles" bonuses
 
-### Fixed
+### Fixed (0.16.0)
 
 - **End-of-Game Splash**: Fixed critical bug where results screen wasn't showing due to incorrect player ID usage
 - **Logo Display**: Fixed "wordw💥nk" logo breaking across lines on mobile with `white-space: nowrap`
 - **Scoring Accuracy**: Backend now correctly uses player IDs for database lookups instead of nicknames
 
-### Changed
+### Changed (0.16.0) (0.16.0)
 
 - **Database Schema v0.2.0**: Added `lifetime_score INTEGER` column to `players` table
 - Tile value font size increased from `clamp(0.6rem, 1.2vw, 1rem)` to `clamp(0.75rem, 1.5vw, 1.2rem)` for better mobile readability
@@ -190,14 +218,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.15.7] - 2026-01-08
 
-### Added
+### Added (0.15.7)
 
 - **Per-Letter Randomization**: Each letter now gets its own unique random value (1-10) in Random Score Mode, rather than a single value for the whole game.
 - **WebSocket Reconnection**: The frontend now automatically attempts to reconnect if the connection is lost (e.g., after tabbing away).
 - **Tab Visibility Sync**: Connection is automatically checked and refreshed when you return to the tab.
 - **Empty State UX**: Added a "NO PLAYS THIS ROUND!" message on the results screen when no one submits a word.
 
-### Fixed
+### Fixed (0.15.7) (0.15.7)
 
 - **Stability**: Fixed a syntax error in the frontend message loop.
 - **Config**: Ensure `tilemasterd` correctly receives the randomization flag.
@@ -211,12 +239,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.15.5] - 2026-01-08
 
-### Backend Fixes
+### Backend Fixes (0.15.5)
 
 - **Grace period for auto-submit**: The server now waits 1.5s after the timer hits 0 before ending the game.
 - **True randomness**: Switched to `math/rand` with a nanosecond seed.
 
-### Helm Fixes
+### Helm Fixes (0.15.5)
 
 - **Random Letter Score Mode**: Corrected Helm config inheritance.
 - **Log Hygiene**: Refactored CHANGELOG to resolve lint errors.
@@ -230,7 +258,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.15.3] - 2026-01-08
 
-### UX Fixes
+### UX Fixes (0.15.3)
 
 - **Submission Reliability**: Auto-submit now properly triggers when timer expires.
 - **Navigation UX**: Results modal can now be clicked anywhere to close.
@@ -238,27 +266,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.15.2] - 2026-01-08
 
-### Crash Fixes
+### Crash Fixes (0.15.2)
 
 - **Startup Stability**: Critical circular dependency crash when clearing site data fixed.
 - **Message Integrity**: Auto-submit logic now inlines WebSocket send.
 
 ## [0.15.1] - 2026-01-08
 
-### Timer Fixes
+### Timer Fixes (0.15.1)
 
 - **Bug Fix**: Auto-submit on timer expiration now works correctly.
 - **React Optimization**: Fixed React dependency arrays.
 
 ## [0.15.0] - 2026-01-08
 
-### Added
+### Added (0.15.0)
 
 - 🔀 **Jumble button** to shuffle rack tiles for word brainstorming
 - **Auto-submit** when timer expires (no more losing because you didn't hit Enter in time)
 - **Server-side timer broadcasts** for synchronized countdowns across all clients
 
-### Fixed
+### Fixed (0.15.0)
 
 - Timer desync issues where frontend would show different time than server
 - Random letter score mode now properly parses boolean config values
@@ -272,31 +300,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.14.3] - 2026-01-08
 
-### Added
+### Added (0.14.3)
 
 - **WebSocket error handling** with user-friendly error messages
 - **Connection timeout** (10 seconds) with reload button for recovery
 - Generic loading screen (removed Arkham/cosmic horror branding)
 
-### Fixed
+### Fixed (0.14.3)
 
 - Stuck "Connecting..." overlay when WebSocket fails to establish
 
 ## [0.14.2] - 2026-01-08
 
-### Added
+### Added (0.14.2)
 
 - **Server-side player name tracking** in gateway
 - Player names now included in play/chat message payloads
 - Results screen displays nicknames instead of IDs
 
-### Fixed
+### Fixed (0.14.2)
 
 - Player nicknames now appear correctly in all UI panels (play-by-play, results, chat)
 
 ## [0.14.1] - 2026-01-08
 
-### Added
+### Added (0.14.1)
 
 - **Configurable game duration** via `gameDuration` in values.yaml (default: 30 seconds)
 - Player nickname mapping system for consistent identity across features
@@ -308,7 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.14.0] - 2026-01-08
 
-### Added
+### Added (0.14.0)
 
 - 🔊 **Sound system** with 4 audio effects:
   - `placement.mp3` - Satisfying click for each tile placed
@@ -318,38 +346,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Mute button** (🔊/🔇) in top-right corner with localStorage persistence
 - Sound credits in README for Freesound community contributions
 
-### Changed
+### Changed (0.14.0)
 
 - All sounds use MP3 format for optimal web performance
 
 ## [0.13.2] - 2026-01-08
 
-### Added
+### Added (0.13.2)
 
 - **Visual indicator for blank tiles** (greyed-out appearance)
 - Robust keyboard input using React refs to prevent rapid-typing race conditions
 
-### Fixed
+### Fixed (0.13.2)
 
 - Blank tile handling during fast keyboard entry
 - Tile exhaustion checks now work correctly during rapid word building
 
 ## [0.13.1] - 2026-01-08
 
-### Added
+### Added (0.13.1)
 
 - **Random letter score mode** (configurable via `randomLetterScoreMode`)
   - Each game assigns a random value (1-10) to all letters for that round
   - Shifts strategy from letter rarity to word length
   - Blank tiles always worth 0 points
 
-### Changed
+### Changed (0.13.1)
 
 - Tile component now accepts optional `value` prop for score override
 
 ## [0.13.0] - 2026-01-08
 
-### Added
+### Added (0.13.0)
 
 - 🎮 **Game Factory pattern** - ensures at least one game always available
 - **Procedural username generation** using AdjectiveNoun hashing (e.g., "GroovyPanda", "FunkyWizard")
@@ -360,7 +388,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Visual focus cue (pulsing animation) on first empty word slot
 - Seamless game transitions (no page reloads)
 
-### Changed
+### Changed (0.13.0)
 
 - Frontend version tracking system
 - Player registration now uses procedural nicknames

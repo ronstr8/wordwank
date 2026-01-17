@@ -53,6 +53,15 @@ spec:
               value: {{ .Values.global.gameDuration | quote }}
             - name: RACK_SIZE
               value: {{ .Values.global.rackSize | quote }}
+            - name: SHARE_DIR
+              value: "/app/share"
+          volumeMounts:
+            - name: locales-volume
+              mountPath: /app/share/locale
+      volumes:
+        - name: locales-volume
+          configMap:
+            name: wordwank-locales
 ---
 apiVersion: v1
 kind: Service

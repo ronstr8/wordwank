@@ -2,4 +2,4 @@ apiVersion: v2
 name: frontend
 description: Helm chart for the Wordwank React Frontend
 version: 0.10.0
-appVersion: "0.25.0"
+appVersion: "0.27.0"

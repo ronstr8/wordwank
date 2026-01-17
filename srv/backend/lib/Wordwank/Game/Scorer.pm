@@ -94,12 +94,6 @@ sub generate_letter_values ($self, $lang) {
         $values{$letter} = $unicorns->{$letter};
     }
     
-    # HARD OVERRIDE: For English, ensure J and Q are always unicorns regardless of wordd config
-    if ($lang eq 'en') {
-        $values{J} = 10;
-        $values{Q} = 10;
-    }
-    
     # Override: Day-of-week letter is 7 points (takes precedence over unicorns too)
     $values{$day_letter} = 7;
     
@@ -151,8 +145,11 @@ sub get_random_rack ($self, $lang) {
         push @rack, $bag->[$idx];
     }
     
-    # Ensure at least one vowel
-    unless (grep { /[AEIOU]/ } @rack) {
+    # Ensure at least one vowel and one consonant
+    my $has_vowel     = grep { /[AEIOU]/   } @rack;
+    my $has_consonant = grep { !/[AEIOU_]/ } @rack;
+
+    unless ($has_vowel && $has_consonant) {
         return $self->get_random_rack($lang);
     }
     

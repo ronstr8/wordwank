@@ -23,6 +23,7 @@ target/
 # Helm 
 helm/charts/
 helm/secrets.yaml
+helm/share/
 
 # IDEs
 .vscode/

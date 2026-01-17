@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import Tile from './components/Tile'
 import Timer from './components/Timer'
 import Chat from './components/Chat'
-import PlayByPlay from './components/PlayByPlay'
 import Results from './components/Results'
 import Leaderboard from './components/Leaderboard'
 import DraggablePanel from './components/DraggablePanel'
@@ -25,7 +24,6 @@ function App() {
     const [timeLeft, setTimeLeft] = useState(0)
     const [totalTime, setTotalTime] = useState(30) // Default to 30, updated on game_start
     const playerIdRef = useRef(null)
-    const [plays, setPlays] = useState([])
     const [messages, setMessages] = useState([])
     const [ws, setWs] = useState(null)
     const [playerId, setPlayerId] = useState(null)
@@ -84,7 +82,6 @@ function App() {
     };
 
     const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
-    const [playByPlayVisible, setPlayByPlayVisible] = useState(() => loadPanelVisibility('playByPlay'));
     const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
     const [statsVisible, setStatsVisible] = useState(() => loadPanelVisibility('stats'));
 
@@ -92,10 +89,6 @@ function App() {
     useEffect(() => {
         savePanelVisibility('leaderboard', leaderboardVisible);
     }, [leaderboardVisible]);
-
-    useEffect(() => {
-        savePanelVisibility('playByPlay', playByPlayVisible);
-    }, [playByPlayVisible]);
 
     useEffect(() => {
         savePanelVisibility('chat', chatVisible);
@@ -205,7 +198,6 @@ function App() {
             socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${playerId}`);
 
             socket.onopen = () => {
-                console.log('Connected to gateway - Player:', playerId);
                 setWs(socket);
                 setIsConnecting(false);
                 setConnectionError(null);
@@ -219,7 +211,6 @@ function App() {
             };
 
             socket.onclose = () => {
-                console.log('Disconnected from gateway - will retry in 2s');
                 setWs(null);
                 setIsConnecting(true);
                 reconnectTimeout = setTimeout(connect, 2000);
@@ -230,6 +221,12 @@ function App() {
                 if (data.type === 'chat') {
                     const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
                     const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNamesRef.current[data.sender];
+
+                    if (senderName === 'Elsegame') {
+                        showToast(text);
+                        return;
+                    }
+
                     setMessages(prev => [...prev, {
                         sender: data.sender,
                         senderName: senderName || data.sender,
@@ -248,8 +245,16 @@ function App() {
                         [data.payload.id]: data.payload.name
                     }));
                 } else if (data.type === 'game_start') {
-                    const { uuid, rack: newRackLetters, rack_size, letter_values, time_left, tile_counts, unicorns } = data.payload;
+                    const { uuid, rack: newRackLetters, rack_size, letter_values, time_left, tile_counts, unicorns, players: otherPlayers } = data.payload;
                     const size = rack_size || newRackLetters.length;
+
+                    // Grouped Join Toast
+                    if (otherPlayers && otherPlayers.length > 0) {
+                        const playersList = otherPlayers.join(', ').replace(/, ([^,]*)$/, ` ${tRef.current('app.and', 'and')} $1`);
+                        showToast(tRef.current('app.players_starting', { players: playersList }));
+                    } else {
+                        showToast(tRef.current('app.players_starting_you'));
+                    }
 
                     const newRack = newRackLetters.map((letter, idx) => ({
                         id: `tile-${idx}-${Date.now()}`,
@@ -264,10 +269,6 @@ function App() {
                     setLetterValue(letter_values || 0);
                     setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
-                    setPlays(prev => [
-                        { type: 'separator', timestamp: new Date().toLocaleTimeString() },
-                        ...prev
-                    ]);
                     setGuess(Array(size).fill(null));
                     setIsLocked(false);
                     setFeedback({ text: '', type: '' });
@@ -287,15 +288,17 @@ function App() {
                         score: data.payload.score,
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                     };
-                    setPlays(prev => {
-                        const filtered = prev.filter(p => p.player !== data.sender);
-                        return [playObj, ...filtered];
-                    });
 
                     // Toast Notification for Mobile/Subtle UI
                     const score = data.payload.score;
                     const isSplat = score >= 40;
-                    const toastMsg = `${playObj.playerName} played ${playObj.word} for ${score} pts. ${isSplat ? '💥' : ''}`;
+
+                    let toastMsg;
+                    if (playObj.word) {
+                        toastMsg = `${playObj.playerName} played ${playObj.word} for ${score} pts. ${isSplat ? '💥' : ''}`;
+                    } else {
+                        toastMsg = `${playObj.playerName} played a word for ${score} pts. ${isSplat ? '💥' : ''}`;
+                    }
                     showToast(toastMsg, isSplat);
 
                     if (isSplat) {
@@ -307,17 +310,15 @@ function App() {
                         setIsLocked(true);
                         setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
                     }
+                } else if (data.type === 'player_joined') {
+                    if (data.payload.id !== playerIdRef.current) {
+                        showToast(tRef.current('app.player_joined', { name: data.payload.name }));
+                    }
                 } else if (data.type === 'error') {
                     setFeedback({ text: data.payload, type: 'error' });
                     setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
                 } else if (data.type === 'play_result') {
-                    setPlays(prev => [...prev, {
-                        player: data.sender,
-                        playerName: data.payload.playerName || playerNamesRef.current[data.sender] || data.sender,
-                        word: data.payload.word,
-                        score: data.payload.score,
-                        id: Date.now()
-                    }]);
+                    // No longer tracking historical plays in state
                 } else if (data.type === 'game_end') {
                     const resultsData = {
                         results: data.payload.results || [],
@@ -547,9 +548,7 @@ function App() {
     const submitWord = () => {
         const word = guess.map(g => g ? g.char : '').join('').trim();
 
-        console.log('Submitting word attempt:', word);
         if (word.length === 0 || !ws) {
-            console.log('Submission failed: word empty or WS null');
             return;
         }
 
@@ -571,7 +570,6 @@ function App() {
     };
 
     const sendMessage = (text) => {
-        console.log('Chat message attempt:', text, 'WS Status:', ws?.readyState);
         if (ws) {
             const msg = JSON.stringify({
                 type: 'chat',
@@ -580,7 +578,6 @@ function App() {
 
             ws.send(msg);
         } else {
-            console.log('Chat blocked: WS null');
         }
     };
 
@@ -625,8 +622,6 @@ function App() {
                 setIsFocusMode={setIsFocusMode}
                 leaderboardVisible={leaderboardVisible}
                 setLeaderboardVisible={setLeaderboardVisible}
-                playByPlayVisible={playByPlayVisible}
-                setPlayByPlayVisible={setPlayByPlayVisible}
                 chatVisible={chatVisible}
                 setChatVisible={setChatVisible}
                 statsVisible={statsVisible}
@@ -670,12 +665,6 @@ function App() {
                             onClick={() => setLeaderboardVisible(!leaderboardVisible)}
                         >
                             Leaderboard
-                        </button>
-                        <button
-                            className={`panel-toggle ${playByPlayVisible ? 'active' : ''}`}
-                            onClick={() => setPlayByPlayVisible(!playByPlayVisible)}
-                        >
-                            Play-by-Play
                         </button>
                         <button
                             className={`panel-toggle ${chatVisible ? 'active' : ''}`}
@@ -889,18 +878,6 @@ function App() {
                 </DraggablePanel>
             )}
 
-            {!isFocusMode && playByPlayVisible && (
-                <DraggablePanel
-                    title={t('app.play_by_play')}
-                    id="play-by-play"
-                    initialPos={{ x: 20, y: 570 }}
-                    initialSize={{ width: 300, height: 200 }}
-                    onClose={() => setPlayByPlayVisible(false)}
-                    storageKey="playByPlay"
-                >
-                    <PlayByPlay plays={plays} />
-                </DraggablePanel>
-            )}
 
             {!isFocusMode && chatVisible && (
                 <DraggablePanel

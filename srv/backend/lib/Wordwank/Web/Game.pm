@@ -68,11 +68,12 @@ sub websocket ($self) {
 
 sub _handle_join ($self, $player) {
     my $app = $self->app;
+    my $schema = $app->schema;
     my $lang = $player->language // 'en';
     $app->log->debug("Player " . $player->id . " ($lang) attempting to join...");
     
     # 1. Search for active (started) game for this player's language
-    my $game_rs = $self->app->schema->resultset('Game');
+    my $game_rs = $schema->resultset('Game');
     my $active_game = $game_rs->search(
         { 
             finished_at => undef, 
@@ -179,6 +180,18 @@ sub _handle_join ($self, $player) {
     # Store client in app state
     $app->games->{$gid}{clients}{$player->id} = $self;
     
+    # Get list of other players in this game
+    my @other_nicknames;
+    my $game_clients = $app->games->{$gid}{clients} // {};
+    for my $pid (keys %$game_clients) {
+        next if $pid eq $player->id;
+        # We need the nickname. We can get it from the schema or a map.
+        # For efficiency, let's just grab it from the schema for now, or assume identity broadcast handled it.
+        # Improved: The identity broadcast should have populated the schema or a cache.
+        my $p = $schema->resultset('Player')->find($pid);
+        push @other_nicknames, $p->nickname if $p;
+    }
+
     # Send game_start with accurate time_left and language-specific configs
     my $game_lang = $active_game->language // 'en';
     $app->log->debug("Broadcasting game_start for $gid");
@@ -191,30 +204,25 @@ sub _handle_join ($self, $player) {
             tile_counts   => $app->scorer->tile_counts($game_lang),
             unicorns      => $app->scorer->unicorns($game_lang),
             time_left     => $app->games->{$gid}{time_left},
+            players       => \@other_nicknames,
         }
     }});
 
-    # Notify others and broadcast identity
-    my $join_msg = $self->t('app.player_joined', $game_lang);
-    my $nickname = $player->nickname;
-    $join_msg =~ s/\{name\}/$nickname/g;
-
+    # Notify others of the join via a dedicated event instead of chat
     $self->_broadcast_to_game($gid, {
-        type    => 'chat',
-        sender  => 'SYSTEM',
+        type    => 'player_joined',
         payload => {
-            text       => $join_msg,
-            senderName => 'SYSTEM',
-        },
-        timestamp => time,
-    });
+            id   => $player->id,
+            name => $player->nickname
+        }
+    }, $player->id); # Exclude sender
 
     # Also broadcast identity so other clients update their playerNames map
     $self->_broadcast_to_game($gid, {
         type    => 'identity',
         payload => { 
             id   => $player->id, 
-            name => $nickname
+            name => $player->nickname
         }
     });
 }
@@ -309,7 +317,7 @@ sub _handle_play ($self, $player, $payload) {
             # Word is invalid or wordd is down
             $self->send({json => {
                 type    => 'error',
-                payload => sprintf($self->t('error.word_not_found_lexicon', $lang), $word)
+                payload => $self->t('app.error_word_not_found', $lang, { word => $word })
             }});
         }
     });
@@ -486,11 +494,12 @@ sub _end_game ($self, $game) {
         my $others_str = @other_words ? join(', ', @other_words) : 'nobody';
         my $rack_str = join(' ', @{$game->rack});
         
-        my $announce_msg = $self->t('results.elsegame_announce', $winner_lang);
-        $announce_msg =~ s/\{winner\}/$winner->{player}/g;
-        $announce_msg =~ s/\{word\}/$winner->{word}/g;
-        $announce_msg =~ s/\{rack\}/$rack_str/g;
-        $announce_msg =~ s/\{others\}/$others_str/g;
+        my $announce_msg = $self->t('results.elsegame_announce', $winner_lang, {
+            winner => $winner->{player},
+            word   => $winner->{word},
+            rack   => $rack_str,
+            others => $others_str
+        });
 
         $app->broadcast_all_clients({
             type    => 'chat',
@@ -530,7 +539,9 @@ sub _end_game ($self, $game) {
             payload   => {
                 results => $results_payload,
                 is_solo => $solo_game,
-                summary => $winner ? sprintf($self->t('results.winner_summary', $winner_lang), $winner->{player}, $winner->{score}, $winner->{word}) : $self->t('results.no_winner', $winner_lang),
+                summary => $winner 
+                    ? $self->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
+                    : $self->t('results.no_winner', $winner_lang),
                 definition => $definition,
             }
         });
@@ -563,9 +574,10 @@ sub _handle_set_language ($self, $player, $payload) {
 
 # --- Utilities ---
 
-sub _broadcast_to_game ($self, $game_id, $msg) {
+sub _broadcast_to_game ($self, $game_id, $msg, $exclude_id = undef) {
     my $game_clients = $self->app->games->{$game_id}{clients} // {};
     for my $pid (keys %$game_clients) {
+        next if $exclude_id && $pid eq $exclude_id;
         my $c = $game_clients->{$pid};
         if ($c && $c->tx) {
             $c->send({json => $msg});
