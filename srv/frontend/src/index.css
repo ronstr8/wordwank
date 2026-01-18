@@ -63,7 +63,7 @@ h1 {
 .splat {
   display: inline-block;
   transform: rotate(-10deg) scale(1.2);
-  margin: 0 -0.2em;
+  margin: 0 -0.1em 0 -0.15em;
   color: #e74c3c;
   filter: drop-shadow(2px 2px 0px #c0392b);
   vertical-align: middle;

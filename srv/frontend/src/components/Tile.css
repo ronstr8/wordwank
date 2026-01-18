@@ -56,19 +56,23 @@
 }
 
 .tile-letter {
+    position: absolute;
+    top: 0;
+    left: 1px;
     font-family: 'Luckiest Guy', cursive;
-    font-size: clamp(1.5rem, 3.5vw, 3rem);
-    margin-top: -10px;
+    font-size: clamp(1.6rem, 3.3vw, 2.6rem);
+    line-height: 1;
 }
 
 .tile-value {
     position: absolute;
-    bottom: 4px;
-    right: 6px;
-    font-size: clamp(0.75rem, 1.5vw, 1.2rem);
+    bottom: 0;
+    right: 1px;
+    font-size: clamp(1.44rem, 3vw, 2.34rem);
     font-weight: bold;
     font-family: 'Fredoka', sans-serif;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    line-height: 1;
 }
 
 /* Disabled tile (greyed out when used) */

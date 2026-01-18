@@ -239,6 +239,14 @@ function App() {
                         if (data.payload.language) {
                             i18n.changeLanguage(data.payload.language);
                         }
+                        if (data.payload.config) {
+                            setTileConfig({
+                                tiles: data.payload.config.tiles || {},
+                                unicorns: data.payload.config.unicorns || {}
+                            });
+                            // Populate initial letter values with unicorns
+                            setLetterValue(data.payload.config.unicorns || {});
+                        }
                     }
                     setPlayerNames(prev => ({
                         ...prev,

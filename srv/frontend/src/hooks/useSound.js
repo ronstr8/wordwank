@@ -30,7 +30,7 @@ const useSound = () => {
         // Lower volume for quick sounds
         soundsRef.current.placement.volume = 0.4;
         soundsRef.current.buzzer.volume = 0.5;
-        soundsRef.current.bigsplat.volume = 0.7;
+        soundsRef.current.bigsplat.volume = 1.0; // REALLY LOUD as requested
         if (soundsRef.current.game_over) soundsRef.current.game_over.volume = 0.6;
 
         // Auto-start ambience if conditions met

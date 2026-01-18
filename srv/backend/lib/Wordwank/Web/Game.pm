@@ -32,7 +32,11 @@ sub websocket ($self) {
         payload => { 
             id       => $player->id, 
             name     => $player->nickname,
-            language => $player->language
+            language => $player->language,
+            config   => {
+                tiles    => $app->scorer->tile_counts($player->language // 'en'),
+                unicorns => $app->scorer->unicorns($player->language // 'en'),
+            }
         }
     }});
 
@@ -570,19 +574,26 @@ sub _handle_set_language ($self, $player, $payload) {
     my $lang = $payload->{language} // 'en';
     $player->update({ language => $lang });
     $self->app->log->debug("Player " . $player->id . " set language to $lang");
+
+    # Re-send configuration for the new language
+    $self->send({json => {
+        type    => 'identity',
+        payload => { 
+            id       => $player->id, 
+            name     => $player->nickname, 
+            language => $lang,
+            config   => {
+                tiles    => $self->app->scorer->tile_counts($lang),
+                unicorns => $self->app->scorer->unicorns($lang),
+            }
+        }
+    }});
 }
 
 # --- Utilities ---
 
 sub _broadcast_to_game ($self, $game_id, $msg, $exclude_id = undef) {
-    my $game_clients = $self->app->games->{$game_id}{clients} // {};
-    for my $pid (keys %$game_clients) {
-        next if $exclude_id && $pid eq $exclude_id;
-        my $c = $game_clients->{$pid};
-        if ($c && $c->tx) {
-            $c->send({json => $msg});
-        }
-    }
+    $self->app->broadcaster->announce_to_game($msg, $game_id, $exclude_id ? [$exclude_id] : []);
 }
 
 sub _broadcast_to_player_game ($self, $player_id, $msg) {
