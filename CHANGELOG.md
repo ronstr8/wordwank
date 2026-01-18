@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Build-Time Verification**: Integrated Perl `prove` into the backend `Dockerfile` to ensure all tests pass during the container build process.
 - **Shared i18n ConfigMap**: Refactored the entire localization system to use a shared Kubernetes ConfigMap. Both frontend and backend now consume unified JSON files from a single source of truth.
 - **Hot Reloading**: Enabled hot-reloading for translations. The backend re-scans for changes every 5 minutes, and the frontend fetches locales dynamically via `i18next-http-backend`.
+- **Dynamic Tile Values**: Removed hardcoded frontend tile values. Points and frequencies are now served dynamically from the backend based on the specific language configuration.
+- **Tile UI/UX Overhaul**: Redesigned the game tiles with a 75% larger font size, corner-aligned letters and values, and improved responsive spacing.
+- **Backend Broadcaster**: Implemented a dedicated `Broadcaster` service to handle targeted and exclusionary WebSocket messaging, refining game event distribution.
+- **Logo Polish**: Adjusted logo margins to prevent overlap between the "explosion" and text on mobile devices.
+- **High-Score Hype**: Increased the volume of the `bigsplat` sound effect to maximum for plays worth 40+ points.
 
 ### Changed (0.27.0)
 
