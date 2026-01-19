@@ -61,7 +61,7 @@
         "sign_in_with_passkey": "Iniciar sesión con Passkey",
         "passkey_failed": "La autenticación con Passkey falló.",
         "secure_with_passkey": "Asegurar con una Passkey",
-        "secure_passkey_desc": "Inicio de sesión biométrico con un toque para tu próximo duelo.",
+        "secure_passkey_desc": "Inicio de sesión biométrico con un toque para tu próximo duel.",
         "privacy_hint": "Solo usamos tu correo para recuperación de cuenta y sincronizar tu cordura entre dispositivos.",
         "logging_in": "Iniciando sesión...",
         "register_passkey": "Registrar Passkey",

@@ -13,6 +13,8 @@
         "submit": "ENVOYER LE MOT !",
         "leaderboard": "CLASSEMENT",
         "chat": "CHAT",
+        "no_legends": "Pas encore de légendes...",
+        "seconds_short": "s",
         "and": "et",
         "help_label": "C'EST QUOI CE BORDEL‽",
         "select_blank": "CHOISISSEZ UNE LETTRE POUR LE JOKER",

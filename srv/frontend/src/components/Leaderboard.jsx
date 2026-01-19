@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import './Panel.css'
 
 const Leaderboard = ({ players }) => {
+    const { t } = useTranslation()
     const sortedPlayers = Array.isArray(players) ? [...players].sort((a, b) => b.score - a.score) : [];
 
     return (
@@ -12,7 +14,7 @@ const Leaderboard = ({ players }) => {
                     <span className="leader-score">{p.score}</span>
                 </div>
             ))}
-            {sortedPlayers.length === 0 && <div className="empty-msg">No legends yet...</div>}
+            {sortedPlayers.length === 0 && <div className="empty-msg">{t('app.no_legends')}</div>}
         </div>
     )
 }

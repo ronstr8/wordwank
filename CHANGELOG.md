@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
-## [0.27.0] - 2026-01-17
+## [0.27.0] - 2026-01-19
 
 ### Added (0.27.0)
 
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Dynamic Tile Values**: Removed hardcoded frontend tile values. Points and frequencies are now served dynamically from the backend based on the specific language configuration.
 - **Tile UI/UX Overhaul**: Redesigned the game tiles with a 75% larger font size, corner-aligned letters and values, and improved responsive spacing.
 - **Backend Broadcaster**: Implemented a dedicated `Broadcaster` service to handle targeted and exclusionary WebSocket messaging, refining game event distribution.
+- **Rack Constraints**: Added configurable `minVowels` and `minConsonants` constraints for game racks, with support for language-specific vowel definitions in locale files.
 - **Logo Polish**: Adjusted logo margins to prevent overlap between the "explosion" and text on mobile devices.
 - **High-Score Hype**: Increased the volume of the `bigsplat` sound effect to maximum for plays worth 40+ points.
 
@@ -334,7 +335,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Configurable game duration** via `gameDuration` in values.yaml (default: 30 seconds)
 - Player nickname mapping system for consistent identity across features
 
-### Fixed
+### Fixed (0.14.1)
 
 - Definition modal can now be clicked without closing results screen
 - Improved dependency handling in React hooks

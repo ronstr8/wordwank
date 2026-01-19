@@ -11,6 +11,8 @@ global:
   randomLetterScoreMode: "true"
   gameDuration: 30
   rackSize: 8
+  minVowels: 2
+  minConsonants: 2
   logLevel: debug
 
 # Centralized Ingress configuration

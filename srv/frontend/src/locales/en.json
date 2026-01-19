@@ -13,6 +13,8 @@
         "submit": "SUBMIT WORD!",
         "leaderboard": "LEADERBOARD",
         "chat": "CHAT",
+        "no_legends": "No legends yet...",
+        "seconds_short": "s",
         "and": "and",
         "help_label": "WTF‽",
         "select_blank": "SELECT LETTER FOR BLANK",

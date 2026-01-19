@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordwank
 description: Umbrella chart for the Wordwank polyglot microservices stack
 type: application
-version: 0.15.0
+version: 0.16.0
 appVersion: "0.27.0"
 
 dependencies:

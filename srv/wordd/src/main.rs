@@ -156,6 +156,7 @@ fn query_dictd(host: &str, word: &str) -> io::Result<String> {
 struct ConfigResponse {
     tiles: HashMap<char, usize>,
     unicorns: HashMap<char, usize>,
+    vowels: Vec<char>,
 }
 
 #[get("/config/{lang}")]
@@ -226,11 +227,18 @@ async fn get_config(
          // Not worth complex optimization since it's just a game bag
     }
 
-    info!("Generated {} config with {} tiles and {} unicorns", lang, tiles.values().sum::<usize>(), unicorns.len());
+    let vowels = match lang.to_lowercase().as_str() {
+        "es" => vec!['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú'],
+        "fr" => vec!['A', 'E', 'I', 'O', 'U', 'Y', 'À', 'Â', 'Æ', 'Ç', 'É', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Œ', 'Ù', 'Û', 'Ü', 'Ÿ'],
+        _ => vec!['A', 'E', 'I', 'O', 'U'], // Default to English
+    };
+
+    info!("Generated {} config with {} tiles, {} unicorns, and {} vowels", lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len());
 
     HttpResponse::Ok().json(ConfigResponse {
         tiles,
         unicorns,
+        vowels,
     })
 }
 
@@ -347,7 +355,7 @@ async fn validate_word(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let matches = Command::new("wordd")
-        .version("1.2")
+        .version("1.3")
         .author("Ron Straight <straightre@gmail.com>")
         .about("Polyglot word validity and lookup service")
         .arg(

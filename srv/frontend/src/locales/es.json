@@ -13,6 +13,8 @@
         "submit": "¡ENVIAR PALABRA!",
         "leaderboard": "CLASIFICACIÓN",
         "chat": "CHAT",
+        "no_legends": "¡Aún no hay leyendas...!",
+        "seconds_short": "s",
         "and": "y",
         "help_label": "¿QUÉ?‽",
         "select_blank": "SELECCIONA LETRA PARA COMODÍN",

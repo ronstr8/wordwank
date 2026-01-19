@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import './Timer.css'
 
 const Timer = ({ seconds, total }) => {
+    const { t } = useTranslation()
     const percentage = (seconds / total) * 100;
 
     return (
@@ -14,7 +16,7 @@ const Timer = ({ seconds, total }) => {
                     transition={{ duration: 0.5 }}
                 />
             </div>
-            <div className="timer-value">{seconds}s</div>
+            <div className="timer-value">{seconds}{t('app.seconds_short')}</div>
         </div>
     )
 }

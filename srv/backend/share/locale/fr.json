@@ -27,7 +27,7 @@
         "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les consonnes valent 2-9 points, les voyelles 1 point. Une lettre par jour vaut 7 points. Trouvez les 'Licornes' (Q et Z) pour 10 points ! Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais donnent un bonus au premier joueur !",
         "tile_frequencies": "Fréquence des Lettres",
         "donate_title": "FAIRE UN DON",
-        "donate_desc": "Vous aimez le jeu ? Super, moi aussi ! Salut, je suis Ron \"Quinn\" Straight, et j'ai écrit ce truc avec mes amis artificiels. Je suis un vieux hacker de la génération X avec deux filles à l'université, et je suis au chômage depuis plus d'un ans, donc chaque petit geste compte. Quand vous le sentez. Je vous aime, les gars.",
+        "donate_desc": "Vous aimez le jeu ? Super, moi aussi ! Salut, je suis Ron \"Quinn\" Straight, et j'ai écrit ce truc avec mis amis artificiels. Je suis un vieux hacker de la génération X avec deux filles à l'université, et je suis au chômage depuis plus d'un ans, donc chaque petit geste compte. Quand vous le sentez. Je vous aime, les gars.",
         "donate_or": "OU",
         "donate_footer": "Merci beaucoup d'avoir choisi de branler vos mots avec nous."
     },
@@ -57,7 +57,7 @@
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",
         "last_used": "Dernière utilisation",
-        "continue_with_google": "Continuer avec Google",
+        "continue_with_google": "Continuer with Google",
         "sign_in_with_passkey": "Se connecter avec une Passkey",
         "passkey_failed": "L'authentification par Passkey a échoué.",
         "secure_with_passkey": "Sécuriser avec une Passkey",

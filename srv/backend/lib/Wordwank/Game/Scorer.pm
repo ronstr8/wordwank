@@ -71,12 +71,12 @@ sub generate_letter_values ($self, $lang) {
     my $day_letter = uc(substr($day_name, 0, 1));  # M, T, W, T, F, S, S
     
     my %values;
-    my @vowels = qw(A E I O U);
     
     # Get configuration for specific language
     my $config = $self->_get_tile_config($lang);
     my $unicorns = $config->{unicorns} // {};
     my @all_letters = keys %{$config->{tiles}};
+    my $vowels = $config->{vowels} // [];
     
     # Initialize all letters with random values 2-9
     for my $letter (@all_letters) {
@@ -84,8 +84,8 @@ sub generate_letter_values ($self, $lang) {
         $values{$letter} = 2 + int(rand(8));  # Random from 2-9
     }
     
-    # Override: Vowels always 1 point
-    for my $vowel (@vowels) {
+    # Override: Vowels (Nuclei) always 1 point
+    for my $vowel (@$vowels) {
         $values{$vowel} = 1 if exists $values{$vowel};
     }
     
@@ -111,6 +111,10 @@ sub unicorns ($self, $lang) {
     return $self->_get_tile_config($lang)->{unicorns};
 }
 
+sub vowels ($self, $lang) {
+    return $self->_get_tile_config($lang)->{vowels};
+}
+
 # Cache for bags
 has _bag_cache => (
     is      => 'ro',
@@ -133,6 +137,12 @@ sub _get_bag ($self, $lang) {
     return \@bag;
 }
 
+sub is_vowel ($self, $char, $lang) {
+    my $vowel_list = $self->vowels($lang) // [];
+    my $uc_char = uc($char);
+    return grep { $_ eq $uc_char } @$vowel_list;
+}
+
 sub get_random_rack ($self, $lang) {
     my $bag = $self->_get_bag($lang);
     my @rack;
@@ -145,11 +155,14 @@ sub get_random_rack ($self, $lang) {
         push @rack, $bag->[$idx];
     }
     
-    # Ensure at least one vowel and one consonant
-    my $has_vowel     = grep { /[AEIOU]/   } @rack;
-    my $has_consonant = grep { !/[AEIOU_]/ } @rack;
+    # Use configurable constraints
+    my $min_v   = $ENV{MIN_VOWELS} // 1;
+    my $min_c   = $ENV{MIN_CONSONANTS} // 1;
+    
+    my $v_count = grep { $self->is_vowel($_, $lang) } @rack;
+    my $c_count = grep { $_ ne '_' && !$self->is_vowel($_, $lang) } @rack;
 
-    unless ($has_vowel && $has_consonant) {
+    unless ($v_count >= $min_v && $c_count >= $min_c) {
         return $self->get_random_rack($lang);
     }
     
