@@ -7,11 +7,19 @@ use clap::{Command, Arg};
 use log::{info, warn};
 use env_logger;
 use std::fs::OpenOptions;
+use rand::seq::SliceRandom;
 
-// Struct to hold multiple language word lists
+// Struct to hold multiple language word lists and pre-computed distributions
 struct AppState {
     word_lists: HashMap<String, HashSet<String>>,
     dictd_host: Option<String>,
+    total_tiles: usize,
+    supported_langs: Vec<String>,
+    letter_distributions: HashMap<String, HashMap<char, usize>>, // Raw letter frequency from lexicon
+    letter_bags: HashMap<String, HashMap<char, usize>>,          // Computed tile distribution (bag)
+    vowel_sets: HashMap<String, Vec<char>>,                      // Vowels per language
+    consonant_sets: HashMap<String, Vec<char>>,                  // Consonants per language
+    unicorn_sets: HashMap<String, Vec<char>>,                    // Rarest 2 letters per language
 }
 
 // Function to initialize logging
@@ -54,7 +62,7 @@ fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
     
     let valid_path = format!("{}/lexicon.txt", lang_dir);
     let custom_path = format!("{}/insertions.txt", lang_dir);
-    let censored_path = format!("{}/exclusions.txt", lang_dir);
+    let censored_path = format!("{}/deletions.txt", lang_dir);
 
     let mut words = load_words(&valid_path)
         .unwrap_or_else(|_| {
@@ -63,12 +71,12 @@ fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
         });
 
     if let Ok(custom) = load_words(&custom_path) {
-        info!("Loaded {} insertions for {}.", custom.len(), lang);
+        info!("Inserted {} words into {} lexicon.", custom.len(), lang);
         words.extend(custom);
     }
 
     if let Ok(censored) = load_words(&censored_path) {
-        info!("Loaded {} exclusions for {}.", censored.len(), lang);
+        info!("Deleted {} words from {} lexicon.", censored.len(), lang);
         for word in censored {
             words.remove(&word);
         }
@@ -78,7 +86,91 @@ fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
     words
 }
 
+// Function to calculate letter frequency distribution from a raw lexicon file
+fn calculate_letter_distribution(file_path: &str) -> io::Result<HashMap<char, usize>> {
+    let file = File::open(file_path)?;
+    let reader = io::BufReader::new(file);
+    
+    let mut freq = HashMap::new();
+    for line in reader.lines() {
+        let line = line?;
+        let word = line.trim().to_uppercase();
+        if !word.is_empty() {
+            for c in word.chars() {
+                if c.is_alphabetic() {
+                    *freq.entry(c).or_insert(0) += 1;
+                }
+            }
+        }
+    }
+    
+    Ok(freq)
+}
+
+// Function to compute tile bag from letter frequency
+fn compute_tile_bag(freq: &HashMap<char, usize>, total_tiles: usize) -> HashMap<char, usize> {
+    let total_chars: usize = freq.values().sum();
+    if total_chars == 0 {
+        return HashMap::new();
+    }
+
+    let mut tiles = HashMap::new();
+    tiles.insert('_', 2); // Always include 2 blanks
+
+    let mut remaining_tiles: isize = (total_tiles as isize) - 2;
+    let pool_size = remaining_tiles as f64;
+    
+    // First pass: Proportional allocation with floor of 1
+    for (&c, &count) in freq {
+        let proportion = (count as f64) / (total_chars as f64);
+        let mut tile_count = (proportion * pool_size).round() as usize;
+        if tile_count == 0 { tile_count = 1; }
+        
+        tiles.insert(c, tile_count);
+        remaining_tiles -= tile_count as isize;
+    }
+
+    // Second pass: Adjust to exactly total_tiles if we have leftovers or overshoots
+    if remaining_tiles > 0 {
+        // Give leftovers to common letters
+        let mut sorted_letters: Vec<_> = freq.keys().cloned().collect();
+        sorted_letters.sort_by_key(|&c| std::cmp::Reverse(freq[&c]));
+        for i in 0..(remaining_tiles as usize) {
+            if let Some(&c) = sorted_letters.get(i % sorted_letters.len()) {
+                *tiles.entry(c).or_insert(0) += 1;
+            }
+        }
+    }
+
+    tiles
+}
+
+// Function to classify letters into vowels, consonants, and unicorns
+fn classify_letters(freq: &HashMap<char, usize>, lang: &str) -> (Vec<char>, Vec<char>, Vec<char>) {
+    // Define vowels for each language
+    let vowels: Vec<char> = match lang {
+        "es" => vec!['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú'],
+        "fr" => vec!['A', 'E', 'I', 'O', 'U', 'Y', 'À', 'Â', 'Æ', 'Ç', 'É', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Œ', 'Ù', 'Û', 'Ü', 'Ÿ'],
+        _ => vec!['A', 'E', 'I', 'O', 'U'], // Default to English
+    };
+
+    // Identify unicorns (2 rarest letters)
+    let mut sorted_letters: Vec<_> = freq.keys().cloned().collect();
+    sorted_letters.sort_by_key(|&c| freq[&c]);
+    let unicorns: Vec<char> = sorted_letters.iter().take(2).cloned().collect();
+
+    // Classify consonants (all letters not vowels)
+    let vowel_set: HashSet<char> = vowels.iter().cloned().collect();
+    let consonants: Vec<char> = freq.keys()
+        .filter(|&&c| !vowel_set.contains(&c))
+        .cloned()
+        .collect();
+
+    (vowels, consonants, unicorns)
+}
+
 fn query_dictd(host: &str, word: &str) -> io::Result<String> {
+
     info!("Connecting to dictd host: {} for word: {}", host, word);
     let stream = TcpStream::connect(host)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
@@ -153,10 +245,33 @@ fn query_dictd(host: &str, word: &str) -> io::Result<String> {
 }
 
 #[derive(serde::Serialize)]
+struct LangInfo {
+    name: String,
+    code: String,
+}
+
+#[get("/langs")]
+async fn get_langs(data: web::Data<AppState>) -> impl Responder {
+    let langs: Vec<LangInfo> = data.supported_langs.iter().map(|code| {
+        let name = match code.as_str() {
+            "en" => "English",
+            "es" => "Español",
+            "fr" => "Français",
+            "de" => "Deutsch",
+            _ => code.as_str(),
+        }.to_string();
+        LangInfo { name, code: code.clone() }
+    }).collect();
+
+    HttpResponse::Ok().json(langs)
+}
+
+#[derive(serde::Serialize)]
 struct ConfigResponse {
     tiles: HashMap<char, usize>,
     unicorns: HashMap<char, usize>,
     vowels: Vec<char>,
+    bag: HashMap<char, usize>, // The complete tile bag distribution
 }
 
 #[get("/config/{lang}")]
@@ -164,81 +279,38 @@ async fn get_config(
     data: web::Data<AppState>,
     path: web::Path<String>,
 ) -> impl Responder {
-    let lang = path.into_inner();
-    let words = match data.word_lists.get(&lang.to_lowercase()) {
-        Some(w) => w,
+    let lang = path.into_inner().to_lowercase();
+    
+    // Retrieve pre-computed values from AppState
+    let bag = match data.letter_bags.get(&lang) {
+        Some(b) => b.clone(),
         None => return HttpResponse::BadRequest().finish(),
     };
 
-    let mut freq = HashMap::new();
-    let mut total_chars = 0;
-
-    for word in words {
-        for c in word.chars() {
-            if c.is_alphabetic() {
-                *freq.entry(c.to_ascii_uppercase()).or_insert(0) += 1;
-                total_chars += 1;
-            }
-        }
-    }
-
-    if total_chars == 0 {
-        return HttpResponse::InternalServerError().finish();
-    }
-
-    // Identify rarest 2 letters (unicorns)
-    let mut sorted_letters: Vec<_> = freq.keys().cloned().collect();
-    sorted_letters.sort_by_key(|&c| freq[&c]);
-    
-    let unicorns: HashMap<char, usize> = sorted_letters.iter()
-        .take(2)
-        .map(|&c| (c, 10))
-        .collect();
-
-    // Calculate tile distribution (Targeting 100 tiles total)
-    // 2 blanks preserved
-    let mut tiles = HashMap::new();
-    tiles.insert('_', 2);
-
-    let mut remaining_tiles: isize = 98;
-    
-    // First pass: Proportional allocation with floor of 1
-    for (&c, &count) in &freq {
-        let proportion = (count as f64) / (total_chars as f64);
-        let mut tile_count = (proportion * 98.0).round() as usize;
-        if tile_count == 0 { tile_count = 1; }
-        
-        tiles.insert(c, tile_count);
-        remaining_tiles -= tile_count as isize;
-    }
-
-    // Second pass: Adjust to exactly 100 tiles if we have leftovers or overshoots
-    // (This is a naive adjustment, but works for word game bags)
-    if remaining_tiles > 0 {
-        // Give leftovers to common letters
-        sorted_letters.sort_by_key(|&c| std::cmp::Reverse(freq[&c]));
-        for i in 0..(remaining_tiles as usize) {
-            if let Some(&c) = sorted_letters.get(i % sorted_letters.len()) {
-                *tiles.entry(c).or_insert(0) += 1;
-            }
-        }
-    } else if remaining_tiles < 0 {
-         // Naive reduction from common letters (rare case)
-         // Not worth complex optimization since it's just a game bag
-    }
-
-    let vowels = match lang.to_lowercase().as_str() {
-        "es" => vec!['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú'],
-        "fr" => vec!['A', 'E', 'I', 'O', 'U', 'Y', 'À', 'Â', 'Æ', 'Ç', 'É', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Œ', 'Ù', 'Û', 'Ü', 'Ÿ'],
-        _ => vec!['A', 'E', 'I', 'O', 'U'], // Default to English
+    let vowels = match data.vowel_sets.get(&lang) {
+        Some(v) => v.clone(),
+        None => return HttpResponse::BadRequest().finish(),
     };
 
-    info!("Generated {} config with {} tiles, {} unicorns, and {} vowels", lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len());
+    let unicorns = match data.unicorn_sets.get(&lang) {
+        Some(u) => {
+            // Convert unicorn letters to HashMap with standard value of 10
+            u.iter().map(|&c| (c, 10)).collect::<HashMap<char, usize>>()
+        },
+        None => return HttpResponse::BadRequest().finish(),
+    };
+
+    // tiles is same as bag for backward compatibility
+    let tiles = bag.clone();
+
+    info!("Generated {} config with {} tiles, {} unicorns, and {} vowels", 
+          lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len());
 
     HttpResponse::Ok().json(ConfigResponse {
         tiles,
         unicorns,
         vowels,
+        bag,
     })
 }
 
@@ -352,6 +424,145 @@ async fn validate_word(
 }
 
 
+// Helper function to select random items from a weighted bag (HashMap)
+fn select_random_from_bag(bag: &HashMap<char, usize>, count: usize) -> Vec<char> {
+    let mut rng = rand::thread_rng();
+    let mut pool: Vec<char> = Vec::new();
+    
+    // Create a pool with weighted distribution
+    for (&letter, &freq) in bag {
+        if letter != '_' { // Exclude blanks from random selection
+            for _ in 0..freq {
+                pool.push(letter);
+            }
+        }
+    }
+    
+    // Randomly select from pool with replacement
+    (0..count).map(|_| {
+        pool.choose(&mut rng).copied().unwrap_or('A')
+    }).collect()
+}
+
+// Helper function to select random items from a list
+fn select_random_from_list(list: &[char], count: usize) -> Vec<char> {
+    let mut rng = rand::thread_rng();
+    (0..count).map(|_| {
+        list.choose(&mut rng).copied().unwrap_or('A')
+    }).collect()
+}
+
+// Helper function to select random words from a word set
+fn select_random_words(words: &HashSet<String>, count: usize) -> Vec<String> {
+    let mut rng = rand::thread_rng();
+    let words_vec: Vec<&String> = words.iter().collect();
+    (0..count).map(|_| {
+        words_vec.choose(&mut rng).map(|s| (*s).clone()).unwrap_or_else(|| "WORD".to_string())
+    }).collect()
+}
+
+// Query parameter struct for random endpoints
+#[derive(serde::Deserialize)]
+struct RandQuery {
+    count: Option<usize>,
+}
+
+#[get("/rand/langs/{lang}/letter")]
+async fn rand_letter(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+    query: web::Query<RandQuery>,
+) -> impl Responder {
+    let lang = path.into_inner().to_lowercase();
+    let count = query.count.unwrap_or(1);
+    
+    let bag = match data.letter_bags.get(&lang) {
+        Some(b) => b,
+        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
+    };
+    
+    let letters = select_random_from_bag(bag, count);
+    let output = letters.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
+    HttpResponse::Ok().content_type("text/plain").body(output)
+}
+
+#[get("/rand/langs/{lang}/vowel")]
+async fn rand_vowel(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+    query: web::Query<RandQuery>,
+) -> impl Responder {
+    let lang = path.into_inner().to_lowercase();
+    let count = query.count.unwrap_or(1);
+    
+    let vowels = match data.vowel_sets.get(&lang) {
+        Some(v) => v,
+        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
+    };
+    
+    let selected = select_random_from_list(vowels, count);
+    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
+    HttpResponse::Ok().content_type("text/plain").body(output)
+}
+
+#[get("/rand/langs/{lang}/consonant")]
+async fn rand_consonant(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+    query: web::Query<RandQuery>,
+) -> impl Responder {
+    let lang = path.into_inner().to_lowercase();
+    let count = query.count.unwrap_or(1);
+    
+    let consonants = match data.consonant_sets.get(&lang) {
+        Some(c) => c,
+        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
+    };
+    
+    let selected = select_random_from_list(consonants, count);
+    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
+    HttpResponse::Ok().content_type("text/plain").body(output)
+}
+
+#[get("/rand/langs/{lang}/unicorn")]
+async fn rand_unicorn(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+    query: web::Query<RandQuery>,
+) -> impl Responder {
+    let lang = path.into_inner().to_lowercase();
+    let count = query.count.unwrap_or(1);
+    
+    let unicorns = match data.unicorn_sets.get(&lang) {
+        Some(u) => u,
+        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
+    };
+    
+    let selected = select_random_from_list(unicorns, count);
+    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
+    HttpResponse::Ok().content_type("text/plain").body(output)
+}
+
+#[get("/rand/langs/{lang}/word")]
+async fn rand_word(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+    query: web::Query<RandQuery>,
+) -> impl Responder {
+    let lang = path.into_inner().to_lowercase();
+    let count = query.count.unwrap_or(1);
+    
+    let words = match data.word_lists.get(&lang) {
+        Some(w) => w,
+        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
+    };
+    
+    let selected = select_random_words(words, count);
+    let output = selected.join("\n");
+    HttpResponse::Ok().content_type("text/plain").body(output)
+}
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let matches = Command::new("wordd")
@@ -388,8 +599,15 @@ async fn main() -> std::io::Result<()> {
             Arg::new("langs")
                 .long("langs")
                 .num_args(1)
-                .default_value("en,es")
+                .default_value("en,es,fr")
                 .help("Comma-separated list of languages to support"),
+        )
+        .arg(
+            Arg::new("total-tiles")
+                .long("total-tiles")
+                .num_args(1)
+                .default_value("100")
+                .help("Total size of the tile bag (including 2 blanks)"),
         )
         .get_matches();
 
@@ -401,31 +619,86 @@ async fn main() -> std::io::Result<()> {
     let log_file = matches.get_one::<String>("log-file");
     let share_dir = matches.get_one::<String>("share-dir").unwrap();
     let langs_str = matches.get_one::<String>("langs").unwrap();
+    let total_tiles = matches
+        .get_one::<String>("total-tiles")
+        .unwrap()
+        .parse::<usize>()
+        .unwrap_or(100);
 
     init_logging(log_file);
 
     let mut word_lists = HashMap::new();
+    let mut supported_langs = Vec::new();
+    let mut letter_distributions = HashMap::new();
+    let mut letter_bags = HashMap::new();
+    let mut vowel_sets = HashMap::new();
+    let mut consonant_sets = HashMap::new();
+    let mut unicorn_sets = HashMap::new();
+
     for lang in langs_str.split(',') {
         let lang = lang.trim();
         info!("Loading word list for language: {}", lang);
         let words = load_filtered_words(share_dir, lang);
         word_lists.insert(lang.to_lowercase(), words);
+        supported_langs.push(lang.to_lowercase());
+
+        // Pre-compute letter distribution from raw lexicon
+        let lang_dir = format!("{}/words/{}", share_dir, lang);
+        let lexicon_path = format!("{}/lexicon.txt", lang_dir);
+        
+        match calculate_letter_distribution(&lexicon_path) {
+            Ok(freq) => {
+                info!("Calculated letter distribution for {} ({} unique letters)", lang, freq.len());
+                
+                // Compute tile bag
+                let bag = compute_tile_bag(&freq, total_tiles);
+                info!("Computed tile bag for {} ({} total tiles)", lang, bag.values().sum::<usize>());
+                
+                // Classify letters
+                let (vowels, consonants, unicorns) = classify_letters(&freq, lang);
+                info!("Classified letters for {}: {} vowels, {} consonants, {} unicorns", 
+                      lang, vowels.len(), consonants.len(), unicorns.len());
+                
+                // Store all pre-computed data
+                letter_distributions.insert(lang.to_lowercase(), freq);
+                letter_bags.insert(lang.to_lowercase(), bag);
+                vowel_sets.insert(lang.to_lowercase(), vowels);
+                consonant_sets.insert(lang.to_lowercase(), consonants);
+                unicorn_sets.insert(lang.to_lowercase(), unicorns);
+            },
+            Err(e) => {
+                warn!("Failed to calculate letter distribution for {}: {}", lang, e);
+            }
+        }
     }
 
     let state = AppState {
         word_lists,
         dictd_host,
+        total_tiles,
+        supported_langs,
+        letter_distributions,
+        letter_bags,
+        vowel_sets,
+        consonant_sets,
+        unicorn_sets,
     };
     let shared_state = web::Data::new(state);
 
     HttpServer::new(move || {
         App::new()
             .app_data(shared_state.clone())
+            .service(get_langs)
             .service(get_config)
             .service(check_word_lang)
             .service(check_word)
             .service(validate_word_lang)
             .service(validate_word)
+            .service(rand_letter)
+            .service(rand_vowel)
+            .service(rand_consonant)
+            .service(rand_unicorn)
+            .service(rand_word)
     })
     .bind(&listen_host)?
     .run()
