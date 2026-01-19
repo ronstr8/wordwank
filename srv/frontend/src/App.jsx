@@ -331,8 +331,11 @@ function App() {
                     const resultsData = {
                         results: data.payload.results || [],
                         summary: data.payload.summary || (data.payload.results && data.payload.results.length > 0 ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')),
-                        is_solo: data.payload.is_solo || false
+                        is_solo: data.payload.is_solo || false,
+                        definition: data.payload.definition, // Store at top level
+                        suggested_word: data.payload.suggested_word
                     };
+
                     if (resultsData.results.length > 0 && data.payload.definition) {
                         resultsData.results[0].definition = data.payload.definition;
                     }

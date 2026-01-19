@@ -104,6 +104,7 @@ const Sidebar = ({
                             <button className={language === 'en' ? 'active' : ''} onClick={() => onLanguageChange('en')}>EN</button>
                             <button className={language === 'es' ? 'active' : ''} onClick={() => onLanguageChange('es')}>ES</button>
                             <button className={language === 'fr' ? 'active' : ''} onClick={() => onLanguageChange('fr')}>FR</button>
+                            <button className={language === 'de' ? 'active' : ''} onClick={() => onLanguageChange('de')}>DE</button>
                         </div>
                     </div>
 

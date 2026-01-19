@@ -109,6 +109,13 @@ const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
                         ))
                     )}
                 </div>
+                {data.suggested_word && (
+                    <div className="suggested-word-box">
+                        <h4>{t('results.suggested_word_title', 'Missed Opportunity')}</h4>
+                        <span className="missed-word">{data.suggested_word}</span>
+                        <p>{t('results.suggested_word_desc', 'You could have played this!')}</p>
+                    </div>
+                )}
                 {is_solo && (
                     <div className="solo-wanker-note">
                         {t('results.solo_wanker')}

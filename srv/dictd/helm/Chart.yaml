@@ -4,5 +4,5 @@ name: dictd
 
 description: A Helm chart for deploying dictd
 
-version: 0.10.0
-appVersion: "0.10.0"
+version: 0.11.0
+appVersion: "0.28.0"

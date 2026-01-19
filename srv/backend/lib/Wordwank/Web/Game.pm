@@ -492,18 +492,13 @@ sub _end_game ($self, $game) {
     my $winner = $results[0];
     my $winner_word = $winner ? $winner->{word} : undef;
     my $winner_lang = $game->language // 'en';
-
-    # Global Win Broadcast (Skip for solo games)
+    
+    # Global Win Broadcast (To all connected players)
     if (!$solo_game && $winner && $winner->{score} > 0) {
-        my @other_words = map { $_->{word} } grep { $_->{player_id} ne $winner->{player_id} } @results;
-        my $others_str = @other_words ? join(', ', @other_words) : 'nobody';
-        my $rack_str = join(' ', @{$game->rack});
-        
-        my $announce_msg = $self->t('results.elsegame_announce', $winner_lang, {
+        my $announce_msg = $self->t('results.global_announce', $winner_lang, {
             winner => $winner->{player},
             word   => $winner->{word},
-            rack   => $rack_str,
-            others => $others_str
+            score  => $winner->{score}
         });
 
         $app->broadcast_all_clients({
@@ -511,7 +506,7 @@ sub _end_game ($self, $game) {
             sender  => 'SYSTEM',
             payload => {
                 text       => $announce_msg,
-                senderName => 'Elsegame',
+                senderName => 'SYSTEM',
             },
             timestamp => time,
         });
@@ -536,8 +531,8 @@ sub _end_game ($self, $game) {
         $item;
     } @results ];
 
-    my $send_results = sub ($definition = undef) {
-        $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE"));
+    my $send_results = sub ($definition = undef, $suggested_word = undef) {
+        $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE") . " and suggested: " . ($suggested_word // 'NONE'));
         $self->_broadcast_to_game($game->id, {
             type      => 'game_end',
             timestamp => time,
@@ -547,28 +542,36 @@ sub _end_game ($self, $game) {
                 summary => $winner 
                     ? $self->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
                     : $self->t('results.no_winner', $winner_lang),
-                definition => $definition,
+                definition     => $definition,
+                suggested_word => $suggested_word,
             }
         });
         # Cleanup memory
         delete $self->app->games->{$game->id};
-
-        # Note: Players must manually click "Play Again" to join the next game
-        # No auto-restart timer
     };
 
-    if ($winner_word) {
-        my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/word/$winner_lang/";
-        my $full_url = $wordd_url . lc($winner_word);
-        $self->app->log->debug("Fetching winner definition: $full_url");
-        $self->app->ua->get($full_url => sub ($ua, $tx) {
-            my $res = $tx->result;
-            $self->app->log->debug("Wordd response [ " . ($res->code // 'ERR') . " ] Size: " . length($res->body // ''));
-            $send_results->($res->body);
-        });
-    } else {
-        $send_results->();
-    }
+    my $clean_rack = join('', grep { /[A-Z]/ } @{$game->rack});
+    my $rand_base = ($ENV{WORDD_URL} // "http://wordd:2345/");
+    my $rand_url = "${rand_base}rand/langs/$winner_lang/word?letters=$clean_rack&count=1";
+    
+    $self->app->log->debug("Fetching suggested word from rack [$clean_rack] via $rand_url");
+    $self->app->ua->get($rand_url => sub ($ua, $tx) {
+        my $suggested = $tx->result->is_success ? $tx->result->body : undef;
+        $suggested =~ s/\s+//g if $suggested;
+        $self->app->log->debug("Wordd suggested word: " . ($suggested // 'NONE'));
+
+        # 2. Fetch winner definition
+        if ($winner_word) {
+            my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/word/$winner_lang/";
+            my $full_url = $wordd_url . lc($winner_word);
+            $self->app->ua->get($full_url => sub ($ua_def, $tx_def) {
+                my $res = $tx_def->result;
+                $send_results->($res->body, $suggested);
+            });
+        } else {
+            $send_results->(undef, $suggested);
+        }
+    });
 }
 
 sub _handle_set_language ($self, $player, $payload) {

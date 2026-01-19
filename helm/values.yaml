@@ -41,6 +41,7 @@ wordd:
   service:
     type: ClusterIP
     port: 2345
+  langs: "en,es,fr,de"
 
 dictd:
   enabled: true

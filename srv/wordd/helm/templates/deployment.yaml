@@ -24,6 +24,8 @@ spec:
           env:
             - name: RUST_LOG
               value: {{ .Values.global.logLevel | default .Values.logLevel | quote }}
+            - name: DEFAULT_RANDOM_WORD_LETTER_COUNT
+              value: {{ .Values.global.rackSize | default 7 | quote }}
           command: ["wordd"]
           args:
             - "--share-dir=/app/share"

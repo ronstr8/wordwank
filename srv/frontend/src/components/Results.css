@@ -488,3 +488,40 @@
         border: 2px solid #f1c40f;
     }
 }
+
+/* Suggested Word Box */
+.suggested-word-box {
+    background: rgba(46, 204, 113, 0.1);
+    border: 2px dashed #2ecc71;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.suggested-word-box h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #2ecc71;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Fredoka', sans-serif;
+}
+
+.missed-word {
+    display: block;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 2.2rem;
+    color: #ecf0f1;
+    margin: 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.suggested-word-box p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    font-family: 'Fredoka', sans-serif;
+}

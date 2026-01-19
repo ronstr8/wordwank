@@ -41,7 +41,7 @@ fn init_logging(log_file: Option<&String>) {
 
 // Function to load words from a file into a HashSet
 // Function to load words from a YAML file (expects a list of strings)
-fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
+fn load_words(file_path: &str, max_len: usize) -> io::Result<HashSet<String>> {
     let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
     
@@ -49,7 +49,7 @@ fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
     for line in reader.lines() {
         let line = line?;
         let word = line.trim();
-        if !word.is_empty() {
+        if !word.is_empty() && word.len() <= max_len {
             words.insert(word.to_uppercase());
         }
     }
@@ -57,54 +57,46 @@ fn load_words(file_path: &str) -> io::Result<HashSet<String>> {
     Ok(words)
 }
 
-fn load_filtered_words(base_dir: &str, lang: &str) -> HashSet<String> {
+fn load_filtered_words(base_dir: &str, lang: &str, max_len: usize) -> HashSet<String> {
     let lang_dir = format!("{}/words/{}", base_dir, lang);
     
     let valid_path = format!("{}/lexicon.txt", lang_dir);
     let custom_path = format!("{}/insertions.txt", lang_dir);
     let censored_path = format!("{}/deletions.txt", lang_dir);
 
-    let mut words = load_words(&valid_path)
+    let mut words = load_words(&valid_path, max_len)
         .unwrap_or_else(|_| {
             warn!("Failed to load main lexicon for {} at {}.", lang, valid_path);
             HashSet::new()
         });
 
-    if let Ok(custom) = load_words(&custom_path) {
+    if let Ok(custom) = load_words(&custom_path, max_len) {
         info!("Inserted {} words into {} lexicon.", custom.len(), lang);
         words.extend(custom);
     }
 
-    if let Ok(censored) = load_words(&censored_path) {
+    if let Ok(censored) = load_words(&censored_path, max_len + 100) { // deletions don't need length filter
         info!("Deleted {} words from {} lexicon.", censored.len(), lang);
         for word in censored {
             words.remove(&word);
         }
     }
 
-    info!("Total valid words for {}: {}", lang, words.len());
+    info!("Total valid words for {} (max_len {}): {}", lang, max_len, words.len());
     words
 }
 
-// Function to calculate letter frequency distribution from a raw lexicon file
-fn calculate_letter_distribution(file_path: &str) -> io::Result<HashMap<char, usize>> {
-    let file = File::open(file_path)?;
-    let reader = io::BufReader::new(file);
-    
+// Function to calculate letter frequency distribution from a word set
+fn calculate_distribution_from_set(words: &HashSet<String>) -> HashMap<char, usize> {
     let mut freq = HashMap::new();
-    for line in reader.lines() {
-        let line = line?;
-        let word = line.trim().to_uppercase();
-        if !word.is_empty() {
-            for c in word.chars() {
-                if c.is_alphabetic() {
-                    *freq.entry(c).or_insert(0) += 1;
-                }
+    for word in words {
+        for c in word.chars() {
+            if c.is_alphabetic() {
+                *freq.entry(c).or_insert(0) += 1;
             }
         }
     }
-    
-    Ok(freq)
+    freq
 }
 
 // Function to compute tile bag from letter frequency
@@ -151,6 +143,7 @@ fn classify_letters(freq: &HashMap<char, usize>, lang: &str) -> (Vec<char>, Vec<
     let vowels: Vec<char> = match lang {
         "es" => vec!['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú'],
         "fr" => vec!['A', 'E', 'I', 'O', 'U', 'Y', 'À', 'Â', 'Æ', 'Ç', 'É', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Œ', 'Ù', 'Û', 'Ü', 'Ÿ'],
+        "de" => vec!['A', 'E', 'I', 'O', 'U', 'Ä', 'Ö', 'Ü'],
         _ => vec!['A', 'E', 'I', 'O', 'U'], // Default to English
     };
 
@@ -465,6 +458,28 @@ fn select_random_words(words: &HashSet<String>, count: usize) -> Vec<String> {
 #[derive(serde::Deserialize)]
 struct RandQuery {
     count: Option<usize>,
+    letters: Option<String>,
+}
+
+fn contains_all_letters(word: &str, required: &str) -> bool {
+    let mut required_counts = HashMap::new();
+    for c in required.to_uppercase().chars() {
+        if c.is_alphabetic() {
+            *required_counts.entry(c).or_insert(0) += 1;
+        }
+    }
+
+    let mut word_counts = HashMap::new();
+    for c in word.to_uppercase().chars() {
+        *word_counts.entry(c).or_insert(0) += 1;
+    }
+
+    for (c, count) in required_counts {
+        if word_counts.get(&c).unwrap_or(&0) < &count {
+            return false;
+        }
+    }
+    true
 }
 
 #[get("/rand/langs/{lang}/letter")]
@@ -557,7 +572,26 @@ async fn rand_word(
         None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
     };
     
-    let selected = select_random_words(words, count);
+    let mut selected = Vec::new();
+    if let Some(required) = &query.letters {
+        let mut rng = rand::thread_rng();
+        let words_vec: Vec<&String> = words.iter().collect();
+        let retries = 500; // Hardcoded for performance and security
+        
+        for _ in 0..count {
+            for _ in 0..retries {
+                if let Some(word) = words_vec.choose(&mut rng) {
+                    if contains_all_letters(word, required) {
+                        selected.push((*word).clone());
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        selected = select_random_words(words, count);
+    }
+
     let output = selected.join("\n");
     HttpResponse::Ok().content_type("text/plain").body(output)
 }
@@ -609,6 +643,14 @@ async fn main() -> std::io::Result<()> {
                 .default_value("100")
                 .help("Total size of the tile bag (including 2 blanks)"),
         )
+        .arg(
+            Arg::new("rack-size")
+                .long("rack-size")
+                .env("DEFAULT_RANDOM_WORD_LETTER_COUNT")
+                .num_args(1)
+                .default_value("7")
+                .help("Maximum word length (rack size)"),
+        )
         .get_matches();
 
     let dictd_host = matches.get_one::<String>("dictd-host").cloned();
@@ -624,6 +666,11 @@ async fn main() -> std::io::Result<()> {
         .unwrap()
         .parse::<usize>()
         .unwrap_or(100);
+    let rack_size = matches
+        .get_one::<String>("rack-size")
+        .unwrap()
+        .parse::<usize>()
+        .unwrap_or(7);
 
     init_logging(log_file);
 
@@ -637,39 +684,30 @@ async fn main() -> std::io::Result<()> {
 
     for lang in langs_str.split(',') {
         let lang = lang.trim();
-        info!("Loading word list for language: {}", lang);
-        let words = load_filtered_words(share_dir, lang);
+        info!("Loading word list for language: {} (max_len: {})", lang, rack_size);
+        let words = load_filtered_words(share_dir, lang, rack_size);
+        
+        // Calculate letter distribution directly from the filtered in-memory set
+        let freq = calculate_distribution_from_set(&words);
+        info!("Calculated letter distribution for {} ({} unique letters, from {} words)", lang, freq.len(), words.len());
+        
+        // Compute tile bag
+        let bag = compute_tile_bag(&freq, total_tiles);
+        info!("Computed tile bag for {} ({} total tiles)", lang, bag.values().sum::<usize>());
+        
+        // Classify letters
+        let (vowels, consonants, unicorns) = classify_letters(&freq, lang);
+        info!("Classified letters for {}: {} vowels, {} consonants, {} unicorns", 
+              lang, vowels.len(), consonants.len(), unicorns.len());
+        
+        // Store all pre-computed data
         word_lists.insert(lang.to_lowercase(), words);
         supported_langs.push(lang.to_lowercase());
-
-        // Pre-compute letter distribution from raw lexicon
-        let lang_dir = format!("{}/words/{}", share_dir, lang);
-        let lexicon_path = format!("{}/lexicon.txt", lang_dir);
-        
-        match calculate_letter_distribution(&lexicon_path) {
-            Ok(freq) => {
-                info!("Calculated letter distribution for {} ({} unique letters)", lang, freq.len());
-                
-                // Compute tile bag
-                let bag = compute_tile_bag(&freq, total_tiles);
-                info!("Computed tile bag for {} ({} total tiles)", lang, bag.values().sum::<usize>());
-                
-                // Classify letters
-                let (vowels, consonants, unicorns) = classify_letters(&freq, lang);
-                info!("Classified letters for {}: {} vowels, {} consonants, {} unicorns", 
-                      lang, vowels.len(), consonants.len(), unicorns.len());
-                
-                // Store all pre-computed data
-                letter_distributions.insert(lang.to_lowercase(), freq);
-                letter_bags.insert(lang.to_lowercase(), bag);
-                vowel_sets.insert(lang.to_lowercase(), vowels);
-                consonant_sets.insert(lang.to_lowercase(), consonants);
-                unicorn_sets.insert(lang.to_lowercase(), unicorns);
-            },
-            Err(e) => {
-                warn!("Failed to calculate letter distribution for {}: {}", lang, e);
-            }
-        }
+        letter_distributions.insert(lang.to_lowercase(), freq);
+        letter_bags.insert(lang.to_lowercase(), bag);
+        vowel_sets.insert(lang.to_lowercase(), vowels);
+        consonant_sets.insert(lang.to_lowercase(), consonants);
+        unicorn_sets.insert(lang.to_lowercase(), unicorns);
     }
 
     let state = AppState {
