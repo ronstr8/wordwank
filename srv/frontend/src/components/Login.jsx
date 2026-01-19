@@ -96,6 +96,8 @@ const Login = ({ onLoginSuccess }) => {
                 )}
 
                 <div className="auth-buttons">
+                    <p className="anonymous-disclaimer">{t('auth.anonymous_disclaimer')}</p>
+
                     <button className="auth-btn google" onClick={handleGoogleLogin} disabled={loading}>
                         <img src="/icons/google.svg" alt="" />
                         {t('auth.continue_with_google')}
@@ -114,7 +116,6 @@ const Login = ({ onLoginSuccess }) => {
                         <span className="icon">👤</span>
                         {t('auth.play_anonymously')}
                     </button>
-                    <p className="anonymous-hint">{t('auth.anonymous_disclaimer')}</p>
                 </div>
 
                 {error && <div className="auth-error">{error}</div>}

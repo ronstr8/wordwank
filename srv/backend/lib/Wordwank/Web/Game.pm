@@ -36,6 +36,7 @@ sub websocket ($self) {
             config   => {
                 tiles    => $app->scorer->tile_counts($player->language // 'en'),
                 unicorns => $app->scorer->unicorns($player->language // 'en'),
+                values   => $app->scorer->generate_letter_values($player->language // 'en'),
             }
         }
     }});
@@ -575,7 +576,10 @@ sub _handle_set_language ($self, $player, $payload) {
     $player->update({ language => $lang });
     $self->app->log->debug("Player " . $player->id . " set language to $lang");
 
-    # Re-send configuration for the new language
+    # 1. Exit current game
+    $self->_handle_disconnect($player->id);
+
+    # 2. Re-send FULL configuration for the new language (Fixes disappearing values)
     $self->send({json => {
         type    => 'identity',
         payload => { 
@@ -585,9 +589,13 @@ sub _handle_set_language ($self, $player, $payload) {
             config   => {
                 tiles    => $self->app->scorer->tile_counts($lang),
                 unicorns => $self->app->scorer->unicorns($lang),
+                values   => $self->app->scorer->generate_letter_values($lang),
             }
         }
     }});
+
+    # 3. Join game in the new language
+    $self->_handle_join($player);
 }
 
 # --- Utilities ---

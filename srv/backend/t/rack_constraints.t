@@ -1,5 +1,50 @@
 use Test::More;
+use Test::MockModule;
 use Mojo::Base -signatures;
+use JSON::MaybeXS qw(encode_json);
+
+# Mock HTTP::Tiny properly  
+my $mock = Test::MockModule->new('HTTP::Tiny');
+$mock->mock('get', sub {
+    my ($self, $url) = @_;
+    
+    # Mock wordd /config/en endpoint
+    if ($url =~ m{/config/en$}) {
+        return {
+            success => 1,
+            content => encode_json({
+                tiles => {
+                    A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
+                    I => 9, J => 1, K => 1, L => 4, M => 2, N => 6, O => 8, P => 2,
+                    Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
+                    Y => 2, Z => 1, '_' => 2,
+                },
+                unicorns => { Q => 10, X => 10 },
+                vowels => ['A', 'E', 'I', 'O', 'U'],
+            })
+        };
+    }
+    
+    # Mock wordd /config/es endpoint
+    if ($url =~ m{/config/es$}) {
+        return {
+            success => 1,
+            content => encode_json({
+                tiles => {
+                    A => 12, B => 2, C => 4, D => 5, E => 12, F => 1, G => 2, H => 2,
+                    I => 6, J => 1, K => 1, L => 4, M => 2, N => 5, Ñ => 1, O => 9,
+                    P => 2, Q => 1, R => 5, S => 6, T => 4, U => 5, V => 1, W => 1,
+                    X => 1, Y => 1, Z => 1, '_' => 2,
+                },
+                unicorns => { W => 10, K => 10 },
+                vowels => ['A', 'E', 'I', 'O', 'U', 'Á', 'É', 'Í', 'Ó', 'Ú'],
+            })
+        };
+    }
+    
+    return { success => 0, status => 404 };
+});
+
 use Wordwank::Game::Scorer;
 
 my $scorer = Wordwank::Game::Scorer->new;
@@ -21,20 +66,18 @@ subtest 'Rack constraints with default vowels' => sub {
     ok($c_count >= 2, "Has at least 2 consonants (got $c_count)");
 };
 
-subtest 'Rack constraints with custom vowels (e.g. only X is a vowel)' => sub {
-    # High-pressure test for the filtering logic
-    my $vowels = ["X"];
-    # Need to make sure the bag has enough X's and non-X's
-    # Scorer uses a bag generated from tile counts.
-    
-    # We can't easily mock the bag without deeper mocking, but we can verify is_vowel
-    ok($scorer->is_vowel('X', $vowels), 'X is a vowel');
-    ok(!$scorer->is_vowel('A', $vowels), 'A is not a vowel in this custom list');
+subtest 'Vowel detection for English' => sub {
+    ok($scorer->is_vowel('A', 'en'), 'A is a vowel in English');
+    ok($scorer->is_vowel('E', 'en'), 'E is a vowel in English');
+    ok(!$scorer->is_vowel('X', 'en'), 'X is not a vowel in English');
+    ok(!$scorer->is_vowel('Z', 'en'), 'Z is not a vowel in English');
 };
 
 subtest 'Language-specific vowels (Spanish)' => sub {
-    my $vowels = ["A", "E", "I", "O", "U", "Á", "É", "Í", "Ó", "Ú"];
-    ok($scorer->is_vowel('Á', $vowels), 'Á is a vowel in Spanish');
+    ok($scorer->is_vowel('A', 'es'), 'A is a vowel in Spanish');
+    ok($scorer->is_vowel('Á', 'es'), 'Á is a vowel in Spanish');
+    ok($scorer->is_vowel('É', 'es'), 'É is a vowel in Spanish');
+    ok(!$scorer->is_vowel('N', 'es'), 'N is not a vowel in Spanish');
 };
 
 done_testing();

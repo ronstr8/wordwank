@@ -721,7 +721,7 @@ function App() {
                             >
                                 <option value="en">EN</option>
                                 <option value="es">ES</option>
-                                {/* <option value="fr">FR</option> */}
+                                <option value="fr">FR</option>
                             </select>
                         </div>
                     </div>
@@ -940,10 +940,14 @@ function App() {
                                     .sort(([a], [b]) => a.localeCompare(b))
                                     .map(([char, count]) => {
                                         const isUnicorn = tileConfig.unicorns[char];
+                                        const score = typeof letterValue === 'object' ? letterValue[char] : 0;
                                         return (
                                             <div key={char} className={`tile-stat-item ${isUnicorn ? 'unicorn-gem' : ''}`}>
-                                                <span className="tile-char">{char === '_' ? '?' : char}</span>
-                                                <span className="tile-count">x{count}</span>
+                                                <span className="tile-count nw">{count}x</span>
+                                                <span className="tile-char">{char}</span>
+                                                {score > 0 && (
+                                                    <span className="tile-score se">+{score}</span>
+                                                )}
                                             </div>
                                         );
                                     })}

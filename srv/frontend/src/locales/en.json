@@ -22,7 +22,7 @@
         "loading": "LOADING...",
         "connecting": "Connecting to game server",
         "waiting_next_game": "Waiting for next game to start...",
-        "rules_summary": "Wordwank is a high-speed vocabulary duel! Use your tiles to form the highest scoring word before time runs out. Consonants have random values (2-9), while vowels are always 1 point. One letter each day is worth 7 points. Discover the two rare 'Unicorn' letters (Q and Z) worth 10 points! Scoring is dynamic: find a Unique Word (+5) or aim for Length Bonuses (+5 for 6 letters, doubling for every letter after). Careful: duplicating a word gives you 0 points, but giving the original player a bonus!",
+        "rules_summary": "Wordwank is a high-speed vocabulary duel! Use your tiles to form the highest scoring (or weirdest) word before time runs out. Letter values are based on their frequency in the wank sock: common letters are worth 1 point, while rarer letters earn progressively more (up to 9 points). The two rarest 'Unicorn' letters are worth 10 points! One letter each day is worth 7 points. Scoring is dynamic: find a Unique Word (+5) or aim for Length Bonuses (+5 for 6 letters, doubling for every letter after). Careful: duplicating a word gives you 0 points, but awards a bonus to the original player!",
         "tile_frequencies": "Tile Frequencies",
         "connection_error": "CONNECTION ERROR",
         "reload": "RELOAD PAGE",
@@ -65,6 +65,8 @@
         "logging_in": "Logging you in...",
         "register_passkey": "Register Passkey",
         "passkey_registered": "Passkey registered successfully!",
-        "logout": "Logout"
+        "logout": "Logout",
+        "play_anonymously": "Play Anonymously",
+        "anonymous_disclaimer": "We never says who plays, but if you want to keep your wank rank, sign in with one of the below."
     }
 }

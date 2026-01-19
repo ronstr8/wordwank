@@ -2,24 +2,24 @@ apiVersion: v2
 name: wordwank
 description: Umbrella chart for the Wordwank polyglot microservices stack
 type: application
-version: 0.16.0
-appVersion: "0.27.0"
+version: 0.17.0
+appVersion: "0.28.0"
 
 dependencies:
   - name: frontend
-    version: 0.10.0
+    version: 0.11.0
     repository: "file://../srv/frontend/helm"
     condition: frontend.enabled
   - name: wordd
-    version: 0.10.1
+    version: 0.11.0
     repository: "file://../srv/wordd/helm"
     condition: wordd.enabled
   - name: dictd
-    version: 0.10.0
+    version: 0.11.0
     repository: "file://../srv/dictd/helm"
     condition: dictd.enabled
   - name: backend
-    version: 0.10.0
+    version: 0.11.0
     repository: "file://../srv/backend/helm"
     condition: backend.enabled
   - name: postgresql

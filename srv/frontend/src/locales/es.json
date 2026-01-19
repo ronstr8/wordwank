@@ -26,7 +26,7 @@
         "reload": "RECARGAR PÁGINA",
         "accepted": "¡ACEPTADA!",
         "error_word_not_found": "No pajilleamos '{{word}}'.",
-        "rules_summary": "¡Palabrapaja es un duelo de vocabulario de alta velocidad! Usa tus fichas para formar la palabra con mayor puntuación. Las consonantes tienen valores aleatorios (2-9), las vocales valen 1. Una letra cada día vale 7 puntos. ¡Busca las letras 'Unicornio' (Q y Z) que valen 10 puntos! El puntaje es dinámico: busca una Palabra Única (+5) o Bonos por Longitud (+5 por 6 letras, duplicándose por cada letra extra). ¡Cuidado: duplicar una palabra te da 0 puntos, pero le da un bono al jugador original!",
+        "rules_summary": "¡Palabrapaja es un duelo de vocabulario de alta velocidad! Usa tus fichas para formar la palabra con mayor puntuación. Los valores de las letras se basan en su frecuencia en el calcetín de pajas: las letras comunes valen 1 punto, mientras que las más raras ganan progresivamente más (hasta 9 puntos). ¡Las dos letras 'Unicornio' más raras valen 10 puntos! Una letra cada día vale 7 puntos. El puntaje es dinámico: busca una Palabra Única (+5) o Bonos por Longitud (+5 por 6 letras, duplicándose por cada letra extra). ¡Cuidado: duplicar una palabra te da 0 puntos, pero otorga un bono al jugador original!",
         "tile_frequencies": "Frecuencias de Fichas",
         "donate_title": "DONACIÓN",
         "donate_desc": "¿Te gusta el juego? ¡Genial, a mí también! Hola, soy Ron \"Quinn\" Straight, y escribí esto con mis amigos artificiales. Soy un viejo hacker de la generación X con dos hijas en la universidad, y he estado desempleado por más de un año, así que cada granito ayuda. Cuando sientas que puedes. Te quiero, tío.",
@@ -65,6 +65,8 @@
         "logging_in": "Iniciando sesión...",
         "register_passkey": "Registrar Passkey",
         "passkey_registered": "¡Passkey registrado con éxito!",
-        "logout": "Cerrar sesión"
+        "logout": "Cerrar sesión",
+        "play_anonymously": "Jugar Anónimamente",
+        "anonymous_disclaimer": "Nunca decimos quién juega, pero si quieres mantener tu rango de pajas, inicia sesión con uno de los siguientes."
     }
 }

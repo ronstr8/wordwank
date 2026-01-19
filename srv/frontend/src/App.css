@@ -681,35 +681,61 @@ header {
 
 .tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-    gap: 0.5rem;
-    max-height: 300px;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 1rem;
+    max-height: 450px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
 }
 
 .tile-stat-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    background: #f3e5ab;
+    /* Parchment/Old Paper feel like the main tiles */
+    border: 2px solid #d4c48a;
+    border-radius: 8px;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 0.4rem;
+    width: 80px;
+    height: 80px;
     position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.tile-stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .tile-char {
     font-family: 'Luckiest Guy', cursive;
-    font-size: 1.1rem;
-    color: #fff;
-    text-shadow: 1px 1px 0 #000;
+    font-size: 2rem;
+    color: #4a3728;
+    text-shadow: none;
+    transform: scale(1.2, 1.3);
+    display: inline-block;
 }
 
 .tile-count {
-    font-size: 0.75rem;
-    color: #bdc3c7;
-    margin-top: 2px;
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: 1rem;
+    font-family: 'Fredoka', sans-serif;
+    color: #8b4513;
+    font-weight: 700;
+}
+
+.tile-score {
+    position: absolute;
+    bottom: 3px;
+    right: 4px;
+    font-size: 1rem;
+    font-family: 'Luckiest Guy', cursive;
+    color: #27ae60;
 }
 
 .tile-stat-item.unicorn-gem {

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.28.0] - 2026-01-19
+
+### Added (0.28.0)
+
+- **French Support**: Fully enabled French (FR) lexicography and UI translations. The `wordd` service now handles French dictionary lookups.
+- **Frequency-Based Scoring**: Replaced random/static letter values with a dynamic system where points (1-9) are calculated based on letter counts in the "Wank Sock". Common letters are worth less, rare ones more.
+- **Smart Game Migration**: Language switching now automatically removes the player from their current game and joins a new one in the target language.
+- **WTF Grid Redesign**: Overhauled the letter statistics grid with larger tiles (`80x80`), NW-corner frequencies, and SE-corner scores.
+- **Letter Scaling**: Applied custom CSS transforms to game tiles to make letters 30% higher and 20% wider for a premium comic-book look.
+- **Privacy Disclaimer**: Added a privacy hint to the top of the login screen regarding anonymous vs. account-based play.
+
+### Changed (0.28.0)
+
+- **i18n Single Source of Truth**: Centralized all localization files to `helm/share/locale/`. Both services now mount a unified ConfigMap, eliminating redundant sync logic.
+
+### Fixed (0.28.0)
+
+- **UI State Persistence**: Fixed a bug where tile values would disappear when switching languages.
+- **Backend Broadcaster**: Resolved a critical registration error in the `broadcaster` service that broke event notifications.
+- **Timer Formatting**: Fixed the `app.seconds_short` label rendering in the timer component.
+
 ## [0.27.0] - 2026-01-19
 
 ### Added (0.27.0)

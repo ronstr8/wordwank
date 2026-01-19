@@ -115,14 +115,10 @@ dictd: minikube-setup registry-tunnel
 	kubectl rollout status deployment/dictd -n $(NAMESPACE) || true
 
 # Helm Commands
-sync-locales:
-	@echo "Syncing locales to helm chart..."
-	@rm -rf helm/share
-	@mkdir -p helm/share
-	@cp -a srv/backend/share/locale helm/share/
-	@echo "✅ Locales synced to helm/share/locale"
+# i18n Note: Master truth lives in helm/share/locale/
+# Both frontend and backend mount the wordwank-locales ConfigMap.
 
-deploy: minikube-setup sync-locales
+deploy: minikube-setup
 	helm dependency update ./helm
 	helm upgrade --install wordwank ./helm \
 		--namespace $(NAMESPACE) \
@@ -136,7 +132,7 @@ undeploy:
 	helm uninstall wordwank --namespace $(NAMESPACE)
 
 # Hot-reload i18n via ConfigMap
-locales: sync-locales
+locales:
 	@echo "Updating shared locales ConfigMap..."
 	@kubectl create configmap wordwank-locales \
 		--namespace $(NAMESPACE) \

@@ -16,7 +16,7 @@ const Timer = ({ seconds, total }) => {
                     transition={{ duration: 0.5 }}
                 />
             </div>
-            <div className="timer-value">{seconds}{t('app.seconds_short')}</div>
+            <div className="timer-value">{seconds} {t('app.seconds_short')}</div>
         </div>
     )
 }

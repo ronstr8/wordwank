@@ -17,3 +17,8 @@ requires 'Authen::WebAuthn', '0.005';
 requires 'Crypt::URandom';
 requires 'Crypt::JWT';
 requires 'DBIx::Class::TimeStamp';
+
+on 'test' => sub {
+    requires 'Test::More', '0.98';
+    requires 'Test::MockModule';
+};

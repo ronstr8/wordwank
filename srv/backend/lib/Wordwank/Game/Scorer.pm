@@ -47,7 +47,11 @@ sub _load_tile_config ($self, $lang) {
         }
         warn "Failed to parse tile config for $lang from $url: $@" if $@;
     } else {
-        warn "Failed to fetch tile config for $lang from $url: $response->{status} $response->{reason}";
+        my $status = $response->{status} // 'unknown';
+        my $reason = $response->{reason} // 'no reason provided';
+        my $content = $response->{content} // '';
+        warn "Failed to fetch tile config for $lang from $url: HTTP $status $reason";
+        warn "Response body: " . substr($content, 0, 200) if $content;
     }
 
     # Fallback to English hardcoded tiles if wordd is unavailable or fails
@@ -60,10 +64,11 @@ sub _load_tile_config ($self, $lang) {
             Y => 2, Z => 1, '_' => 2,
         },
         unicorns => { J => 10, Q => 10 },
+        vowels => ['A', 'E', 'I', 'O', 'U'],
     };
 }
 
-# Generate letter values for a new game based on new scoring rules
+# Generate letter values for a new game based on letter frequency
 sub generate_letter_values ($self, $lang) {
     # Get current day of week in Buffalo, NY (America/New_York timezone)
     my $now = DateTime->now(time_zone => 'America/New_York');
@@ -74,27 +79,48 @@ sub generate_letter_values ($self, $lang) {
     
     # Get configuration for specific language
     my $config = $self->_get_tile_config($lang);
+    my $tiles = $config->{tiles} // {};
     my $unicorns = $config->{unicorns} // {};
-    my @all_letters = keys %{$config->{tiles}};
-    my $vowels = $config->{vowels} // [];
     
-    # Initialize all letters with random values 2-9
-    for my $letter (@all_letters) {
-        next if $letter eq '_';  # Skip blank
-        $values{$letter} = 2 + int(rand(8));  # Random from 2-9
+    # Calculate total tile count
+    my $total_tiles = 0;
+    $total_tiles += $_ for values %$tiles;
+    
+    # Calculate frequency for each letter (excluding blanks)
+    my %frequencies;
+    for my $letter (keys %$tiles) {
+        next if $letter eq '_';
+        my $count = $tiles->{$letter};
+        $frequencies{$letter} = $count / $total_tiles;
     }
     
-    # Override: Vowels (Nuclei) always 1 point
-    for my $vowel (@$vowels) {
-        $values{$vowel} = 1 if exists $values{$vowel};
+    # Sort letters by frequency (rarest first for easier processing)
+    my @sorted_letters = sort { $frequencies{$a} <=> $frequencies{$b} } keys %frequencies;
+    
+    # Top 2 rarest are unicorns (already set in config, worth 10 points)
+    # Skip them in the distribution
+    my %unicorn_set = map { $_ => 1 } keys %$unicorns;
+    my @non_unicorn_letters = grep { !$unicorn_set{$_} } @sorted_letters;
+    
+    # Distribute remaining letters from 1-9 points based on frequency
+    # Rarest non-unicorn gets 9, most common gets 1
+    my $num_letters = scalar @non_unicorn_letters;
+    for my $i (0 .. $#non_unicorn_letters) {
+        my $letter = $non_unicorn_letters[$i];
+        # Rarest (index 0) = 9 points, most common (last index) = 1 point
+        # Linear distribution: points = 9 - (8 * i / (num_letters - 1))
+        my $points = $num_letters > 1 
+            ? int(9 - (8 * $i / ($num_letters - 1)) + 0.5)  # Round to nearest
+            : 5;  # Fallback for edge case
+        $values{$letter} = $points;
     }
     
-    # Override: Unicorns always have their configured point value
+    # Set unicorns to their configured point value (10)
     for my $letter (keys %$unicorns) {
         $values{$letter} = $unicorns->{$letter};
     }
     
-    # Override: Day-of-week letter is 7 points (takes precedence over unicorns too)
+    # Override: Day-of-week letter is 7 points (takes precedence over frequency-based scoring)
     $values{$day_letter} = 7;
     
     # Blank tile always 0

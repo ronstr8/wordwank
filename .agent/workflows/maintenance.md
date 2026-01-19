@@ -29,3 +29,7 @@ Use this checklist when finalizing a batch of features or preparing for a releas
 
 - [ ] Remove any temporary debug logs or `console.log` statements.
 - [ ] Verify that all new features include the appropriate `t()` translation calls.
+
+## 5. 🚀 Commit
+
+- [ ] Suggest a concise commit message of 70 characters or fewer that summarizes the maintenance work.

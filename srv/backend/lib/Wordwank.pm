@@ -17,6 +17,8 @@ has schema => sub {
 
 has scorer => sub { Wordwank::Game::Scorer->new };
 
+has broadcaster => sub ($self) { Wordwank::Game::Broadcaster->new(app => $self) };
+
 # Track connected clients by Game UUID
 has games => sub { {} };
 

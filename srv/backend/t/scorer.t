@@ -2,7 +2,34 @@ use strict;
 use warnings;
 use utf8;
 use Test::More;
+use Test::MockModule;
+use JSON::MaybeXS qw(encode_json);
 use lib 'lib';
+
+# Mock HTTP::Tiny properly
+my $mock = Test::MockModule->new('HTTP::Tiny');
+$mock->mock('get', sub {
+    my ($self, $url) = @_;
+    
+    # Mock wordd /config/en endpoint
+    if ($url =~ m{/config/en$}) {
+        return {
+            success => 1,
+            content => encode_json({
+                tiles => {
+                    A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
+                    I => 9, J => 1, K => 1, L => 4, M => 2, N => 6, O => 8, P => 2,
+                    Q => 1, R => 6, S => 4, T => 6, U => 4, V => 2, W => 2, X => 1,
+                    Y => 2, Z => 1, '_' => 2,
+                },
+                unicorns => { Q => 10, X => 10 },
+                vowels => ['A', 'E', 'I', 'O', 'U'],
+            })
+        };
+    }
+    
+    return { success => 0, status => 404 };
+});
 
 use_ok('Wordwank::Game::Scorer');
 
