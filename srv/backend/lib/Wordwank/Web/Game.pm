@@ -9,7 +9,7 @@ use Wordwank::Util::NameGenerator;
 my $DEFAULT_GAME_DURATION = 30;
 
 sub generate_procedural_name ($id) {
-    return Wordwank::Util::NameGenerator->new->generate($id);
+    return Wordwank::Util::NameGenerator->new->generate(4, 1, $id);
 }
 
 sub websocket ($self) {

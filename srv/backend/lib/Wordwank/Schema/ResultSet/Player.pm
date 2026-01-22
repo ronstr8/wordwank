@@ -37,7 +37,7 @@ sub find_or_create_from_google {
             my $gen = Wordwank::Util::NameGenerator->new;
             $player = $self->create({
                 id => create_uuid_as_string(UUID_V4),
-                nickname => $gen->generate($google_id),
+                nickname => $gen->generate(4, 1, $google_id),
                 real_name => $name,
                 email => $email,
                 last_login_at => DateTime->now,
