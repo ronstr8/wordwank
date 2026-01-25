@@ -1,8 +1,7 @@
 use actix_web::{get, web, App, HttpServer, HttpResponse, Responder};
 use std::collections::{HashSet, HashMap};
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
-use std::net::TcpStream;
+use std::io::{self, BufRead};
 use clap::{Command, Arg};
 use log::{info, warn};
 use env_logger;
@@ -12,10 +11,7 @@ use rand::seq::SliceRandom;
 // Struct to hold multiple language word lists and pre-computed distributions
 struct AppState {
     word_lists: HashMap<String, HashSet<String>>,
-    dictd_host: Option<String>,
-    total_tiles: usize,
     supported_langs: Vec<String>,
-    letter_distributions: HashMap<String, HashMap<char, usize>>, // Raw letter frequency from lexicon
     letter_bags: HashMap<String, HashMap<char, usize>>,          // Computed tile distribution (bag)
     vowel_sets: HashMap<String, Vec<char>>,                      // Vowels per language
     consonant_sets: HashMap<String, Vec<char>>,                  // Consonants per language
@@ -162,80 +158,7 @@ fn classify_letters(freq: &HashMap<char, usize>, lang: &str) -> (Vec<char>, Vec<
     (vowels, consonants, unicorns)
 }
 
-fn query_dictd(host: &str, word: &str) -> io::Result<String> {
 
-    info!("Connecting to dictd host: {} for word: {}", host, word);
-    let stream = TcpStream::connect(host)?;
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(5)))?;
-    
-    let mut reader = BufReader::new(stream);
-    let mut line = String::new();
-    
-    // Read greeting
-    reader.read_line(&mut line)?;
-    info!("Dictd greeting: {}", line.trim());
-    if !line.starts_with("220") {
-        return Err(io::Error::new(io::ErrorKind::Other, format!("Unexpected greeting: {}", line)));
-    }
-
-    // Send DEFINE
-    let command = format!("DEFINE * {}\n", word);
-    let stream = reader.get_mut();
-    stream.write_all(command.as_bytes())?;
-    info!("Sent DEFINE command for: {}", word);
-
-    let mut response = String::new();
-    let mut found_content = false;
-
-    loop {
-        let mut line = String::new();
-        match reader.read_line(&mut line) {
-            Ok(0) => break, // EOF
-            Ok(_) => {
-                let trimmed = line.trim();
-                
-                // Status codes
-                if trimmed.starts_with("250") {
-                    info!("Dictd: Match finished (250)");
-                    break;
-                }
-                if trimmed.starts_with("552") {
-                    info!("Dictd: No match found (552)");
-                    return Ok(String::new());
-                }
-                if trimmed.starts_with("150") || trimmed.starts_with("151") {
-                    info!("Dictd: {}", trimmed);
-                    continue;
-                }
-                
-                // Error codes
-                if trimmed.starts_with("5") || trimmed.starts_with("4") {
-                    warn!("Dictd error: {}", trimmed);
-                    break;
-                }
-
-                // Actual content
-                if !line.starts_with('.') || line.len() > 2 {
-                    // Protocol: lines beginning with '.' are escaped. 
-                    // '..' becomes '.'
-                    // '.' alone ends the definition block (handled by 250 usually but let's be safe)
-                    let clean_line = if line.starts_with("..") { &line[1..] } else { &line };
-                    response.push_str(clean_line);
-                    if !clean_line.trim().is_empty() {
-                        found_content = true;
-                    }
-                }
-            },
-            Err(e) => {
-                warn!("Error reading from dictd: {}", e);
-                return Err(e);
-            }
-        }
-    }
-
-    info!("Dictd query complete. Found content: {}", found_content);
-    if !found_content { Ok(String::new()) } else { Ok(response) }
-}
 
 #[derive(serde::Serialize)]
 struct LangInfo {
@@ -325,25 +248,8 @@ async fn check_word_lang(
         return HttpResponse::NotFound().finish();
     }
 
-    if let Some(host) = &data.dictd_host {
-        match query_dictd(host, &word) {
-            Ok(response) => {
-                info!("Valid word queried ({}): {}", lang, word.to_uppercase());
-                if response.trim().is_empty() {
-                    HttpResponse::Ok().body(format!("(Definition for '{}' not found in database)", word.to_uppercase()))
-                } else {
-                    HttpResponse::Ok().body(response)
-                }
-            },
-            Err(_) => {
-                warn!("Failed to query dictd for word: {}. Accepting anyway.", word.to_uppercase());
-                HttpResponse::Ok().body(format!("(Definition for '{}' not found in dictionary service)", word.to_uppercase()))
-            }
-        }
-    } else {
-        info!("Valid word without dictd lookup ({}): {}", lang, word.to_uppercase());
-        HttpResponse::Ok().body(format!("(Dictionary service not configured for '{}')", word.to_uppercase()))
-    }
+    info!("Valid word queried ({}): {}", lang, word.to_uppercase());
+    HttpResponse::Ok().body(format!("Valid word: {}", word.to_uppercase()))
 }
 
 // Backward compatibility
@@ -361,23 +267,7 @@ async fn check_word(
     let is_valid = words.contains(&word.to_uppercase());
     if !is_valid { return HttpResponse::NotFound().finish(); }
 
-    if let Some(host) = &data.dictd_host {
-        match query_dictd(host, &word) {
-            Ok(response) => {
-                if response.trim().is_empty() {
-                    HttpResponse::Ok().body(format!("(Definition for '{}' not found in database)", word.to_uppercase()))
-                } else {
-                    HttpResponse::Ok().body(response)
-                }
-            },
-            Err(_) => {
-                warn!("Failed to query dictd for word: {}. Accepting anyway.", word.to_uppercase());
-                HttpResponse::Ok().body(format!("(Definition for '{}' not found in dictionary service)", word.to_uppercase()))
-            }
-        }
-    } else {
-        HttpResponse::Ok().body(format!("(Dictionary service not configured for '{}')", word.to_uppercase()))
-    }
+    HttpResponse::Ok().body(format!("Valid word: {}", word.to_uppercase()))
 }
 
 #[get("/validate/{lang}/{word}")]
@@ -603,12 +493,7 @@ async fn main() -> std::io::Result<()> {
         .version("1.3")
         .author("Ron Straight <straightre@gmail.com>")
         .about("Polyglot word validity and lookup service")
-        .arg(
-            Arg::new("dictd-host")
-                .long("dictd-host")
-                .num_args(1)
-                .help("Specify the dictd host (e.g., dictd:2628)"),
-        )
+
         .arg(
             Arg::new("listen-host")
                 .long("listen-host")
@@ -653,7 +538,7 @@ async fn main() -> std::io::Result<()> {
         )
         .get_matches();
 
-    let dictd_host = matches.get_one::<String>("dictd-host").cloned();
+
     let listen_host = matches
         .get_one::<String>("listen-host")
         .expect("listen-host argument must always have a default value")
@@ -676,7 +561,6 @@ async fn main() -> std::io::Result<()> {
 
     let mut word_lists = HashMap::new();
     let mut supported_langs = Vec::new();
-    let mut letter_distributions = HashMap::new();
     let mut letter_bags = HashMap::new();
     let mut vowel_sets = HashMap::new();
     let mut consonant_sets = HashMap::new();
@@ -703,7 +587,6 @@ async fn main() -> std::io::Result<()> {
         // Store all pre-computed data
         word_lists.insert(lang.to_lowercase(), words);
         supported_langs.push(lang.to_lowercase());
-        letter_distributions.insert(lang.to_lowercase(), freq);
         letter_bags.insert(lang.to_lowercase(), bag);
         vowel_sets.insert(lang.to_lowercase(), vowels);
         consonant_sets.insert(lang.to_lowercase(), consonants);
@@ -712,10 +595,7 @@ async fn main() -> std::io::Result<()> {
 
     let state = AppState {
         word_lists,
-        dictd_host,
-        total_tiles,
         supported_langs,
-        letter_distributions,
         letter_bags,
         vowel_sets,
         consonant_sets,

@@ -31,11 +31,6 @@ wordd:
     type: ClusterIP
     port: 2345
 
-dictd:
-  enabled: true
-  service:
-    type: ClusterIP
-    port: 2628
 
 backend:
   enabled: true

@@ -8,7 +8,7 @@ DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = wordwank
 DOMAIN = wordwank.fazigu.org
 
-SERVICES = frontend backend wordd dictd
+SERVICES = frontend backend wordd
 
 .PHONY: all build clean deploy undeploy help $(SERVICES) minikube-setup registry-tunnel metallb-install metallb-config cert-manager-setup
 
@@ -108,11 +108,6 @@ backend: minikube-setup registry-tunnel
 	kubectl rollout restart deployment/backend -n $(NAMESPACE) || true
 	kubectl rollout status deployment/backend -n $(NAMESPACE) || true
 
-dictd: minikube-setup registry-tunnel
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-dictd:$(TAG) ./srv/dictd
-	docker push $(REGISTRY)/wordwank-dictd:$(TAG)
-	kubectl rollout restart deployment/dictd -n $(NAMESPACE) || true
-	kubectl rollout status deployment/dictd -n $(NAMESPACE) || true
 
 # Helm Commands
 # i18n Note: Master truth lives in helm/share/locale/

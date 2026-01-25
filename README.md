@@ -113,7 +113,6 @@ Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup
 - **frontend**: React-based UI (Vite/Nginx).
 - **backend**: Perl (Mojolicious) service handling authentication, API, and WebSocket.
 - **wordd**: Rust-based high-speed word validator.
-- **dictd**: Dictionary definition service.
 
 ---
 *Created by Ron "Quinn" Straight and Antigravity using a variety of models.*

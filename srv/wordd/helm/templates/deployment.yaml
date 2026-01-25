@@ -30,6 +30,3 @@ spec:
           args:
             - "--share-dir=/app/share"
             - "--langs={{ .Values.langs | default "en,es,fr" }}"
-            {{- if .Values.dictdHost }}
-            - "--dictd-host={{ .Values.dictdHost }}"
-            {{- end }}

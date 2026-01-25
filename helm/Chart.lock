@@ -5,14 +5,11 @@ dependencies:
 - name: wordd
   repository: file://../srv/wordd/helm
   version: 0.11.0
-- name: dictd
-  repository: file://../srv/dictd/helm
-  version: 0.11.0
 - name: backend
   repository: file://../srv/backend/helm
   version: 0.11.0
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
   version: 15.5.21
-digest: sha256:bc7594273a310c51429a293361956b5484271b2a09b70f5c3a83a40901d53921
-generated: "2026-01-19T13:21:01.617407067-05:00"
+digest: sha256:633cca7f7e694062aed5966642a184262fdd3d3698ab416722be530f8cd746d5
+generated: "2026-01-25T14:08:28.818836529-05:00"

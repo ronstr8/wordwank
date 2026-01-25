@@ -30,4 +30,4 @@ COPY --from=builder /usr/src/wordd/share /app/share
 EXPOSE 8080
 
 # Default command
-CMD ["wordd", "--dictd-host=dictd:2628" ]
+CMD ["wordd"]

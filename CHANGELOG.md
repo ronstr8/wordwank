@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.29.0] - 2026-01-25
+
+### Removed (0.29.0)
+
+- **dictd Service**: Completely eliminated the `dictd` dictionary definition service and all dependencies
+  - Removed `dictd` from Helm charts, build system, and deployment configuration
+  - Simplified `wordd` service by removing dictionary lookup functionality (~180 lines of code)
+  - Word validation endpoints now return simple validation messages instead of dictionary definitions
+  - Cleaned up unused imports and dead code from the removal
+
 ## [0.28.0] - 2026-01-19
 
 ### Added (0.28.0)
