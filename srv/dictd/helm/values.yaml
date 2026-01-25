@@ -1,9 +1,0 @@
-replicaCount: 1
-
-service:
-  type: ClusterIP
-  port: 2628
-
-global:
-  namespace: wordwank
-  registry: docker.io/wordwank
