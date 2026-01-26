@@ -70,6 +70,15 @@ This will build all polyglot services, push them to the local Minikube registry,
 make build && make deploy && watch kubectl -n wordwank get pods
 ```
 
+**Persistent Storage**: The deployment automatically creates a persistent storage directory at `$HOME/.local/share/k8s-volumes/wordwank/` for PostgreSQL data using `install -m 775 -g root`. This ensures your database survives pod restarts and redeployments.
+
+To reset the database completely:
+
+```bash
+sudo rm -rf $HOME/.local/share/k8s-volumes/wordwank
+make deploy
+```
+
 ### 4. Expose to the Outer World
 
 To access the game from another machine on your home network:

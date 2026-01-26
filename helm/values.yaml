@@ -15,6 +15,12 @@ global:
   minConsonants: 2
   logLevel: debug
 
+# Persistent storage configuration
+persistence:
+  enabled: true
+  hostBasePath: /home/user/.local/share/k8s-volumes # Overridden by Makefile with $HOME
+  size: 10Gi
+
 # Centralized Ingress configuration
 ingress:
   enabled: true
@@ -63,7 +69,29 @@ postgresql:
     database: "wordwank"
     username: "wordwank_backend"
   primary:
+    containerSecurityContext:
+      enabled: true
+      runAsUser: 1001
+      runAsNonRoot: true
+    podSecurityContext:
+      fsGroup: 1001 # Match PostgreSQL user for proper volume permissions
+    initContainers:
+      - name: fix-permissions
+        image: busybox:latest
+        command:
+          [
+            "sh",
+            "-c",
+            "chmod -R 777 /bitnami/postgresql && chown -R 1001:1001 /bitnami/postgresql",
+          ]
+        volumeMounts:
+          - name: data
+            mountPath: /bitnami/postgresql
+        securityContext:
+          runAsUser: 0 # Run as root to change ownership
     initdb:
       scriptsConfigMap: db-init
     persistence:
-      enabled: false # Keep it simple for dev
+      enabled: true
+      storageClass: postgresql-local
+      size: 10Gi

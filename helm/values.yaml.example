@@ -10,6 +10,12 @@ global:
   maxPlayers: 13
   randomLetterScoreMode: "true"
 
+# Persistent storage configuration
+persistence:
+  enabled: true
+  hostBasePath: /home/user/.local/share/minikube-data  # Overridden by Makefile with $HOME
+  size: 10Gi
+
 # Centralized Ingress configuration
 ingress:
   enabled: true
@@ -55,4 +61,6 @@ postgresql:
 #   postgresPassword: "PLACEHOLDER_SEE_SECRETS_YAML"
   primary:
     persistence:
-      enabled: false # Keep it simple for dev
+      enabled: true
+      storageClass: postgresql-local
+      size: 10Gi

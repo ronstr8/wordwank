@@ -349,27 +349,51 @@ fn select_random_words(words: &HashSet<String>, count: usize) -> Vec<String> {
 struct RandQuery {
     count: Option<usize>,
     letters: Option<String>,
+    min_vowels: Option<usize>,
+    min_consonants: Option<usize>,
 }
 
-fn contains_all_letters(word: &str, required: &str) -> bool {
-    let mut required_counts = HashMap::new();
-    for c in required.to_uppercase().chars() {
-        if c.is_alphabetic() {
-            *required_counts.entry(c).or_insert(0) += 1;
+fn contains_only_letters(word: &str, letters: &str) -> bool {
+    let word_upper = word.to_uppercase();
+    let mut letter_counts: HashMap<char, usize> = HashMap::new();
+    
+    for ch in letters.to_uppercase().chars() {
+        if ch.is_alphabetic() {
+            *letter_counts.entry(ch).or_insert(0) += 1;
         }
     }
-
-    let mut word_counts = HashMap::new();
-    for c in word.to_uppercase().chars() {
-        *word_counts.entry(c).or_insert(0) += 1;
-    }
-
-    for (c, count) in required_counts {
-        if word_counts.get(&c).unwrap_or(&0) < &count {
-            return false;
+    
+    let mut word_letters: HashMap<char, usize> = HashMap::new();
+    for ch in word_upper.chars() {
+        if ch.is_alphabetic() {
+            *word_letters.entry(ch).or_insert(0) += 1;
         }
     }
-    true
+    
+    word_letters.iter().all(|(ch, &letters_used)| {
+        letters_used <= letter_counts.get(ch).copied().unwrap_or(0)
+    })
+}
+
+// Helper function to count vowels and consonants in a word
+fn count_vowels_consonants(word: &str, vowels: &[char]) -> (usize, usize) {
+    let word_upper = word.to_uppercase();
+    let vowel_set: HashSet<char> = vowels.iter().map(|c| c.to_uppercase().next().unwrap()).collect();
+    
+    let mut vowel_count = 0;
+    let mut consonant_count = 0;
+    
+    for ch in word_upper.chars() {
+        if ch.is_alphabetic() {
+            if vowel_set.contains(&ch) {
+                vowel_count += 1;
+            } else {
+                consonant_count += 1;
+            }
+        }
+    }
+    
+    (vowel_count, consonant_count)
 }
 
 #[get("/rand/langs/{lang}/letter")]
@@ -462,8 +486,16 @@ async fn rand_word(
         None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
     };
     
+    // Get language-specific vowels for constraint validation
+    let vowels = data.vowel_sets.get(&lang)
+        .map(|v| v.as_slice())
+        .unwrap_or(&['A', 'E', 'I', 'O', 'U']);
+    
     let mut selected = Vec::new();
-    if let Some(required) = &query.letters {
+    let has_letters_constraint = query.letters.is_some();
+    let has_rack_constraints = query.min_vowels.is_some() || query.min_consonants.is_some();
+    
+    if has_letters_constraint || has_rack_constraints {
         let mut rng = rand::thread_rng();
         let words_vec: Vec<&String> = words.iter().collect();
         let retries = 500; // Hardcoded for performance and security
@@ -471,7 +503,33 @@ async fn rand_word(
         for _ in 0..count {
             for _ in 0..retries {
                 if let Some(word) = words_vec.choose(&mut rng) {
-                    if contains_all_letters(word, required) {
+                    let mut valid = true;
+                    
+                    // Check letters constraint
+                    if let Some(available_letters) = &query.letters {
+                        if !contains_only_letters(word, available_letters) {
+                            valid = false;
+                        }
+                    }
+                    
+                    // Check vowel/consonant constraints
+                    if valid && has_rack_constraints {
+                        let (vowel_count, consonant_count) = count_vowels_consonants(word, vowels);
+                        
+                        if let Some(min_v) = query.min_vowels {
+                            if vowel_count < min_v {
+                                valid = false;
+                            }
+                        }
+                        
+                        if let Some(min_c) = query.min_consonants {
+                            if consonant_count < min_c {
+                                valid = false;
+                            }
+                        }
+                    }
+                    
+                    if valid {
                         selected.push((*word).clone());
                         break;
                     }
@@ -618,7 +676,79 @@ async fn main() -> std::io::Result<()> {
             .service(rand_unicorn)
             .service(rand_word)
     })
-    .bind(&listen_host)?
+    .bind(("0.0.0.0", 2345))?
     .run()
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_vowels_consonants_english() {
+        let english_vowels = vec!['A', 'E', 'I', 'O', 'U'];
+        
+        let (v, c) = count_vowels_consonants("hello", &english_vowels);
+        assert_eq!(v, 2); // e, o
+        assert_eq!(c, 3); // h, l, l
+        
+        let (v, c) = count_vowels_consonants("AEIOU", &english_vowels);
+        assert_eq!(v, 5);
+        assert_eq!(c, 0);
+        
+        let (v, c) = count_vowels_consonants("bcdfg", &english_vowels);
+        assert_eq!(v, 0);
+        assert_eq!(c, 5);
+    }
+
+    #[test]
+    fn test_count_vowels_consonants_spanish() {
+        let spanish_vowels = vec!['A', 'E', 'I', 'O', 'U'];
+        
+        let (v, c) = count_vowels_consonants("hola", &spanish_vowels);
+        assert_eq!(v, 2); // o, a
+        assert_eq!(c, 2); // h, l
+    }
+
+    #[test]
+    fn test_count_vowels_consonants_with_accents() {
+        let french_vowels = vec!['A', 'E', 'I', 'O', 'U', 'Y'];
+        
+        // Test basic vowel counting
+        let (v, c) = count_vowels_consonants("bonjour", &french_vowels);
+        assert_eq!(v, 3); // o, o, u
+        assert_eq!(c, 4); // b, n, j, r
+    }
+
+    #[test]
+    fn test_contains_only_letters() {
+        // Word can be formed from available letters
+        assert!(contains_only_letters("hello", "helloworld")); // has all letters needed
+        assert!(contains_only_letters("HELLO", "helloworld")); // case insensitive
+        assert!(contains_only_letters("hello", "HELLOWORLD")); // case insensitive
+        
+        // Word cannot be formed - missing letters
+        assert!(!contains_only_letters("hello", "hel")); // missing 'o' and extra 'l'
+        assert!(!contains_only_letters("hello", "xyz")); // completely wrong letters
+        
+        // Word can be formed - exact match
+        assert!(contains_only_letters("hello", "hello")); // exact letters
+        assert!(contains_only_letters("hello", "ollhe")); // same letters, different order
+    }
+
+    #[test]
+    fn test_contains_only_letters_duplicates() {
+        // Word requires 2 l's, available letters have 2 l's
+        assert!(contains_only_letters("hello", "hheelllloo")); // more than enough
+        
+        // Word requires 2 a's, available letters have 2 a's
+        assert!(contains_only_letters("aardvark", "aardvarkxyz")); // has enough
+        
+        // Word requires 2 l's, but only 1 'l' available
+        assert!(!contains_only_letters("hello", "hewoxrld")); // only 1 'l', needs 2
+        
+        // Word requires 3 l's, but only 2 available
+        assert!(!contains_only_letters("llll", "ll")); // needs 4, only has 2
+    }
 }

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.30.0] - 2026-01-26
+
+### Fixed (0.30.0)
+
+- **PostgreSQL Permissions**: Resolved persistent storage permission issues by adding an init container that fixes volume ownership before PostgreSQL starts
+  - Set `fsGroup: 1001` to match PostgreSQL user
+  - Init container runs as root to `chown -R 1001:1001` the data directory
+  - Fixed `CrashLoopBackOff` caused by "Permission denied" errors
+
+### Changed (0.30.0)
+
+- **Wordd Letter Validation**: Refactored `contains_all_letters` → `contains_only_letters` with inverted logic
+  - Function now validates that words can be formed using _only_ the available letters (subset check)
+  - Updated all test cases to reflect new semantics
+  - Variable renamed from `required` to `available_letters` for clarity
+
 ## [0.29.0] - 2026-01-25
 
 ### Removed (0.29.0)
@@ -439,4 +455,4 @@ transition to a microservices pattern with Go, Rust, Java, and React.
 
 ---
 
-*Remember: If you find a bug, it's a surprise mechanic. If you like a feature, it was intentional all along.*
+_Remember: If you find a bug, it's a surprise mechanic. If you like a feature, it was intentional all along._

@@ -4,6 +4,7 @@ Thumbs.db
 *.swp
 *.bak
 *.tmp
+backup/
 
 # Node / Frontend
 node_modules/

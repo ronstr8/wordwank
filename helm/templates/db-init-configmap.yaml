@@ -54,7 +54,9 @@ data:
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         rack TEXT[] NOT NULL,
         letter_values JSONB NOT NULL,
-        started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        language TEXT NOT NULL DEFAULT 'en',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        started_at TIMESTAMP WITH TIME ZONE,
         finished_at TIMESTAMP WITH TIME ZONE
     );
 
