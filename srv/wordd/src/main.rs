@@ -504,7 +504,7 @@ async fn main() -> std::io::Result<()> {
         .get_matches();
 
 
-    let _listen_host = matches
+    let listen_host = matches
         .get_one::<String>("listen-host")
         .expect("listen-host argument must always have a default value")
         .clone();
@@ -583,7 +583,7 @@ async fn main() -> std::io::Result<()> {
             .service(rand_unicorn)
             .service(rand_word)
     })
-    .bind(("0.0.0.0", 2345))?
+    .bind(&listen_host)?
     .run()
     .await
 }
