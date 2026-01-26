@@ -1,13 +1,15 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 
-/// Calculate letter frequency from a set of words
-pub fn calculate_distribution_from_set(words: &HashSet<String>) -> HashMap<char, usize> {
+use crate::models::Word;
+
+/// Calculate letter frequency distribution from a set of words
+/// Returns a map of letter -> occurrences
+pub fn calculate_distribution_from_set(words: &[Word]) -> HashMap<char, usize> {
     let mut freq = HashMap::new();
     for word in words {
-        for c in word.chars() {
-            if c.is_alphabetic() {
-                *freq.entry(c).or_insert(0) += 1;
+        for ch in word.text.chars() {
+            if ch.is_alphabetic() {
+                *freq.entry(ch.to_uppercase().next().unwrap()).or_insert(0) += 1;
             }
         }
     }

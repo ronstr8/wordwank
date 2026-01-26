@@ -12,15 +12,16 @@ fn check_word_logic(
         None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
     };
 
-    let is_valid = words.contains(&word.to_uppercase());
+    let word_upper = word.to_uppercase();
+    let is_valid = words.binary_search_by(|w| w.text.cmp(&word_upper)).is_ok();
 
     if !is_valid {
-        info!("Invalid word queried ({}): {}", lang, word.to_uppercase());
+        info!("Invalid word queried ({}): {}", lang, word_upper);
         return HttpResponse::NotFound().finish();
     }
 
-    info!("Valid word queried ({}): {}", lang, word.to_uppercase());
-    HttpResponse::Ok().body(format!("Valid word: {}", word.to_uppercase()))
+    info!("Valid word queried ({}): {}", lang, word_upper);
+    HttpResponse::Ok().body(format!("Valid word: {}", word_upper))
 }
 
 fn validate_word_logic(
@@ -33,7 +34,8 @@ fn validate_word_logic(
         None => return HttpResponse::BadRequest().finish(),
     };
 
-    if words.contains(&word.to_uppercase()) {
+    let word_upper = word.to_uppercase();
+    if words.binary_search_by(|w| w.text.cmp(&word_upper)).is_ok() {
         HttpResponse::Ok().finish()
     } else {
         HttpResponse::NotFound().finish()

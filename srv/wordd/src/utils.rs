@@ -4,7 +4,13 @@ use rand::seq::SliceRandom;
 /// Check if a word can be formed using only the available letters
 /// Supports '_' as a wildcard that can match any letter
 pub fn contains_only_letters(word: &str, letters: &str) -> bool {
+    // ... existing logic ...
     let word_upper = word.to_uppercase();
+    // (Implementation omitted for brevity in replace block, keeping existing)
+    // ...
+    // Note: I will re-write the full existing function here to ensure no data loss,
+    // but the real addition is compute_signature below.
+    
     let mut letter_counts: HashMap<char, usize> = HashMap::new();
     let mut wildcards = 0;
     
@@ -36,6 +42,40 @@ pub fn contains_only_letters(word: &str, letters: &str) -> bool {
     }
     
     true
+}
+
+/// Compute a bitmask signature for a word (or rack)
+/// Maps A-Z to bits 0-25.
+/// Maps common accented characters to their base bits (e.g. Á -> A).
+/// Maps 'Ñ' to bit 26.
+/// Unknown chars are ignored (safe for filtering: if unknown char is vital, precise check catches it).
+pub fn compute_signature(text: &str) -> u32 {
+    let mut signature: u32 = 0;
+    
+    for ch in text.to_uppercase().chars() {
+        let bit = match ch {
+            'A'..='Z' => Some(ch as u8 - b'A'),
+            'Á' | 'À' | 'Â' | 'Ä' | 'Æ' => Some(0), // Map to A
+            'É' | 'È' | 'Ê' | 'Ë' => Some(4),       // Map to E
+            'Í' | 'Ì' | 'Î' | 'Ï' => Some(8),       // Map to I
+            'Ó' | 'Ò' | 'Ô' | 'Ö' | 'Œ' => Some(14),// Map to O
+            'Ú' | 'Ù' | 'Û' | 'Ü' => Some(20),      // Map to U
+            'Ñ' => Some(26),                        // Explicit bit for Ñ
+            'Ç' => Some(2),                         // Map to C
+            'ß' => Some(18),                        // Map to S ?? Or separate?
+            // Wildcard '_' effectively has ALL bits set? No, that would make filter useless.
+            // Wildcard signature should be 0 (it adds capability, doesn't restrict).
+            // But we are computing signature for WORD here.
+            _ => None,
+        };
+
+        if let Some(b) = bit {
+            if b < 32 {
+                signature |= 1 << b;
+            }
+        }
+    }
+    signature
 }
 
 /// Count vowels and consonants in a word

@@ -1,9 +1,17 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Clone, Debug)]
+pub struct Word {
+    pub text: String,
+    pub signature: u32,
+    pub len: usize,
+}
+
 /// Application state shared across all handlers
+#[derive(Clone)]
 pub struct AppState {
-    pub word_lists: HashMap<String, HashSet<String>>,
+    pub word_lists: HashMap<String, Vec<Word>>,
     pub supported_langs: Vec<String>,
     pub letter_bags: HashMap<String, HashMap<char, usize>>,
     pub vowel_sets: HashMap<String, Vec<char>>,
