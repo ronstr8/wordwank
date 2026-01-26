@@ -1,7 +1,6 @@
 use actix_web::{get, web, HttpResponse, Responder};
 use crate::models::{AppState, RandQuery};
-use crate::utils::{select_random_from_bag, select_random_from_list, select_random_words, contains_only_letters, count_vowels_consonants};
-use rand::seq::SliceRandom;
+use crate::utils::{select_random_from_bag, select_random_from_list};
 
 #[get("/rand/langs/{lang}/letter")]
 pub async fn rand_letter(
@@ -98,54 +97,14 @@ pub async fn rand_word(
         .map(|v| v.as_slice())
         .unwrap_or(&['A', 'E', 'I', 'O', 'U']);
     
-    let mut selected = Vec::new();
-    let has_letters_constraint = query.letters.is_some();
-    let has_rack_constraints = query.min_vowels.is_some() || query.min_consonants.is_some();
+    let constraints = crate::services::generator::WordConstraints {
+        letters: query.letters.as_deref(),
+        min_vowels: query.min_vowels,
+        min_consonants: query.min_consonants,
+        vowels,
+    };
     
-    if has_letters_constraint || has_rack_constraints {
-        let mut rng = rand::thread_rng();
-        let words_vec: Vec<&String> = words.iter().collect();
-        let retries = 500; // Hardcoded for performance and security
-        
-        for _ in 0..count {
-            for _ in 0..retries {
-                if let Some(word) = words_vec.choose(&mut rng) {
-                    let mut valid = true;
-                    
-                    // Check letters constraint
-                    if let Some(available_letters) = &query.letters {
-                        if !contains_only_letters(word, available_letters) {
-                            valid = false;
-                        }
-                    }
-                    
-                    // Check vowel/consonant constraints
-                    if valid && has_rack_constraints {
-                        let (vowel_count, consonant_count) = count_vowels_consonants(word, vowels);
-                        
-                        if let Some(min_v) = query.min_vowels {
-                            if vowel_count < min_v {
-                                valid = false;
-                            }
-                        }
-                        
-                        if let Some(min_c) = query.min_consonants {
-                            if consonant_count < min_c {
-                                valid = false;
-                            }
-                        }
-                    }
-                    
-                    if valid {
-                        selected.push((*word).clone());
-                        break;
-                    }
-                }
-            }
-        }
-    } else {
-        selected = select_random_words(words, count);
-    }
+    let selected = crate::services::generator::select_random_words_with_constraints(words, count, constraints);
 
     let output = selected.join("\n");
     HttpResponse::Ok().content_type("text/plain").body(output)

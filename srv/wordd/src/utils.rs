@@ -87,14 +87,7 @@ pub fn select_random_from_list(list: &[char], count: usize) -> Vec<char> {
     }).collect()
 }
 
-/// Select random words from a word set
-pub fn select_random_words(words: &HashSet<String>, count: usize) -> Vec<String> {
-    let mut rng = rand::thread_rng();
-    let words_vec: Vec<&String> = words.iter().collect();
-    (0..count).map(|_| {
-        words_vec.choose(&mut rng).map(|s| (*s).clone()).unwrap_or_else(|| "WORD".to_string())
-    }).collect()
-}
+
 
 #[cfg(test)]
 mod tests {
