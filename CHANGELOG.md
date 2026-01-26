@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [0.31.0] - 2026-01-26
+
+### Refactored (0.31.0)
+
+- **Wordd Overhaul**: Complete architectural refactor of the `wordd` service.
+  - Split monolithic `main.rs` into `services`, `handlers`, `models`, and `utils`.
+  - Optimized language loading (6x fewer allocations).
+  - Implemented `Word` struct with `u32` bitmask signatures for high-performance filtering.
+  - Decoupled random word generation logic into `services/generator.rs`.
+
+### Fixed (0.31.0)
+
+- **Missed Opportunity Bug**: Fixed random generator failing to suggest words for racks with blank tiles.
+  - Added wildcard support (`_`) to letter checks.
+  - Replaced unreliable rejection sampling with guaranteed linear scan.
+- **Listen Host**: Fixed `wordd` ignoring the `--listen-host` CLI argument.
+
 ## [0.30.0] - 2026-01-26
 
 ### Fixed (0.30.0)
@@ -19,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed (0.30.0)
 
 - **Wordd Letter Validation**: Refactored `contains_all_letters` → `contains_only_letters` with inverted logic
-  - Function now validates that words can be formed using _only_ the available letters (subset check)
+  - Function now validates that words can be formed using _only_ the available letters (subset check), but does _not_ need to use them all
   - Updated all test cases to reflect new semantics
   - Variable renamed from `required` to `available_letters` for clarity
 
