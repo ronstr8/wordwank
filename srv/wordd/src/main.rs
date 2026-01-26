@@ -1,16 +1,15 @@
 mod models;
 mod utils;
 mod services;
+mod handlers;
 
-use actix_web::{get, web, App, HttpServer, HttpResponse, Responder};
+use actix_web::{web, App, HttpServer};
 use std::collections::HashMap;
 use clap::{Command, Arg};
 use log::info;
 use std::fs::OpenOptions;
-use rand::seq::SliceRandom;
 
-use models::{AppState, LangInfo, ConfigResponse, RandQuery};
-use utils::*;
+use models::AppState;
 use services::{word_loader, distribution, letter_classifier};
 
 // Function to initialize logging
@@ -29,315 +28,6 @@ fn init_logging(log_file: Option<&String>) {
         env_logger::init();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#[get("/langs")]
-async fn get_langs(data: web::Data<AppState>) -> impl Responder {
-    let langs: Vec<LangInfo> = data.supported_langs.iter().map(|code| {
-        let name = match code.as_str() {
-            "en" => "English",
-            "es" => "Español",
-            "fr" => "Français",
-            "de" => "Deutsch",
-            _ => code.as_str(),
-        }.to_string();
-        LangInfo { name, code: code.clone() }
-    }).collect();
-
-    HttpResponse::Ok().json(langs)
-}
-
-
-
-#[get("/config/{lang}")]
-async fn get_config(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    
-    // Retrieve pre-computed values from AppState
-    let bag = match data.letter_bags.get(&lang) {
-        Some(b) => b.clone(),
-        None => return HttpResponse::BadRequest().finish(),
-    };
-
-    let vowels = match data.vowel_sets.get(&lang) {
-        Some(v) => v.clone(),
-        None => return HttpResponse::BadRequest().finish(),
-    };
-
-    let unicorns = match data.unicorn_sets.get(&lang) {
-        Some(u) => {
-            // Convert unicorn letters to HashMap with standard value of 10
-            u.iter().map(|&c| (c, 10)).collect::<HashMap<char, usize>>()
-        },
-        None => return HttpResponse::BadRequest().finish(),
-    };
-
-    // tiles is same as bag for backward compatibility
-    let tiles = bag.clone();
-
-    info!("Generated {} config with {} tiles, {} unicorns, and {} vowels", 
-          lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len());
-
-    HttpResponse::Ok().json(ConfigResponse {
-        tiles,
-        unicorns,
-        vowels,
-        bag,
-    })
-}
-
-#[get("/word/{lang}/{word}")]
-async fn check_word_lang(
-    data: web::Data<AppState>,
-    path: web::Path<(String, String)>,
-) -> impl Responder {
-    let (lang, word) = path.into_inner();
-    let words = match data.word_lists.get(&lang.to_lowercase()) {
-        Some(w) => w,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-
-    let is_valid = words.contains(&word.to_uppercase());
-
-    if !is_valid {
-        info!("Invalid word queried ({}): {}", lang, word.to_lowercase());
-        return HttpResponse::NotFound().finish();
-    }
-
-    info!("Valid word queried ({}): {}", lang, word.to_uppercase());
-    HttpResponse::Ok().body(format!("Valid word: {}", word.to_uppercase()))
-}
-
-// Backward compatibility
-#[get("/word/{word}")]
-async fn check_word(
-    data: web::Data<AppState>,
-    word: web::Path<String>,
-) -> impl Responder {
-    let word = word.into_inner();
-    let words = match data.word_lists.get("en") {
-        Some(w) => w,
-        None => return HttpResponse::InternalServerError().finish(),
-    };
-
-    let is_valid = words.contains(&word.to_uppercase());
-    if !is_valid { return HttpResponse::NotFound().finish(); }
-
-    HttpResponse::Ok().body(format!("Valid word: {}", word.to_uppercase()))
-}
-
-#[get("/validate/{lang}/{word}")]
-async fn validate_word_lang(
-    data: web::Data<AppState>,
-    path: web::Path<(String, String)>,
-) -> impl Responder {
-    let (lang, word) = path.into_inner();
-    let words = match data.word_lists.get(&lang.to_lowercase()) {
-        Some(w) => w,
-        None => return HttpResponse::BadRequest().finish(),
-    };
-
-    if words.contains(&word.to_uppercase()) {
-        HttpResponse::Ok().finish()
-    } else {
-        HttpResponse::NotFound().finish()
-    }
-}
-
-#[get("/validate/{word}")]
-async fn validate_word(
-    data: web::Data<AppState>,
-    word: web::Path<String>,
-) -> impl Responder {
-    let word = word.into_inner();
-    let words = match data.word_lists.get("en") {
-        Some(w) => w,
-        None => return HttpResponse::InternalServerError().finish(),
-    };
-
-    if words.contains(&word.to_uppercase()) {
-        HttpResponse::Ok().finish()
-    } else {
-        HttpResponse::NotFound().finish()
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#[get("/rand/langs/{lang}/letter")]
-async fn rand_letter(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-    query: web::Query<RandQuery>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    let count = query.count.unwrap_or(1);
-    
-    let bag = match data.letter_bags.get(&lang) {
-        Some(b) => b,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-    
-    let letters = select_random_from_bag(bag, count);
-    let output = letters.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
-    HttpResponse::Ok().content_type("text/plain").body(output)
-}
-
-#[get("/rand/langs/{lang}/vowel")]
-async fn rand_vowel(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-    query: web::Query<RandQuery>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    let count = query.count.unwrap_or(1);
-    
-    let vowels = match data.vowel_sets.get(&lang) {
-        Some(v) => v,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-    
-    let selected = select_random_from_list(vowels, count);
-    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
-    HttpResponse::Ok().content_type("text/plain").body(output)
-}
-
-#[get("/rand/langs/{lang}/consonant")]
-async fn rand_consonant(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-    query: web::Query<RandQuery>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    let count = query.count.unwrap_or(1);
-    
-    let consonants = match data.consonant_sets.get(&lang) {
-        Some(c) => c,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-    
-    let selected = select_random_from_list(consonants, count);
-    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
-    HttpResponse::Ok().content_type("text/plain").body(output)
-}
-
-#[get("/rand/langs/{lang}/unicorn")]
-async fn rand_unicorn(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-    query: web::Query<RandQuery>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    let count = query.count.unwrap_or(1);
-    
-    let unicorns = match data.unicorn_sets.get(&lang) {
-        Some(u) => u,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-    
-    let selected = select_random_from_list(unicorns, count);
-    let output = selected.iter().map(|c| c.to_string()).collect::<Vec<_>>().join("\n");
-    HttpResponse::Ok().content_type("text/plain").body(output)
-}
-
-#[get("/rand/langs/{lang}/word")]
-async fn rand_word(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-    query: web::Query<RandQuery>,
-) -> impl Responder {
-    let lang = path.into_inner().to_lowercase();
-    let count = query.count.unwrap_or(1);
-    
-    let words = match data.word_lists.get(&lang) {
-        Some(w) => w,
-        None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
-    };
-    
-    // Get language-specific vowels for constraint validation
-    let vowels = data.vowel_sets.get(&lang)
-        .map(|v| v.as_slice())
-        .unwrap_or(&['A', 'E', 'I', 'O', 'U']);
-    
-    let mut selected = Vec::new();
-    let has_letters_constraint = query.letters.is_some();
-    let has_rack_constraints = query.min_vowels.is_some() || query.min_consonants.is_some();
-    
-    if has_letters_constraint || has_rack_constraints {
-        let mut rng = rand::thread_rng();
-        let words_vec: Vec<&String> = words.iter().collect();
-        let retries = 500; // Hardcoded for performance and security
-        
-        for _ in 0..count {
-            for _ in 0..retries {
-                if let Some(word) = words_vec.choose(&mut rng) {
-                    let mut valid = true;
-                    
-                    // Check letters constraint
-                    if let Some(available_letters) = &query.letters {
-                        if !contains_only_letters(word, available_letters) {
-                            valid = false;
-                        }
-                    }
-                    
-                    // Check vowel/consonant constraints
-                    if valid && has_rack_constraints {
-                        let (vowel_count, consonant_count) = count_vowels_consonants(word, vowels);
-                        
-                        if let Some(min_v) = query.min_vowels {
-                            if vowel_count < min_v {
-                                valid = false;
-                            }
-                        }
-                        
-                        if let Some(min_c) = query.min_consonants {
-                            if consonant_count < min_c {
-                                valid = false;
-                            }
-                        }
-                    }
-                    
-                    if valid {
-                        selected.push((*word).clone());
-                        break;
-                    }
-                }
-            }
-        }
-    } else {
-        selected = select_random_words(words, count);
-    }
-
-    let output = selected.join("\n");
-    HttpResponse::Ok().content_type("text/plain").body(output)
-}
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -458,17 +148,17 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(shared_state.clone())
-            .service(get_langs)
-            .service(get_config)
-            .service(check_word_lang)
-            .service(check_word)
-            .service(validate_word_lang)
-            .service(validate_word)
-            .service(rand_letter)
-            .service(rand_vowel)
-            .service(rand_consonant)
-            .service(rand_unicorn)
-            .service(rand_word)
+            .service(handlers::config::get_langs)
+            .service(handlers::config::get_config)
+            .service(handlers::validation::check_word_lang)
+            .service(handlers::validation::check_word)
+            .service(handlers::validation::validate_word_lang)
+            .service(handlers::validation::validate_word)
+            .service(handlers::random::rand_letter)
+            .service(handlers::random::rand_vowel)
+            .service(handlers::random::rand_consonant)
+            .service(handlers::random::rand_unicorn)
+            .service(handlers::random::rand_word)
     })
     .bind(&listen_host)?
     .run()
