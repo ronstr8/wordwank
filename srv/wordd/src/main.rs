@@ -1,22 +1,17 @@
+mod models;
+mod utils;
+
 use actix_web::{get, web, App, HttpServer, HttpResponse, Responder};
 use std::collections::{HashSet, HashMap};
 use std::fs::File;
 use std::io::{self, BufRead};
 use clap::{Command, Arg};
 use log::{info, warn};
-use env_logger;
 use std::fs::OpenOptions;
 use rand::seq::SliceRandom;
 
-// Struct to hold multiple language word lists and pre-computed distributions
-struct AppState {
-    word_lists: HashMap<String, HashSet<String>>,
-    supported_langs: Vec<String>,
-    letter_bags: HashMap<String, HashMap<char, usize>>,          // Computed tile distribution (bag)
-    vowel_sets: HashMap<String, Vec<char>>,                      // Vowels per language
-    consonant_sets: HashMap<String, Vec<char>>,                  // Consonants per language
-    unicorn_sets: HashMap<String, Vec<char>>,                    // Rarest 2 letters per language
-}
+use models::{AppState, LangInfo, ConfigResponse, RandQuery};
+use utils::*;
 
 // Function to initialize logging
 fn init_logging(log_file: Option<&String>) {
@@ -160,11 +155,6 @@ fn classify_letters(freq: &HashMap<char, usize>, lang: &str) -> (Vec<char>, Vec<
 
 
 
-#[derive(serde::Serialize)]
-struct LangInfo {
-    name: String,
-    code: String,
-}
 
 #[get("/langs")]
 async fn get_langs(data: web::Data<AppState>) -> impl Responder {
@@ -182,13 +172,7 @@ async fn get_langs(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(langs)
 }
 
-#[derive(serde::Serialize)]
-struct ConfigResponse {
-    tiles: HashMap<char, usize>,
-    unicorns: HashMap<char, usize>,
-    vowels: Vec<char>,
-    bag: HashMap<char, usize>, // The complete tile bag distribution
-}
+
 
 #[get("/config/{lang}")]
 async fn get_config(
@@ -307,94 +291,17 @@ async fn validate_word(
 }
 
 
-// Helper function to select random items from a weighted bag (HashMap)
-fn select_random_from_bag(bag: &HashMap<char, usize>, count: usize) -> Vec<char> {
-    let mut rng = rand::thread_rng();
-    let mut pool: Vec<char> = Vec::new();
-    
-    // Create a pool with weighted distribution
-    for (&letter, &freq) in bag {
-        if letter != '_' { // Exclude blanks from random selection
-            for _ in 0..freq {
-                pool.push(letter);
-            }
-        }
-    }
-    
-    // Randomly select from pool with replacement
-    (0..count).map(|_| {
-        pool.choose(&mut rng).copied().unwrap_or('A')
-    }).collect()
-}
 
-// Helper function to select random items from a list
-fn select_random_from_list(list: &[char], count: usize) -> Vec<char> {
-    let mut rng = rand::thread_rng();
-    (0..count).map(|_| {
-        list.choose(&mut rng).copied().unwrap_or('A')
-    }).collect()
-}
 
-// Helper function to select random words from a word set
-fn select_random_words(words: &HashSet<String>, count: usize) -> Vec<String> {
-    let mut rng = rand::thread_rng();
-    let words_vec: Vec<&String> = words.iter().collect();
-    (0..count).map(|_| {
-        words_vec.choose(&mut rng).map(|s| (*s).clone()).unwrap_or_else(|| "WORD".to_string())
-    }).collect()
-}
 
-// Query parameter struct for random endpoints
-#[derive(serde::Deserialize)]
-struct RandQuery {
-    count: Option<usize>,
-    letters: Option<String>,
-    min_vowels: Option<usize>,
-    min_consonants: Option<usize>,
-}
 
-fn contains_only_letters(word: &str, letters: &str) -> bool {
-    let word_upper = word.to_uppercase();
-    let mut letter_counts: HashMap<char, usize> = HashMap::new();
-    
-    for ch in letters.to_uppercase().chars() {
-        if ch.is_alphabetic() {
-            *letter_counts.entry(ch).or_insert(0) += 1;
-        }
-    }
-    
-    let mut word_letters: HashMap<char, usize> = HashMap::new();
-    for ch in word_upper.chars() {
-        if ch.is_alphabetic() {
-            *word_letters.entry(ch).or_insert(0) += 1;
-        }
-    }
-    
-    word_letters.iter().all(|(ch, &letters_used)| {
-        letters_used <= letter_counts.get(ch).copied().unwrap_or(0)
-    })
-}
 
-// Helper function to count vowels and consonants in a word
-fn count_vowels_consonants(word: &str, vowels: &[char]) -> (usize, usize) {
-    let word_upper = word.to_uppercase();
-    let vowel_set: HashSet<char> = vowels.iter().map(|c| c.to_uppercase().next().unwrap()).collect();
-    
-    let mut vowel_count = 0;
-    let mut consonant_count = 0;
-    
-    for ch in word_upper.chars() {
-        if ch.is_alphabetic() {
-            if vowel_set.contains(&ch) {
-                vowel_count += 1;
-            } else {
-                consonant_count += 1;
-            }
-        }
-    }
-    
-    (vowel_count, consonant_count)
-}
+
+
+
+
+
+
 
 #[get("/rand/langs/{lang}/letter")]
 async fn rand_letter(
@@ -597,7 +504,7 @@ async fn main() -> std::io::Result<()> {
         .get_matches();
 
 
-    let listen_host = matches
+    let _listen_host = matches
         .get_one::<String>("listen-host")
         .expect("listen-host argument must always have a default value")
         .clone();
@@ -679,76 +586,4 @@ async fn main() -> std::io::Result<()> {
     .bind(("0.0.0.0", 2345))?
     .run()
     .await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_count_vowels_consonants_english() {
-        let english_vowels = vec!['A', 'E', 'I', 'O', 'U'];
-        
-        let (v, c) = count_vowels_consonants("hello", &english_vowels);
-        assert_eq!(v, 2); // e, o
-        assert_eq!(c, 3); // h, l, l
-        
-        let (v, c) = count_vowels_consonants("AEIOU", &english_vowels);
-        assert_eq!(v, 5);
-        assert_eq!(c, 0);
-        
-        let (v, c) = count_vowels_consonants("bcdfg", &english_vowels);
-        assert_eq!(v, 0);
-        assert_eq!(c, 5);
-    }
-
-    #[test]
-    fn test_count_vowels_consonants_spanish() {
-        let spanish_vowels = vec!['A', 'E', 'I', 'O', 'U'];
-        
-        let (v, c) = count_vowels_consonants("hola", &spanish_vowels);
-        assert_eq!(v, 2); // o, a
-        assert_eq!(c, 2); // h, l
-    }
-
-    #[test]
-    fn test_count_vowels_consonants_with_accents() {
-        let french_vowels = vec!['A', 'E', 'I', 'O', 'U', 'Y'];
-        
-        // Test basic vowel counting
-        let (v, c) = count_vowels_consonants("bonjour", &french_vowels);
-        assert_eq!(v, 3); // o, o, u
-        assert_eq!(c, 4); // b, n, j, r
-    }
-
-    #[test]
-    fn test_contains_only_letters() {
-        // Word can be formed from available letters
-        assert!(contains_only_letters("hello", "helloworld")); // has all letters needed
-        assert!(contains_only_letters("HELLO", "helloworld")); // case insensitive
-        assert!(contains_only_letters("hello", "HELLOWORLD")); // case insensitive
-        
-        // Word cannot be formed - missing letters
-        assert!(!contains_only_letters("hello", "hel")); // missing 'o' and extra 'l'
-        assert!(!contains_only_letters("hello", "xyz")); // completely wrong letters
-        
-        // Word can be formed - exact match
-        assert!(contains_only_letters("hello", "hello")); // exact letters
-        assert!(contains_only_letters("hello", "ollhe")); // same letters, different order
-    }
-
-    #[test]
-    fn test_contains_only_letters_duplicates() {
-        // Word requires 2 l's, available letters have 2 l's
-        assert!(contains_only_letters("hello", "hheelllloo")); // more than enough
-        
-        // Word requires 2 a's, available letters have 2 a's
-        assert!(contains_only_letters("aardvark", "aardvarkxyz")); // has enough
-        
-        // Word requires 2 l's, but only 1 'l' available
-        assert!(!contains_only_letters("hello", "hewoxrld")); // only 1 'l', needs 2
-        
-        // Word requires 3 l's, but only 2 available
-        assert!(!contains_only_letters("llll", "ll")); // needs 4, only has 2
-    }
 }

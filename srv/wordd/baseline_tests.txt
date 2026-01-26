@@ -1,0 +1,21 @@
+warning: unused variable: `listen_host`
+   --> src/main.rs:600:9
+    |
+600 |     let listen_host = matches
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_listen_host`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: `wordd` (bin "wordd" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src/main.rs (target/debug/deps/wordd-46d4ee206c2731ab)
+
+running 5 tests
+test tests::test_contains_only_letters ... ok
+test tests::test_contains_only_letters_duplicates ... ok
+test tests::test_count_vowels_consonants_english ... ok
+test tests::test_count_vowels_consonants_spanish ... ok
+test tests::test_count_vowels_consonants_with_accents ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
