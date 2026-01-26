@@ -6,7 +6,8 @@ use UUID::Tiny qw(:std);
 use DateTime;
 use Wordwank::Util::NameGenerator;
 
-my $DEFAULT_GAME_DURATION = 30;
+my $DEFAULT_GAME_DURATION = $ENV{GAME_DURATION} || 30;
+my $DEFAULT_LANG = $ENV{DEFAULT_LANG} || 'en';
 
 sub generate_procedural_name ($id) {
     return Wordwank::Util::NameGenerator->new->generate(4, 1, $id);
@@ -34,9 +35,9 @@ sub websocket ($self) {
             name     => $player->nickname,
             language => $player->language,
             config   => {
-                tiles    => $app->scorer->tile_counts($player->language // 'en'),
-                unicorns => $app->scorer->unicorns($player->language // 'en'),
-                values   => $app->scorer->generate_letter_values($player->language // 'en'),
+                tiles    => $app->scorer->tile_counts($player->language // $DEFAULT_LANG),
+                unicorns => $app->scorer->unicorns($player->language // $DEFAULT_LANG),
+                values   => $app->scorer->generate_letter_values($player->language // $DEFAULT_LANG),
             }
         }
     }});
@@ -74,7 +75,7 @@ sub websocket ($self) {
 sub _handle_join ($self, $player) {
     my $app = $self->app;
     my $schema = $app->schema;
-    my $lang = $player->language // 'en';
+    my $lang = $player->language // $DEFAULT_LANG;
     $app->log->debug("Player " . $player->id . " ($lang) attempting to join...");
     
     # 1. Search for active (started) game for this player's language
@@ -198,7 +199,7 @@ sub _handle_join ($self, $player) {
     }
 
     # Send game_start with accurate time_left and language-specific configs
-    my $game_lang = $active_game->language // 'en';
+    my $game_lang = $active_game->language // $DEFAULT_LANG;
     $app->log->debug("Broadcasting game_start for $gid");
     $self->send({json => {
         type    => 'game_start',
@@ -265,7 +266,7 @@ sub _handle_play ($self, $player, $payload) {
 
     # Verify word can be formed from rack
     my $rack = $game_record->rack;
-    my $lang = $game_record->language // 'en';
+    my $lang = $game_record->language // $DEFAULT_LANG;
 
     $app->log->debug("Checking word '$word' against player rack: @$rack");
     unless ($app->scorer->can_form_word($word, $rack)) {
@@ -491,7 +492,7 @@ sub _end_game ($self, $game) {
 
     my $winner = $results[0];
     my $winner_word = $winner ? $winner->{word} : undef;
-    my $winner_lang = $game->language // 'en';
+    my $winner_lang = $game->language // $DEFAULT_LANG;
     
     # Global Win Broadcast (To all connected players)
     if (!$solo_game && $winner && $winner->{score} > 0) {
@@ -575,7 +576,7 @@ sub _end_game ($self, $game) {
 }
 
 sub _handle_set_language ($self, $player, $payload) {
-    my $lang = $payload->{language} // 'en';
+    my $lang = $payload->{language} // $DEFAULT_LANG;
     $player->update({ language => $lang });
     $self->app->log->debug("Player " . $player->id . " set language to $lang");
 

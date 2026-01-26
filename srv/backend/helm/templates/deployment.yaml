@@ -57,6 +57,8 @@ spec:
               value: {{ .Values.global.minVowels | default 1 | quote }}
             - name: MIN_CONSONANTS
               value: {{ .Values.global.minConsonants | default 1 | quote }}
+            - name: DEFAULT_LANG
+              value: {{ .Values.global.defaultLanguage | default "en" | quote }}
             - name: SHARE_DIR
               value: "/app/share"
           volumeMounts:
