@@ -109,9 +109,9 @@ async fn main() -> std::io::Result<()> {
     let mut unicorn_sets = HashMap::new();
 
     for lang in langs_str.split(',') {
-        let lang = lang.trim();
+        let lang = lang.trim().to_lowercase();
         info!("Loading word list for language: {} (max_len: {})", lang, rack_size);
-        let words = word_loader::load_filtered_words(share_dir, lang, rack_size);
+        let words = word_loader::load_filtered_words(share_dir, &lang, rack_size);
         
         // Calculate letter distribution directly from the filtered in-memory set
         let freq = distribution::calculate_distribution_from_set(&words);
@@ -122,17 +122,17 @@ async fn main() -> std::io::Result<()> {
         info!("Computed tile bag for {} ({} total tiles)", lang, bag.values().sum::<usize>());
         
         // Classify letters
-        let (vowels, consonants, unicorns) = letter_classifier::classify_letters(&freq, lang);
+        let (vowels, consonants, unicorns) = letter_classifier::classify_letters(&freq, &lang);
         info!("Classified letters for {}: {} vowels, {} consonants, {} unicorns", 
               lang, vowels.len(), consonants.len(), unicorns.len());
         
         // Store all pre-computed data
-        word_lists.insert(lang.to_lowercase(), words);
-        supported_langs.push(lang.to_lowercase());
-        letter_bags.insert(lang.to_lowercase(), bag);
-        vowel_sets.insert(lang.to_lowercase(), vowels);
-        consonant_sets.insert(lang.to_lowercase(), consonants);
-        unicorn_sets.insert(lang.to_lowercase(), unicorns);
+        word_lists.insert(lang.clone(), words);
+        supported_langs.push(lang.clone());
+        letter_bags.insert(lang.clone(), bag);
+        vowel_sets.insert(lang.clone(), vowels);
+        consonant_sets.insert(lang.clone(), consonants);
+        unicorn_sets.insert(lang.clone(), unicorns);
     }
 
     let state = AppState {
