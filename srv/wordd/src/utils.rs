@@ -2,13 +2,17 @@ use std::collections::{HashMap, HashSet};
 use rand::seq::SliceRandom;
 
 /// Check if a word can be formed using only the available letters
+/// Supports '_' as a wildcard that can match any letter
 pub fn contains_only_letters(word: &str, letters: &str) -> bool {
     let word_upper = word.to_uppercase();
     let mut letter_counts: HashMap<char, usize> = HashMap::new();
+    let mut wildcards = 0;
     
     for ch in letters.to_uppercase().chars() {
         if ch.is_alphabetic() {
             *letter_counts.entry(ch).or_insert(0) += 1;
+        } else if ch == '_' {
+            wildcards += 1;
         }
     }
     
@@ -19,9 +23,19 @@ pub fn contains_only_letters(word: &str, letters: &str) -> bool {
         }
     }
     
-    word_letters.iter().all(|(ch, &letters_used)| {
-        letters_used <= letter_counts.get(ch).copied().unwrap_or(0)
-    })
+    for (ch, &needed) in word_letters.iter() {
+        let available = letter_counts.get(ch).copied().unwrap_or(0);
+        if needed > available {
+            let deficit = needed - available;
+            if wildcards >= deficit {
+                wildcards -= deficit;
+            } else {
+                return false;
+            }
+        }
+    }
+    
+    true
 }
 
 /// Count vowels and consonants in a word
