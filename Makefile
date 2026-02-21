@@ -122,6 +122,7 @@ setup-storage:
 deploy: minikube-setup setup-storage
 	node scripts/sync-version.js
 	helm dependency update ./helm
+	kubectl delete validatingwebhookconfiguration ingress-nginx-admission || true
 	helm upgrade --install wordwank ./helm \
 		--namespace $(NAMESPACE) \
 		--create-namespace \

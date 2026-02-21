@@ -970,7 +970,7 @@ function App() {
                             </div>
                         </div>
                         <div className="rules-footer">
-                            v{__APP_VERSION__} · <a href="https://github.com/ronstr8/wordwank" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>github.com/ronstr8/wordwank</a>
+                            v{__APP_VERSION__} · {__BUILD_DATE__} · <a href="https://github.com/ronstr8/wordwank" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>github.com/ronstr8/wordwank</a>
                         </div>
                     </div>
                 </DraggablePanel>

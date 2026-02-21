@@ -91,12 +91,13 @@ header {
 .version-stamp {
     position: fixed;
     top: 6px;
-    right: 10px;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.2);
+    left: 10px;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     pointer-events: none;
-    z-index: 9999;
+    z-index: 10001;
     letter-spacing: 0.5px;
     user-select: none;
 }

@@ -122,7 +122,7 @@ const Sidebar = ({
                             Logout
                         </button>
                         <div className="sidebar-version">
-                            v{__APP_VERSION__}
+                            v{__APP_VERSION__} · {__BUILD_DATE__}
                         </div>
                     </div>
                 </div>
