@@ -17,7 +17,8 @@ sub websocket ($self) {
     $self->reseed_prng();
     $self->inactivity_timeout(3600);
 
-    my $player_id = $self->param('id') || 'anon-' . int(rand(1000000));
+    # Always use UUID for player IDs
+    my $player_id = $self->param('id') || create_uuid_as_string(UUID_V4);
     my $schema    = $self->app->schema;
     my $app       = $self->app;
 
@@ -235,7 +236,9 @@ sub _handle_join ($self, $player) {
 
 sub _handle_chat ($self, $player, $payload) {
     my $text = ref $payload eq 'HASH' ? $payload->{text} : $payload;
-    $self->_broadcast_to_player_game($player->id, {
+    
+    # Global chat: broadcast to ALL connected players, not just the current game
+    $self->app->broadcast_all_clients({
         type    => 'chat',
         sender  => $player->id,
         payload => {

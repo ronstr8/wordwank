@@ -58,6 +58,7 @@ function App() {
     });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
+    const [chatToasts, setChatToasts] = useState([]);
 
     useEffect(() => {
         localStorage.setItem('focus_mode', JSON.stringify(isFocusMode));
@@ -227,6 +228,9 @@ function App() {
                         return;
                     }
 
+                    // Show chat toast notification (left side)
+                    showChatToast(senderName, text);
+
                     setMessages(prev => [...prev, {
                         sender: data.sender,
                         senderName: senderName || data.sender,
@@ -369,6 +373,14 @@ function App() {
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 2000); // 2 seconds as requested
+    }, []);
+
+    const showChatToast = useCallback((senderName, text) => {
+        const id = Date.now();
+        setChatToasts(prev => [...prev, { id, senderName, text }]);
+        setTimeout(() => {
+            setChatToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000); // 3 seconds for chat messages
     }, []);
 
     // Persistent state for identity
@@ -626,6 +638,7 @@ function App() {
 
     return (
         <div className={`game-container ${isFocusMode ? 'focus-mode' : ''}`}>
+            <div className="version-stamp">v{__APP_VERSION__} · {__BUILD_DATE__}</div>
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
@@ -1001,10 +1014,21 @@ function App() {
 
             {results && <Results data={results} onClose={joinGame} playerNames={playerNames} isFocusMode={isFocusMode} />}
 
+            {/* Play Toasts (Right Side) */}
             <div className="toast-container">
                 {toasts.map(toast => (
                     <div key={toast.id} className={`toast ${toast.isSplat ? 'splat' : ''}`}>
                         {toast.message}
+                    </div>
+                ))}
+            </div>
+
+            {/* Chat Toasts (Left Side) */}
+            <div className="chat-toast-container">
+                {chatToasts.map(toast => (
+                    <div key={toast.id} className="chat-toast">
+                        <div className="chat-toast-sender">{toast.senderName}</div>
+                        <div className="chat-toast-text">{toast.text}</div>
                     </div>
                 ))}
             </div>

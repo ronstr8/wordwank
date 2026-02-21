@@ -13,7 +13,7 @@ $ENV{SHARE_DIR} = $base_dir;
 
 # Create dummy locale
 my $en_file = File::Spec->catfile($locale_dir, 'en.json');
-Mojo::File->new($en_file)->spurt(encode_json({
+Mojo::File->new($en_file)->spew(encode_json({
     test => {
         key => "Hello {{name}}",
         nested => { key => "Deep" }
@@ -34,7 +34,7 @@ subtest 'Missing Placeholders' => sub {
 
 subtest 'Hot Reload' => sub {
     # Update file
-    Mojo::File->new($en_file)->spurt(encode_json({
+    Mojo::File->new($en_file)->spew(encode_json({
         test => { key => "Updated {{name}}" }
     }));
     

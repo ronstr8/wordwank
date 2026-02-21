@@ -3,7 +3,7 @@ name: wordwank
 description: Umbrella chart for the Wordwank polyglot microservices stack
 type: application
 version: 0.17.0
-appVersion: "0.29.0"
+appVersion: "1.0.0"
 
 dependencies:
   - name: frontend
@@ -22,3 +22,8 @@ dependencies:
     version: 15.5.21
     repository: https://charts.bitnami.com/bitnami
     condition: postgresql.enabled
+
+maintainers:
+  - name: Ron "Quinn" Straight
+    email: straightre@gmail.com
+    url: https://fazigu.org

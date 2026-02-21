@@ -21,9 +21,10 @@ Use this checklist when finalizing a batch of features or preparing for a releas
 
 ## 3. 🏷️ Versioning (SemVer)
 
-- [ ] Bump the version in `srv/frontend/package.json`.
-- [ ] Update the `version` in any relevant Helm charts if applicable.
-- [ ] Ensure the version in `CHANGELOG.md` matches the code version.
+- [ ] Bump the version in `srv/frontend/package.json` (single source of truth).
+// turbo
+- [ ] Run `node scripts/sync-version.js` to propagate to all Helm charts.
+- [ ] Ensure the version in `CHANGELOG.md` matches.
 
 ## 4. 🧹 Cleanup
 

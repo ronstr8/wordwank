@@ -85,6 +85,20 @@ header {
     align-items: center;
     gap: clamp(0.5rem, 2vh, 2rem);
     width: 100%;
+    position: relative;
+}
+
+.version-stamp {
+    position: fixed;
+    top: 6px;
+    right: 10px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    z-index: 9999;
+    letter-spacing: 0.5px;
+    user-select: none;
 }
 
 .game-area {

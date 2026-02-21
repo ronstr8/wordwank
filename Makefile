@@ -113,13 +113,14 @@ backend: minikube-setup registry-tunnel
 # i18n Note: Master truth lives in helm/share/locale/
 # Both frontend and backend mount the wordwank-locales ConfigMap.
 
-# Setup persistent storage directory on host
+# Setup persistent storage directory on host (but this does not actually work)
 setup-storage:
 	@echo "Creating persistent storage directory..."
-	@sudo install -d -m 775 -g root $$HOME/.local/share/k8s-volumes/wordwank/postgresql
+	@install -d -m 775 $$HOME/.local/share/k8s-volumes/wordwank/postgresql
 	@echo "✅ Storage directory ready at $$HOME/.local/share/k8s-volumes/wordwank/postgresql"
 
 deploy: minikube-setup setup-storage
+	node scripts/sync-version.js
 	helm dependency update ./helm
 	helm upgrade --install wordwank ./helm \
 		--namespace $(NAMESPACE) \
