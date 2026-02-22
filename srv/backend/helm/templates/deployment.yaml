@@ -15,7 +15,7 @@ spec:
         {{- include "backend.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ .Chart.Name | quote }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -45,10 +45,32 @@ spec:
                 secretKeyRef:
                   name: db-secrets
                   key: google-client-secret
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: discord-client-id
+            - name: DISCORD_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: discord-client-secret
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: stripe-secret-key
+            - name: ADMIN_DISCORD_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: admin-discord-webhook
+            - name: ADMIN_SMS_EMAIL
+              value: {{ .Values.env.ADMIN_SMS_EMAIL | default "" | quote }}
             - name: MOJO_LISTEN
               value: "http://*:3000"
             - name: MOJO_LOG_LEVEL
-              value: {{ .Values.global.logLevel | default .Values.logLevel | quote }}
+              value: {{ .Values.global.logLevel | default .Values.image.logLevel | quote }}
             - name: GAME_DURATION
               value: {{ .Values.global.gameDuration | quote }}
             - name: RACK_SIZE
@@ -61,6 +83,8 @@ spec:
               value: {{ .Values.global.defaultLanguage | default "en" | quote }}
             - name: SHARE_DIR
               value: "/app/share"
+            - name: CHAT_HISTORY_SIZE
+              value: {{ .Values.global.chatHistorySize | default .Values.env.CHAT_HISTORY_SIZE | default 50 | quote }}
           volumeMounts:
             - name: locales-volume
               mountPath: /app/share/locale

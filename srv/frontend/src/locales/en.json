@@ -31,7 +31,33 @@
         "donate_title": "DONATE",
         "donate_desc": "Love the game? Great, so do I! Hi, I'm Ron \"Quinn\" Straight, and I wrote this thing with my artificial friends. I'm an old gen-X hacker with two girls in college, and I've been unemployed for over a year, so every two bits helps. Whenever you're feeling it. Love you, man.",
         "donate_or": "OR",
-        "donate_footer": "Thank you so much for choosing to wank your words with us."
+        "donate_footer": "Thank you so much for choosing to wank your words with us.",
+        "invite_friend": "INVITE FRIEND",
+        "invite_copied": "Invite link copied to clipboard!",
+        "invite_notify": "{{name}} has started wanking words in {{lang}}! Join them at {{url}}",
+        "lang_en": "English",
+        "lang_es": "Spanish",
+        "lang_fr": "French",
+        "rules_title": "Rules",
+        "donate_button": "Donate",
+        "stats_button": "Stats",
+        "music_on": "Turn on background music",
+        "music_off": "Turn off background music",
+        "mute_on": "Mute all sounds",
+        "mute_off": "Unmute all sounds",
+        "exit_focus": "Exit Focus Mode",
+        "menu_title": "Menu",
+        "game_modes_title": "Game Modes",
+        "focus_mode": "Focus Mode",
+        "panels_title": "Panels",
+        "audio_title": "Audio",
+        "ambience_label": "Ambience",
+        "master_sound_label": "Master Sound",
+        "language_title": "Language",
+        "on": "ON",
+        "off": "OFF",
+        "chat_placeholder": "Type a message...",
+        "chat_send": "SEND"
     },
     "results": {
         "title": "GAME OVER",
@@ -40,7 +66,8 @@
         "word": "Word",
         "score": "Score",
         "play_again": "PLAY AGAIN",
-        "round_over": "THE ROUND IS OVER!",
+        "round_over": "ROUND OVER",
+        "round_over_title": "THE ROUND IS OVER!",
         "wait_what_does": "Wait, what does \"{{word}}\" mean?",
         "no_plays_round": "NO PLAYS THIS ROUND!",
         "riveting": "Everyone just stared at the screen. Riveting.",
@@ -51,7 +78,12 @@
         "duped_you": "duplicated you",
         "duplicate_penalty": "0 points (Duplicate)",
         "solo_wanker": "Unfortunately, a lonely wanker gets no points.",
-        "definition_link": "Definition"
+        "definition_link": "Definition",
+        "suggested_nobody": "Nobody wanked {{word}}.",
+        "suggested_missed": "I would have wanked {{word}}.",
+        "suggested_word_title": "Missed Opportunity",
+        "suggested_word_desc": "You could have played this!",
+        "global_announce": "{{winner}} won with {{word}} for {{score}} pts!"
     },
     "auth": {
         "welcome_back": "Welcome back, explorer! Ready to continue?",
@@ -67,6 +99,16 @@
         "passkey_registered": "Passkey registered successfully!",
         "logout": "Logout",
         "play_anonymously": "Play Anonymously",
-        "anonymous_disclaimer": "We never says who plays, but if you want to keep your wank rank, sign in with one of the below."
+        "anonymous_disclaimer": "We never says who plays, but if you want to keep your wank rank, sign in with one of the below.",
+        "continue_with_discord": "Continue with Discord",
+        "anonymous_failed": "Anonymous login failed."
+    },
+    "stats": {
+        "title": "Player Stats",
+        "loading": "Loading stats...",
+        "your_performance": "Your Performance",
+        "total_points": "Total Points",
+        "words_played": "Words Played",
+        "global_top_10": "Global Top 10"
     }
 }

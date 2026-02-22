@@ -203,8 +203,19 @@ function App() {
                 setIsConnecting(false);
                 setConnectionError(null);
 
-                // Auto-join the active game
-                socket.send(JSON.stringify({ type: 'join' }));
+                // Auto-join the active game or specific invite
+                const urlParams = new URLSearchParams(window.location.search);
+                const inviteGid = urlParams.get('invite');
+                socket.send(JSON.stringify({
+                    type: 'join',
+                    payload: inviteGid ? { gid: inviteGid } : {}
+                }));
+
+                // Clear the invite param from URL after joining to prevent accidental re-joins on refresh
+                if (inviteGid) {
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
             };
 
             socket.onerror = (error) => {
@@ -237,6 +248,14 @@ function App() {
                         text: text,
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                     }]);
+                } else if (data.type === 'chat_history') {
+                    const history = data.payload.map(msg => ({
+                        sender: msg.sender,
+                        senderName: msg.payload.senderName || msg.sender,
+                        text: msg.payload.text,
+                        timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
+                    }));
+                    setMessages(history);
                 } else if (data.type === 'identity') {
                     if (data.payload.id === playerIdRef.current) {
                         setNickname(data.payload.name);
@@ -592,6 +611,13 @@ function App() {
         ws.send(msg);
     };
 
+    const handleInvite = () => {
+        if (!gameId) return;
+        const url = `${window.location.protocol}//${window.location.host}?invite=${gameId}`;
+        navigator.clipboard.writeText(url);
+        showToast(t('app.invite_copied'));
+    };
+
     const sendMessage = (text) => {
         if (ws) {
             const msg = JSON.stringify({
@@ -601,6 +627,22 @@ function App() {
 
             ws.send(msg);
         } else {
+        }
+    };
+
+    const handleStripeCheckout = async () => {
+        try {
+            const resp = await fetch('/payment/stripe/checkout', { method: 'POST' });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                }
+            } else {
+                console.error('Stripe checkout failed');
+            }
+        } catch (err) {
+            console.error('Stripe error:', err);
         }
     };
 
@@ -671,6 +713,9 @@ function App() {
                 handleLogout={handleLogout}
                 nickname={nickname}
                 autoClose={() => setSidebarOpen(false)}
+                gameId={gameId}
+                showToast={showToast}
+                handleInvite={handleInvite}
             />
 
             {!isFocusMode && (
@@ -688,22 +733,23 @@ function App() {
                             className={`panel-toggle ${leaderboardVisible ? 'active' : ''}`}
                             onClick={() => setLeaderboardVisible(!leaderboardVisible)}
                         >
-                            Leaderboard
+                            {t('app.leaderboard')}
                         </button>
                         <button
                             className={`panel-toggle ${chatVisible ? 'active' : ''}`}
                             onClick={() => setChatVisible(!chatVisible)}
                         >
-                            Chat
+                            {t('app.chat')}
                         </button>
                     </div>
 
                     <div className="header-actions desktop-only">
                         {/* Group 1: Authentication */}
                         <div className="button-group">
-                            <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title="Rules">{t('app.help_label')}</button>
-                            <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
-                            <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title="Stats">🏆</button>
+                            <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title={t('app.rules_title')}>{t('app.help_label')}</button>
+                            <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
+                            <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
+                            <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title={t('app.stats_button')}>🏆</button>
                             <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
                                 🚪
                             </button>
@@ -711,10 +757,10 @@ function App() {
 
                         {/* Group 2: Audio Controls */}
                         <div className="button-group">
-                            <button className="header-btn" onClick={toggleAmbience} title={isAmbienceEnabled ? 'Turn off background music' : 'Turn on background music'}>
+                            <button className="header-btn" onClick={toggleAmbience} title={isAmbienceEnabled ? t('app.music_off') : t('app.music_on')}>
                                 {isAmbienceEnabled ? '🎵' : '🔇'}
                             </button>
-                            <button className="header-btn" onClick={toggleMute} title={isMuted ? 'Unmute all sounds' : 'Mute all sounds'}>
+                            <button className="header-btn" onClick={toggleMute} title={isMuted ? t('app.mute_off') : t('app.mute_on')}>
                                 {isMuted ? '🔈' : '🔊'}
                             </button>
                         </div>
@@ -743,13 +789,14 @@ function App() {
                     </div>
 
                     <div className="header-actions mobile-only">
-                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title="Donate">🤗</button>
+                        <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
+                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
                     </div>
                 </header>
             )}
 
             {isFocusMode && (
-                <button className="focus-exit-btn" onClick={() => setIsFocusMode(false)} title="Exit Focus Mode">
+                <button className="focus-exit-btn" onClick={() => setIsFocusMode(false)} title={t('app.exit_focus')}>
                     ✕
                 </button>
             )}
@@ -1001,10 +1048,13 @@ function App() {
 
                             <div className="donation-divider">{t('app.donate_or')}</div>
 
-                            <div className="donation-link stripe-placeholder">
+                            <button
+                                onClick={handleStripeCheckout}
+                                className="donation-link stripe"
+                            >
                                 <span>Stripe</span>
-                                <span className="donation-subtitle">Coming Soon</span>
-                            </div>
+                                <span className="donation-subtitle">Debit or Credit</span>
+                            </button>
                         </div>
 
                         <p className="donation-footer">{t('app.donate_footer')}</p>

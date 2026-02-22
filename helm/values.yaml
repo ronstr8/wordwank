@@ -15,6 +15,7 @@ global:
   minConsonants: 2
   logLevel: debug
   defaultLanguage: en
+  chatHistorySize: 50
 
 # Persistent storage configuration
 persistence:
@@ -59,6 +60,9 @@ backend:
   database:
     url: "dbi:Pg:dbname=wordwank;host=postgresql"
     user: "wordwank_backend"
+  env:
+    ADMIN_SMS_EMAIL: "17169032417@tmomail.net"
+    CHAT_HISTORY_SIZE: 50
 
 # PostgreSQL dependency configuration
 postgresql:

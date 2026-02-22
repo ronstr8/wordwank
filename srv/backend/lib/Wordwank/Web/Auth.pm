@@ -64,6 +64,61 @@ sub google_callback ($self) {
     });
 }
 
+sub discord_login ($self) {
+    my $redirect_uri = $ENV{DISCORD_REDIRECT_URI} || $self->url_for('discord_callback')->to_abs;
+    $self->app->log->debug("Discord OAuth2 Redirect URI: $redirect_uri");
+
+    $self->oauth2->get_token_p('discord' => {
+        scope => 'identify email',
+        authorize_query => { response_type => 'code' },
+        redirect_uri => $redirect_uri,
+    })->then(sub ($data) {
+        # Redirect handled by plugin
+    })->catch(sub ($err) {
+        $self->app->log->error("Discord OAuth error: $err");
+        $self->render(json => { error => $err }, status => 400);
+    });
+}
+
+sub discord_callback ($self) {
+    my $redirect_uri = $ENV{DISCORD_REDIRECT_URI} || $self->url_for('discord_callback')->to_abs;
+
+    $self->oauth2->get_token_p('discord' => {
+        response_type => 'code',
+        redirect_uri => $redirect_uri,
+    })->then(sub ($data) {
+        my $access_token = $data->{access_token};
+        # Exchange token for user info via Discord Users API
+        return $self->ua->get_p("https://discord.com/api/users/\@me", { Authorization => "Bearer $access_token" });
+    })->then(sub ($tx) {
+        my $user_info = $tx->result->json;
+        if (!$user_info || $user_info->{error}) {
+             die "Failed to get user info: " . ($user_info->{error} || "Unknown error");
+        }
+
+        # Find or create player using the ResultSet method
+        my $player = $self->schema->resultset('Player')->find_or_create_from_discord($user_info);
+        
+        # Create session
+        my $session = $player->create_session;
+        
+        # Set session cookie
+        my $expires = DateTime->now->add(days => 30);
+        $self->cookie(ww_session => $session->id, {
+            path => '/',
+            expires => $expires->epoch,
+            httponly => 1,
+            secure => 0,
+            samesite => 'Lax',
+        });
+        
+        $self->redirect_to('/');
+    })->catch(sub ($err) {
+        $self->app->log->error("Discord Callback error: $err");
+        $self->render(text => "Auth failed: $err", status => 500);
+    });
+}
+
 sub _create_session ($self, $player) {
     my $session_id = unpack 'H*', urandom(32);
     my $expires = DateTime->now->add(days => 30);

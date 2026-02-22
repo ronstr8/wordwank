@@ -52,7 +52,7 @@ const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
             </div>
             <div className="results-card" onClick={handleCardClick}>
                 {!isFocusMode && <h2>{t('results.title')}!</h2>}
-                {isFocusMode && <div className="focus-results-label">Round Over</div>}
+                {isFocusMode && <div className="focus-results-label">{t('results.round_over')}</div>}
 
                 <div className="results-list">
                     {safeResults.length === 0 ? (

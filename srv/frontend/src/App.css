@@ -829,13 +829,13 @@ header {
     box-shadow: 0 6px 0 #005a96;
 }
 
-.donation-link.stripe-placeholder {
+.donation-link.stripe {
     background: #635bff;
     color: white;
     box-shadow: 0 4px 0 #4f48cc;
 }
 
-.donation-link.stripe-placeholder:hover {
+.donation-link.stripe:hover {
     background: #7a73ff;
     transform: translateY(-2px);
     box-shadow: 0 6px 0 #4f48cc;

@@ -109,7 +109,41 @@ This will install cert-manager and apply a NAT workaround (hostAliases patch) th
 
 *Note: The setup uses Let's Encrypt production by default. Your domain must be publicly accessible on port 80 for HTTP-01 validation to succeed.*
 
-### 6. PLAYTIME
+### 6. External Services Setup
+
+Wordwank integrates with several external services for authentication, notifications, and payments. Follow these steps to generate the required credentials:
+
+#### 🔑 Google OAuth
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project or select an existing one.
+3. Configure the **OAuth consent screen**.
+4. Create **OAuth 2.0 Client IDs** (Web application).
+5. Add `https://wordwank.fazigu.org/auth/google/callback` to the **Authorized redirect URIs**.
+6. Copy the `Client ID` and `Client Secret` to `helm/secrets.yaml`.
+
+#### 🎮 Discord OAuth & Webhooks
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Create a new Application.
+3. Under **OAuth2 -> General**, add `https://wordwank.fazigu.org/auth/discord/callback` to the **Redirects**.
+4. In the **OAuth2 -> URL Generator**, select the following scopes:
+   - `identify`
+   - `email`
+5. Copy the `Client ID` and `Client Secret` to `helm/secrets.yaml`.
+6. To enable **Notifications**:
+   - In your Discord server, go to a channel's settings -> **Integrations** -> **Webhooks**.
+   - Create a new webhook and copy the **Webhook URL** to `helm/secrets.yaml` under `admin-discord-webhook`.
+
+#### 💳 Stripe Payments
+
+1. Go to the [Stripe Dashboard](https://dashboard.stripe.com/).
+2. Look for the **Developers** link (usually a toggle in the **top-right** corner of the dashboard).
+   - If you can't see it, ensure you're in the main dashboard view.
+   - Alternatively, go directly to: [https://dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys).
+3. Under the **API keys** tab, copy the **Secret key** (starts with `sk_...`) to `helm/secrets.yaml` under `stripe-secret-key`.
+
+### 7. PLAYTIME
 
 Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup) to begin.
 

@@ -29,9 +29,9 @@ const Chat = ({ messages, onSendMessage }) => {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder={t('app.chat_placeholder')}
                 />
-                <button type="submit">SEND</button>
+                <button type="submit">{t('app.chat_send')}</button>
             </form>
         </>
     )

@@ -12,6 +12,10 @@ const Login = ({ onLoginSuccess }) => {
         window.location.href = '/auth/google';
     };
 
+    const handleDiscordLogin = () => {
+        window.location.href = '/auth/discord';
+    };
+
     const handlePasskeyLogin = async () => {
         setLoading(true);
         setError(null);
@@ -101,6 +105,11 @@ const Login = ({ onLoginSuccess }) => {
                     <button className="auth-btn google" onClick={handleGoogleLogin} disabled={loading}>
                         <img src="/icons/google.svg" alt="" />
                         {t('auth.continue_with_google')}
+                    </button>
+
+                    <button className="auth-btn discord" onClick={handleDiscordLogin} disabled={loading}>
+                        <span className="icon">🎮</span>
+                        {t('auth.continue_with_discord', 'Continue with Discord')}
                     </button>
 
                     <button className="auth-btn passkey" onClick={handlePasskeyLogin} disabled={loading}>

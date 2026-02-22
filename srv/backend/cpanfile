@@ -17,6 +17,8 @@ requires 'Authen::WebAuthn', '0.005';
 requires 'Crypt::URandom';
 requires 'Crypt::JWT';
 requires 'DBIx::Class::TimeStamp';
+requires 'Net::Stripe', '0.42';
+requires 'Email::Stuffer';
 
 on 'test' => sub {
     requires 'Test::More', '0.98';

@@ -54,6 +54,56 @@ sub find_or_create_from_google {
     });
 }
 
+sub find_or_create_from_discord {
+    my ($self, $user_info) = @_;
+    my $schema = $self->result_source->schema;
+    
+    my $discord_id = $user_info->{id};
+    my $email = $user_info->{email};
+    my $name = $user_info->{username};
+
+    # Start a transaction
+    return $schema->txn_do(sub {
+        # Check for identity first
+        my $identity = $schema->resultset('PlayerIdentity')->find({
+            provider => 'discord',
+            provider_id => $discord_id,
+        });
+
+        if ($identity) {
+            my $player = $identity->player;
+            $player->update({ 
+                last_login_at => DateTime->now,
+                real_name     => $name,
+            });
+            return $player;
+        }
+
+        # Check for player by email if no identity (account linkage)
+        my $player = $email ? $self->find({ email => $email }) : undef;
+        
+        if (!$player) {
+            # New Player
+            my $gen = Wordwank::Util::NameGenerator->new;
+            $player = $self->create({
+                id => create_uuid_as_string(UUID_V4),
+                nickname => $gen->generate(4, 1, $discord_id),
+                real_name => $name,
+                email => $email,
+                last_login_at => DateTime->now,
+            });
+        }
+
+        # Create identity
+        $player->create_related('identities', {
+            provider => 'discord',
+            provider_id => $discord_id,
+        });
+
+        return $player;
+    });
+}
+
 sub create_session {
     my ($player) = @_;
     my $session_token = unpack 'H*', Crypt::URandom::urandom(32);

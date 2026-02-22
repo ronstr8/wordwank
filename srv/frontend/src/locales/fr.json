@@ -26,12 +26,38 @@
         "reload": "RECHARGER LA PAGE",
         "accepted": "ACCEPTÉ !",
         "error_word_not_found": "On ne branle pas '{{word}}'.",
-        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les valeurs des lettres sont basées sur leur fréquence dans la chaussette de branlette : les lettres courantes valent 1 point, tandis que les plus rares rapportent progressivement plus (jusqu'à 9 points). Les deux lettres 'Licornes' les plus rares valent 10 points ! Une lettre par jour vaut 7 points. Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais accordent un bonus au premier joueur !",
+        "rules_summary": "Wordwank est un duel de vocabulaire à grande vitesse ! Utilisez vos jetons pour former le mot le plus payant. Les valeurs des lettres sont basées sur leur fréquence dans la chaussette de branlette : les lettres courantes valent 1 point, tandis que les plus rares rapportent progressivement plus (up to 9 points). Les deux lettres 'Licornes' les plus rares valent 10 points ! Une lettre par jour vaut 7 points. Le score est dynamique : mot Unique (+5) ou Bonus de Longueur (+5 pour 6 lettres, doublé pour chaque lettre suivante). Attention : les doublons valent 0 point pour vous, mais accordent un bonus au premier joueur !",
         "tile_frequencies": "Fréquence des Lettres",
         "donate_title": "FAIRE UN DON",
         "donate_desc": "Vous aimez le jeu ? Super, moi aussi ! Salut, je suis Ron \"Quinn\" Straight, et j'ai écrit ce truc avec mes amis artificiels. Je suis un vieux hacker de la génération X avec deux filles à l'université, et je suis au chômage depuis plus d'un ans, donc chaque petit geste compte. Quand vous le sentez. Je vous aime, les gars.",
         "donate_or": "OU",
-        "donate_footer": "Merci beaucoup d'avoir choisi de branler vos mots avec nous."
+        "donate_footer": "Merci beaucoup d'avoir choisi de branler vos mots avec nous.",
+        "invite_friend": "INVITER UN AMI",
+        "invite_copied": "Lien d'invitation copié !",
+        "invite_notify": "{{name}} a commencé à branler des mots en {{lang}} ! Rejoignez-les sur {{url}}",
+        "lang_en": "anglais",
+        "lang_es": "espagnol",
+        "lang_fr": "français",
+        "rules_title": "Règles",
+        "donate_button": "Faire un don",
+        "stats_button": "Stats",
+        "music_on": "Activer la musique de fond",
+        "music_off": "Désactiver la musique de fond",
+        "mute_on": "Couper tous les sons",
+        "mute_off": "Activer tous les sons",
+        "exit_focus": "Quitter le mode focus",
+        "menu_title": "Menu",
+        "game_modes_title": "Modes de Jeu",
+        "focus_mode": "Mode Focus",
+        "panels_title": "Panneaux",
+        "audio_title": "Audio",
+        "ambience_label": "Ambiance",
+        "master_sound_label": "Son Principal",
+        "language_title": "Langue",
+        "on": "OUI",
+        "off": "NON",
+        "chat_placeholder": "Tapez un message...",
+        "chat_send": "ENVOYER"
     },
     "results": {
         "title": "PARTIE TERMINÉE",
@@ -40,7 +66,8 @@
         "word": "Mot",
         "score": "Score",
         "play_again": "REJOUER",
-        "round_over": "LA MANCHE EST TERMINÉE !",
+        "round_over": "FIN DE LA RONDE",
+        "round_over_title": "LA RONDE EST TERMINÉE !",
         "wait_what_does": "Attendez, que signifie \"{{word}}\" ?",
         "no_plays_round": "AUCUNE JOUÉE CETTE MANCHE !",
         "riveting": "Tout le monde est resté figé sur l'écran. Passionnant.",
@@ -51,7 +78,12 @@
         "duped_you": "vous a dupliqué",
         "duplicate_penalty": "0 point (Doublon)",
         "solo_wanker": "Malheureusement, un branleur solitaire ne reçoit aucun point.",
-        "definition_link": "Définition"
+        "definition_link": "Définition",
+        "suggested_nobody": "Personne n'a branlé {{word}}.",
+        "suggested_missed": "J'aurais branlé {{word}}.",
+        "suggested_word_title": "Occasion Manquée",
+        "suggested_word_desc": "Tu aurais pu jouer ça !",
+        "global_announce": "{{winner}} a gagné avec {{word}} pour {{score}} pts !"
     },
     "auth": {
         "welcome_back": "Bon retour, explorateur ! Prêt à continuer ?",
@@ -67,6 +99,16 @@
         "passkey_registered": "Passkey enregistrée avec succès !",
         "logout": "Déconnexion",
         "play_anonymously": "Jouer Anonymement",
-        "anonymous_disclaimer": "On ne dit jamais qui joue, mais si vous voulez garder votre rang de branlette, connectez-vous avec l'un des ci-dessous."
+        "anonymous_disclaimer": "On ne dit jamais qui joue, mais si vous voulez garder votre rang de branlette, connectez-vous avec l'un des ci-dessous.",
+        "continue_with_discord": "Continuer with Discord",
+        "anonymous_failed": "La connexion anonyme a échoué."
+    },
+    "stats": {
+        "title": "Stats du Joueur",
+        "loading": "Chargement des stats...",
+        "your_performance": "Votre Performance",
+        "total_points": "Points Totaux",
+        "words_played": "Mots Joués",
+        "global_top_10": "Top 10 Global"
     }
 }

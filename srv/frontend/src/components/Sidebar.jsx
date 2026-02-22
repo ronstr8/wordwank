@@ -24,7 +24,10 @@ const Sidebar = ({
     onLanguageChange,
     handleLogout,
     nickname,
-    autoClose
+    autoClose,
+    gameId,
+    showToast,
+    handleInvite
 }) => {
     const { t } = useTranslation();
 
@@ -38,7 +41,7 @@ const Sidebar = ({
             <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
             <div className={`sidebar ${isOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
-                    <h2>Menu</h2>
+                    <h2>{t('app.menu_title')}</h2>
                     <button className="sidebar-close" onClick={onClose}>×</button>
                 </div>
 
@@ -51,55 +54,56 @@ const Sidebar = ({
                     )}
 
                     <div className="sidebar-section">
-                        <h3>Game Modes</h3>
+                        <h3>{t('app.game_modes_title')}</h3>
                         <button
                             className={`sidebar-btn ${isFocusMode ? 'active' : ''}`}
                             onClick={() => handleAction(() => setIsFocusMode(!isFocusMode))}
                         >
                             <span className="sidebar-icon">🎯</span>
-                            Focus Mode {isFocusMode ? 'ON' : 'OFF'}
+                            {t('app.focus_mode')} {isFocusMode ? t('app.on') : t('app.off')}
                         </button>
                     </div>
 
+
                     <div className="sidebar-section">
-                        <h3>Panels</h3>
+                        <h3>{t('app.panels_title')}</h3>
                         <button
                             className={`sidebar-btn ${leaderboardVisible ? 'active' : ''}`}
                             onClick={() => handleAction(() => setLeaderboardVisible(!leaderboardVisible))}
                         >
                             <span className="sidebar-icon">🏆</span>
-                            Leaderboard
+                            {t('app.leaderboard')}
                         </button>
                         <button
                             className={`sidebar-btn ${chatVisible ? 'active' : ''}`}
                             onClick={() => handleAction(() => setChatVisible(!chatVisible))}
                         >
                             <span className="sidebar-icon">💬</span>
-                            Chat
+                            {t('app.chat')}
                         </button>
                         <button
                             className={`sidebar-btn ${statsVisible ? 'active' : ''}`}
                             onClick={() => handleAction(() => setStatsVisible(!statsVisible))}
                         >
                             <span className="sidebar-icon">📊</span>
-                            Stats
+                            {t('app.stats_button')}
                         </button>
                     </div>
 
                     <div className="sidebar-section">
-                        <h3>Audio</h3>
+                        <h3>{t('app.audio_title')}</h3>
                         <button className="sidebar-btn" onClick={toggleAmbience}>
                             <span className="sidebar-icon">{isAmbienceEnabled ? '🎵' : '🔇'}</span>
-                            Ambience: {isAmbienceEnabled ? 'ON' : 'OFF'}
+                            {t('app.ambience_label')}: {isAmbienceEnabled ? t('app.on') : t('app.off')}
                         </button>
                         <button className="sidebar-btn" onClick={toggleMute}>
                             <span className="sidebar-icon">{isMuted ? '🔇' : '🔊'}</span>
-                            Master Sound: {isMuted ? 'OFF' : 'ON'}
+                            {t('app.master_sound_label')}: {isMuted ? t('app.off') : t('app.on')}
                         </button>
                     </div>
 
                     <div className="sidebar-section">
-                        <h3>Language</h3>
+                        <h3>{t('app.language_title')}</h3>
                         <div className="sidebar-lang-picker">
                             <button className={language === 'en' ? 'active' : ''} onClick={() => onLanguageChange('en')}>EN</button>
                             <button className={language === 'es' ? 'active' : ''} onClick={() => onLanguageChange('es')}>ES</button>
@@ -111,15 +115,28 @@ const Sidebar = ({
                     <div className="sidebar-footer">
                         <button className="sidebar-btn" onClick={() => handleAction(() => setShowRules(true))}>
                             <span className="sidebar-icon">❓</span>
-                            Rules
+                            {t('app.help_label')}
+                        </button>
+                        <button
+                            className="sidebar-btn"
+                            onClick={() => handleAction(handleInvite ? handleInvite : () => {
+                                if (!gameId) return;
+                                const url = `${window.location.protocol}//${window.location.host}?invite=${gameId}`;
+                                navigator.clipboard.writeText(url);
+                                showToast(t('app.invite_copied'));
+                            })}
+                            disabled={!gameId}
+                        >
+                            <span className="sidebar-icon">🔗</span>
+                            {t('app.invite_friend')}
                         </button>
                         <button className="sidebar-btn" onClick={() => handleAction(() => setShowDonations(true))}>
                             <span className="sidebar-icon">🤗</span>
-                            Donate
+                            {t('app.donate_button')}
                         </button>
                         <button className="sidebar-btn logout" onClick={handleLogout}>
                             <span className="sidebar-icon">🚪</span>
-                            Logout
+                            {t('auth.logout')}
                         </button>
                         <div className="sidebar-version">
                             v{__APP_VERSION__} · {__BUILD_DATE__}

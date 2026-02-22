@@ -4,6 +4,7 @@ image:
   pullPolicy: Always
   tag: "0.23.0"
   logLevel: debug
+  chatHistorySize: 50
 service:
   type: ClusterIP
   port: 3000

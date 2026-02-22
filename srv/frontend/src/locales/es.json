@@ -31,7 +31,33 @@
         "donate_title": "DONACIÓN",
         "donate_desc": "¿Te gusta el juego? ¡Genial, a mí también! Hola, soy Ron \"Quinn\" Straight, y escribí esto con mis amigos artificiales. Soy un viejo hacker de la generación X con dos hijas en la universidad, y he estado desempleado por más de un año, así que cada granito ayuda. Cuando sientas que puedes. Te quiero, tío.",
         "donate_or": "O",
-        "donate_footer": "Muchas gracias por elegir pajillear tus palabras con nosotros."
+        "donate_footer": "Muchas gracias por elegir pajillear tus palabras con nosotros.",
+        "invite_friend": "INVITAR AMIGO",
+        "invite_copied": "¡Enlace de invitación copiado!",
+        "invite_notify": "¡{{name}} ha empezado a pajillear palabras en {{lang}}! Jefe, únete a ellos en {{url}}",
+        "lang_en": "inglés",
+        "lang_es": "español",
+        "lang_fr": "francés",
+        "rules_title": "Reglas",
+        "donate_button": "Donar",
+        "stats_button": "Estadísticas",
+        "music_on": "Activar música de fondo",
+        "music_off": "Desactivar música de fondo",
+        "mute_on": "Silenciar todos los sonidos",
+        "mute_off": "Activar todos los sonidos",
+        "exit_focus": "Salir del modo enfoque",
+        "menu_title": "Menú",
+        "game_modes_title": "Modos de Juego",
+        "focus_mode": "Modo Enfoque",
+        "panels_title": "Paneles",
+        "audio_title": "Audio",
+        "ambience_label": "Ambiente",
+        "master_sound_label": "Sonido Maestro",
+        "language_title": "Idioma",
+        "on": "SÍ",
+        "off": "NO",
+        "chat_placeholder": "Escribe un mensaje...",
+        "chat_send": "ENVIAR"
     },
     "results": {
         "title": "FIN DEL JUEGO",
@@ -40,7 +66,8 @@
         "word": "Palabra",
         "score": "Puntuación",
         "play_again": "JUGAR DE NUEVO",
-        "round_over": "¡LA RONDA HA TERMINADO!",
+        "round_over": "RONDA TERMINADA",
+        "round_over_title": "¡LA RONDA HA TERMINADO!",
         "wait_what_does": "Espera, ¿qué significa \"{{word}}\"?",
         "no_plays_round": "¡SIN JUGADAS EN ESTA RONDA!",
         "riveting": "Todos se quedaron mirando la pantalla. Fascinante.",
@@ -51,7 +78,12 @@
         "duped_you": "te ha duplicado",
         "duplicate_penalty": "0 puntos (Duplicado)",
         "solo_wanker": "Lamentablemente, un pajillero solitario no recibe puntos.",
-        "definition_link": "Definición"
+        "definition_link": "Definición",
+        "suggested_nobody": "Nadie pajilleó {{word}}.",
+        "suggested_missed": "Yo hubiera pajilleado {{word}}.",
+        "suggested_word_title": "Oportunidad Perdida",
+        "suggested_word_desc": "¡Podrías haber jugado esto!",
+        "global_announce": "¡{{winner}} ganó con {{word}} por {{score}} pts!"
     },
     "auth": {
         "welcome_back": "¡Bienvenido de nuevo, explorador! ¿Listo para continuar?",
@@ -67,6 +99,16 @@
         "passkey_registered": "¡Passkey registrado con éxito!",
         "logout": "Cerrar sesión",
         "play_anonymously": "Jugar Anónimamente",
-        "anonymous_disclaimer": "Nunca decimos quién juega, pero si quieres mantener tu rango de pajas, inicia sesión con uno de los siguientes."
+        "anonymous_disclaimer": "Nunca decimos quién juega, pero si quieres mantener tu rango de pajas, inicia sesión con uno de los siguientes.",
+        "continue_with_discord": "Continuar con Discord",
+        "anonymous_failed": "El inicio de sesión anónimo falló."
+    },
+    "stats": {
+        "title": "Estadísticas del Jugador",
+        "loading": "Cargando estadísticas...",
+        "your_performance": "Tu Rendimiento",
+        "total_points": "Puntos Totales",
+        "words_played": "Palabras Jugadas",
+        "global_top_10": "Top 10 Global"
     }
 }

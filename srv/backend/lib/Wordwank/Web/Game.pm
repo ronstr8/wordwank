@@ -55,7 +55,7 @@ sub websocket ($self) {
         my $payload = $data->{payload} // {};
 
         if ($type eq 'join') {
-            $c->_handle_join($player);
+            $c->_handle_join($player, $payload->{gid});
         }
         elsif ($type eq 'chat') {
             $c->_handle_chat($player, $payload);
@@ -73,22 +73,35 @@ sub websocket ($self) {
     });
 }
 
-sub _handle_join ($self, $player) {
+sub _handle_join ($self, $player, $invite_gid = undef) {
     my $app = $self->app;
     my $schema = $app->schema;
     my $lang = $player->language // $DEFAULT_LANG;
-    $app->log->debug("Player " . $player->id . " ($lang) attempting to join...");
+    $app->log->debug("Player " . $player->id . " ($lang) attempting to join..." . ($invite_gid ? " (invited to $invite_gid)" : ""));
     
-    # 1. Search for active (started) game for this player's language
+    # 1. Search for active (started) game
     my $game_rs = $schema->resultset('Game');
-    my $active_game = $game_rs->search(
-        { 
-            finished_at => undef, 
-            language    => $lang,
-            started_at  => { -not => undef }
-        }, 
-        { order_by => { -desc => 'started_at' }, rows => 1 }
-    )->single;
+    my $active_game;
+
+    if ($invite_gid) {
+        $active_game = $game_rs->find($invite_gid);
+        if ($active_game && $active_game->finished_at) {
+            $app->log->debug("Invited game $invite_gid already finished, falling back to active search");
+            $active_game = undef;
+        }
+    }
+
+    if (!$active_game) {
+        # 1. Search for active (started) game for this player's language
+        $active_game = $game_rs->search(
+            { 
+                finished_at => undef, 
+                language    => $lang,
+                started_at  => { -not => undef }
+            }, 
+            { order_by => { -desc => 'started_at' }, rows => 1 }
+        )->single;
+    }
 
     # Check for stale games (Zombie Recovery for started games)
     if ($active_game) {
@@ -215,6 +228,17 @@ sub _handle_join ($self, $player) {
         }
     }});
 
+    # If this is the first player joining a game, notify admin
+    if (scalar(keys %$game_clients) == 1) {
+        my $game_lang = $active_game->language // $DEFAULT_LANG;
+        my $full_lang = $self->t("app.lang_$game_lang", $game_lang);
+        $self->notify_admin($self->t('app.invite_notify', $game_lang, { 
+            name => $player->nickname, 
+            lang => $full_lang,
+            url  => 'https://wordwank.fazigu.org' 
+        }));
+    }
+
     # Notify others of the join via a dedicated event instead of chat
     $self->_broadcast_to_game($gid, {
         type    => 'player_joined',
@@ -232,6 +256,12 @@ sub _handle_join ($self, $player) {
             name => $player->nickname
         }
     });
+
+    # Send chat history to the new player
+    $self->send({json => {
+        type    => 'chat_history',
+        payload => $app->chat_history
+    }});
 }
 
 sub _handle_chat ($self, $player, $payload) {

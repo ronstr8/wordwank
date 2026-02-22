@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 **Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
 
+## [1.3.0] - 2026-02-22
+
+### Added (1.3.0)
+
+- **Chat History Persistence**: The chat window now remembers and displays the last 50 messages globally. New players can see the recent conversation history upon joining.
+  - Added `CHAT_HISTORY_SIZE` environment variable and Helm configuration to make the history limit adjustable.
+- **Hunspell Lexicon Converter**: Added `hunspell_to_lexicon.pl` to allow expansion of word lists from Hunspell dictionaries.
+  - Automatically filters out proper nouns (capitalized words).
+  - Strips Hunspell flags for a clean plain-text lexicon for `wordd`.
+
+### Fixed (1.3.0)
+
+- **Locale Cleanup**: Removed duplicate keys for `rules_summary` and `tile_frequencies` in the German (`de.json`) translation.
+
+## [1.2.0] - 2026-02-22
+
+### Added (1.2.0)
+
+- **Stripe Integration**: Fully integrated Stripe Checkout for donations and subscriptions.
+  - Implemented backend payment verification and session fulfillment.
+  - Added Stripe credentials to Helm secret management.
+- **Invite Friend Feature**: New "🔗 INVITE FRIEND" button in sidebar and header for instant game link sharing.
+  - Automatic clipboard copy of unique game invite links.
+  - Frontend auto-join logic for invite-parameterized URLs.
+- **Hybrid Notifications**:
+  - **Discord Webhooks**: Real-time game entry notifications via configurable webhooks.
+  - **Email-to-SMS Relay**: Dedicated relay for Mint Mobile (and general SMTP) notifications.
+  - Centralized notification setting toggle in backend configuration.
+
+### Improved (1.2.0)
+
+- **Discord OAuth Stability**: Standardized Discord authorization URLs and resolved `unsupported_response_type` errors.
+- **Infrastructure Reliability**:
+  - Restored correct `nindent` filters in Helm templates to fix label/selector alignment.
+  - Sanitized environment variable quoting in `deployment.yaml` to prevent literal quote leakage.
+  - Added Workspace Settings (`.vscode/settings.json`) to disable conflicting YAML formatters.
+
+### Fixed (1.2.0)
+
+- **Critical Auth Bug**: Fixed a 500 error where Perl accidentally interpolated `@me` in the Discord user API query, disabling the entire `Auth` controller.
+
 ## [0.31.0] - 2026-01-26
 
 ### Refactored (0.31.0)

@@ -22,6 +22,9 @@ has broadcaster => sub ($self) { Wordwank::Game::Broadcaster->new(app => $self) 
 # Track connected clients by Game UUID
 has games => sub { {} };
 
+# Store last X chat messages globally
+has chat_history => sub { [] };
+
 has ua => sub { Mojo::UserAgent->new };
 
 sub startup ($self) {
@@ -90,11 +93,17 @@ sub startup ($self) {
         return $val;
     });
 
-    # OAuth2 Configuration (Google)
+    # OAuth2 Configuration (Google & Discord)
     $self->plugin('OAuth2' => {
         google => {
             key    => $ENV{GOOGLE_CLIENT_ID}     || 'MISSING',
             secret => $ENV{GOOGLE_CLIENT_SECRET} || 'MISSING',
+        },
+        discord => {
+            key    => $ENV{DISCORD_CLIENT_ID}     || 'MISSING',
+            secret => $ENV{DISCORD_CLIENT_SECRET} || 'MISSING',
+            authorize_url => 'https://discord.com/oauth2/authorize',
+            token_url     => 'https://discord.com/api/oauth2/token',
         }
     });
 
@@ -111,6 +120,8 @@ sub startup ($self) {
     my $auth = $r->any('/auth');
     $auth->get('/google')->to('auth#google_login');
     $auth->get('/google/callback')->to('auth#google_callback')->name('google_callback');
+    $auth->get('/discord')->to('auth#discord_login');
+    $auth->get('/discord/callback')->to('auth#discord_callback')->name('discord_callback');
     $auth->get('/me')->to('auth#me');
     $auth->post('/logout')->to('auth#logout');
     $auth->post('/anonymous')->to('auth#anonymous_login');
@@ -120,12 +131,52 @@ sub startup ($self) {
     # WebSocket for game
     $r->websocket('/ws')->to('game#websocket');
 
+    # Payment Routes
+    $r->post('/payment/stripe/checkout')->to('payment#create_checkout_session');
+
     # HTTP API for stats
     $r->get('/players/leaderboard')->to('stats#leaderboard');
 
     # Global Broadcast Helper (broadcasts to EVERY connected client in EVERY game)
     $self->helper(broadcast_all_clients => sub ($c, $msg) {
-        $c->app->broadcaster->announce_all_but($msg);
+        # Store in history if it's a chat message
+    if ($msg->{type} eq 'chat') {
+        my $history = $c->app->chat_history;
+        my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
+        push @$history, $msg;
+        shift @$history while @$history > $limit; # Use while to be safe
+    }
+    $c->app->broadcaster->announce_all_but($msg);
+    });
+
+    # Notification Helper
+    $self->helper(notify_admin => sub ($c, $message) {
+        my $app = $c->app;
+        
+        # 1. Discord Webhook
+        if (my $webhook_url = $ENV{ADMIN_DISCORD_WEBHOOK}) {
+            $app->ua->post($webhook_url => json => { content => $message } => sub ($ua, $tx) {
+                if (my $err = $tx->error) {
+                    $app->log->error("Discord notification failed: " . ($err->{message} || "Unknown error"));
+                }
+            });
+        }
+
+        # 2. SMS via Email Relay (Mint Mobile: 17169032417@tmomail.net)
+        if (my $sms_email = $ENV{ADMIN_SMS_EMAIL}) {
+             require Email::Stuffer;
+             eval {
+                 Email::Stuffer->from($ENV{MAIL_FROM} || 'noreply@wordwank.fazigu.org')
+                              ->to($sms_email)
+                              ->subject('Wordwank Alert')
+                              ->text_body($message)
+                              ->send;
+                 $app->log->debug("Sent SMS notification to $sms_email");
+             };
+             if ($@) {
+                 $app->log->error("Failed to send SMS notification: $@");
+             }
+        }
     });
 
     # Background task: Pre-populate games (ensure every language has a pending or active game)
