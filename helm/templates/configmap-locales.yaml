@@ -10,3 +10,5 @@ data:
 {{ .Files.Get "share/locale/es.json" | indent 4 }}
   fr.json: |-
 {{ .Files.Get "share/locale/fr.json" | indent 4 }}
+  de.json: |-
+{{ .Files.Get "share/locale/de.json" | indent 4 }}

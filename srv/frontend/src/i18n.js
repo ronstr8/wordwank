@@ -10,7 +10,7 @@ i18n
     .init({
         fallbackLng: 'en',
         backend: {
-            loadPath: '/locales/{{lng}}.json',
+            loadPath: `/locales/{{lng}}.json?v=${__APP_VERSION__}`,
         },
         interpolation: {
             escapeValue: false

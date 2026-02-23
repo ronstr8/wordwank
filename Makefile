@@ -143,6 +143,7 @@ locales:
 		--from-file=en.json=helm/share/locale/en.json \
 		--from-file=es.json=helm/share/locale/es.json \
 		--from-file=fr.json=helm/share/locale/fr.json \
+		--from-file=de.json=helm/share/locale/de.json \
 		--dry-run=client -o yaml | kubectl apply --namespace $(NAMESPACE) -f -
 	@echo "✅ ConfigMap updated. Pods will pick up changes within 5 minutes."
 
