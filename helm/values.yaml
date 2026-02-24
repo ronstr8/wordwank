@@ -16,6 +16,7 @@ global:
   logLevel: debug
   defaultLanguage: en
   chatHistorySize: 50
+  totalTiles: 100
 
 # Persistent storage configuration
 persistence:

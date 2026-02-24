@@ -1,6 +1,8 @@
 replicaCount: 1
 logLevel: debug
 
+totalTiles: 100
+
 service:
   type: ClusterIP
   port: 2345
