@@ -30,3 +30,4 @@ spec:
           args:
             - "--share-dir=/app/share"
             - "--langs={{ .Values.langs | default "en,es,fr" }}"
+            - "--total-tiles={{ .Values.totalTiles | default .Values.global.totalTiles | default 200 }}"

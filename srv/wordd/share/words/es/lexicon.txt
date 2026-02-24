@@ -1,4 +1,3 @@
-a
 ababa
 ababol
 abacero
@@ -7672,7 +7671,6 @@ cúprico
 cúpula
 cúrcuma
 cúspide
-d
 da
 daba
 dabais
@@ -9058,7 +9056,6 @@ dórico
 dúctil
 dúo
 dúplice
-e
 ea
 ebanista
 ebionita
@@ -13690,7 +13687,6 @@ húmeda
 húmedo
 húmero
 húngaro
-i
 ib
 iba
 ibais
@@ -18228,7 +18224,6 @@ núbil
 núcleo
 núm
 número
-o
 oasis
 ob
 obcecar
@@ -26112,7 +26107,6 @@ túnel
 túnica
 túrdiga
 tútano
-u
 ubicar
 ubicuo
 ubio
@@ -27063,7 +27057,6 @@ xilotila
 xilófono
 xto
 xíes
-y
 ya
 yaca
 yacedor
@@ -27625,7 +27618,6 @@ zóster
 ñoñez
 ñoño
 ñublar
-ó
 óbice
 óbito
 óculo

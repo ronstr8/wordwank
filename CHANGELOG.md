@@ -5,8 +5,6 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-**Note**: We're pre-1.0, so breaking changes happen. It's a feature, not a bug.
-
 ## [1.3.0] - 2026-02-22
 
 ### Added (1.3.0)

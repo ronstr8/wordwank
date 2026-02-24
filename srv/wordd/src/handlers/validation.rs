@@ -36,8 +36,10 @@ fn validate_word_logic(
 
     let word_upper = word.to_uppercase();
     if words.binary_search_by(|w| w.text.cmp(&word_upper)).is_ok() {
+        info!("Word valid ({lang}): {word_upper}");
         HttpResponse::Ok().finish()
     } else {
+        info!("Word rejected ({lang}): {word_upper}");
         HttpResponse::NotFound().finish()
     }
 }

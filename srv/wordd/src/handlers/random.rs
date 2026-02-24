@@ -11,7 +11,7 @@ pub async fn rand_letter(
     let lang = path.into_inner().to_lowercase();
     let count = query.count.unwrap_or(1);
     
-    let bag = match data.letter_bags.get(&lang) {
+    let bag = match data.tile_bags.get(&lang) {
         Some(b) => b,
         None => return HttpResponse::BadRequest().body(format!("Language '{}' not supported", lang)),
     };

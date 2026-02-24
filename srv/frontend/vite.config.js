@@ -12,6 +12,15 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true
+    host: true,
+    proxy: {
+      '/auth': 'http://localhost:8080',
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true
+      },
+      '/players': 'http://localhost:8080'
+    }
   }
+
 })

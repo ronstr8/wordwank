@@ -27,7 +27,8 @@ const Sidebar = ({
     autoClose,
     gameId,
     showToast,
-    handleInvite
+    handleInvite,
+    supportedLangs
 }) => {
     const { t } = useTranslation();
 
@@ -105,10 +106,23 @@ const Sidebar = ({
                     <div className="sidebar-section">
                         <h3>{t('app.language_title')}</h3>
                         <div className="sidebar-lang-picker">
-                            <button className={language === 'en' ? 'active' : ''} onClick={() => onLanguageChange('en')}>EN</button>
-                            <button className={language === 'es' ? 'active' : ''} onClick={() => onLanguageChange('es')}>ES</button>
-                            <button className={language === 'fr' ? 'active' : ''} onClick={() => onLanguageChange('fr')}>FR</button>
-                            <button className={language === 'de' ? 'active' : ''} onClick={() => onLanguageChange('de')}>DE</button>
+                            {Object.entries(supportedLangs || {}).map(([code, info]) => {
+                                const name = typeof info === 'object' ? info.name : info;
+                                const count = typeof info === 'object' ? info.word_count : 0;
+                                const displayCount = count >= 1000 ? `${Math.round(count / 1000)}k` : count;
+
+                                return (
+                                    <button
+                                        key={code}
+                                        className={language === code ? 'active' : ''}
+                                        onClick={() => handleAction(() => onLanguageChange(code))}
+                                        title={name}
+                                    >
+                                        {code.toUpperCase()}
+                                        {count > 0 && <span className="lang-count">{displayCount}</span>}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

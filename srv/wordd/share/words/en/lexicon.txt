@@ -1,4 +1,3 @@
-a
 aa
 aah
 aalii
@@ -2562,7 +2561,6 @@ azure
 azurite
 azygos
 azygous
-b
 ba
 baa
 baba
@@ -5324,7 +5322,6 @@ byword
 bêche
 bête
 bêtise
-c
 cDNA
 ca
 caatinga
@@ -8985,7 +8982,6 @@ czarina
 czarism
 czarist
 czarship
-d
 dB
 dBW
 dBi
@@ -11209,7 +11205,6 @@ démodé
 dépaysé
 dépaysée
 détente
-e
 eBay
 eBhayi
 eMusic
@@ -12753,7 +12748,6 @@ eyra
 eyre
 eyrie
 eyrir
-f
 fMRI
 fa
 fab
@@ -14802,7 +14796,6 @@ fyrd
 fête
 föhn
 führer
-g
 gab
 gabbed
 gabber
@@ -16478,7 +16471,6 @@ gyrus
 gyttja
 gyve
 gzip
-h
 ha
 haaf
 haar
@@ -18038,7 +18030,6 @@ hyssop
 hysteria
 hysteric
 hysteron
-i
 iBook
 iCloud
 iMac
@@ -18990,7 +18981,6 @@ izibongo
 izzard
 izzat
 izzit
-j
 jQuery
 ja
 jab
@@ -19442,7 +19432,6 @@ jutty
 juvenal
 juvenile
 juvie
-k
 kB
 kHz
 kV
@@ -20075,7 +20064,6 @@ kyphosis
 kyphotic
 kyu
 kyudo
-l
 la
 laager
 laaitie
@@ -21703,7 +21691,6 @@ lyssa
 lytic
 lytta
 ländler
-m
 mA
 mIRC
 mRNA
@@ -24007,7 +23994,6 @@ ménage
 métadyne
 métier
 mêlée
-n
 na
 naan
 naartjie
@@ -24936,7 +24922,6 @@ nè
 né
 née
 négligé
-o
 oaf
 oafish
 oak
@@ -26131,7 +26116,6 @@ ozonic
 ozonide
 ozonise
 ozonize
-p
 pH
 pa
 pablum
@@ -29374,7 +29358,6 @@ pyxis
 pzazz
 pâté
 pères
-q
 qadi
 qi
 qibla
@@ -29602,7 +29585,6 @@ quoth
 quotha
 quotient
 qwerty
-r
 rDNA
 rRNA
 rabato
@@ -31586,7 +31568,6 @@ ryokan
 régime
 résumé
 rôle
-s
 sRGB
 sabayon
 sabbath
@@ -36318,7 +36299,6 @@ systolic
 syzygial
 syzygy
 séance
-t
 tRNA
 ta
 taal
@@ -38603,7 +38583,6 @@ tzarina
 tzatziki
 tzigane
 tête
-u
 ubiety
 ubiquity
 ubuntu
@@ -39465,7 +39444,6 @@ uvular
 uvulitis
 uxorial
 uxorious
-v
 vPro
 vaalie
 vac
@@ -40211,7 +40189,6 @@ vuvuzela
 vv
 vygie
 vying
-w
 wabbit
 wack
 wacke
@@ -41311,7 +41288,6 @@ www
 wxWidget
 wynd
 wyvern
-x
 xanthate
 xanthein
 xanthene
@@ -41393,7 +41369,6 @@ xylose
 xylotomy
 xylyl
 xyster
-y
 ya
 yabber
 yabbie
@@ -41581,7 +41556,6 @@ yuppify
 yurt
 yuzu
 ywis
-z
 zac
 zack
 zaffer
@@ -41743,44 +41717,16 @@ zymosis
 zymotic
 zymurgy
 zythum
-µ
 µJ
 µPa
 µT
 µm
-à
 éclair
 éclat
 élan
 émigré
-α
-β
-γ
-δ
-ε
-ζ
-η
-θ
-ι
-κ
-λ
-μ
 μF
 μPa
 μT
 μg
 μm
-ν
-ξ
-ο
-π
-ρ
-σ
-τ
-υ
-φ
-χ
-ψ
-ω
-ℓ
-ⅇ

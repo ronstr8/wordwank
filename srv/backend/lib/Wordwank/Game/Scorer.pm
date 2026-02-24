@@ -8,7 +8,13 @@ use File::Spec;
 
 # Cache for tile configurations keyed by language
 has _tile_config_cache => (
-    is      => 'ro',
+    is      => 'rw',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
+has _tile_values_cache => (
+    is      => 'rw',
     isa     => 'HashRef',
     default => sub { {} },
 );
@@ -29,33 +35,25 @@ sub _get_tile_config ($self, $lang) {
 sub _load_tile_config ($self, $lang) {
     
     # wordd is the internal lexicon authority service
-    my $wordd_host = $ENV{WORDD_HOST} // 'wordd';
-    my $wordd_port = $ENV{WORDD_PORT};
-    if (!$wordd_port || $wordd_port =~ /\D/) {
-        $wordd_port = 2345;
-    }
-    my $url = "http://$wordd_host:$wordd_port/config/$lang";
+    my $host = $ENV{WORDD_HOST} || 'wordd';
+    my $port = $ENV{WORDD_PORT} || 2345;
+    my $url  = "http://$host:$port/config/$lang";
     
-    my $http = HTTP::Tiny->new(timeout => 5);
-    my $response = $http->get($url);
+    my $ua = HTTP::Tiny->new(timeout => 2);
+    my $response = $ua->get($url);
     
+    my $config;
     if ($response->{success}) {
-        my $config = eval { decode_json($response->{content}) };
-        if ($config && $config->{tiles}) {
-            warn "Loaded dynamic tile config for $lang from wordd.";
-            return $config;
-        }
-        warn "Failed to parse tile config for $lang from $url: $@" if $@;
-    } else {
-        my $status = $response->{status} // 'unknown';
-        my $reason = $response->{reason} // 'no reason provided';
-        my $content = $response->{content} // '';
-        warn "Failed to fetch tile config for $lang from $url: HTTP $status $reason";
-        warn "Response body: " . substr($content, 0, 200) if $content;
+        eval { $config = decode_json($response->{content}) };
     }
 
-    # Fallback to English hardcoded tiles if wordd is unavailable or fails
-    warn "Using hardcoded English fallback for $lang.";
+    if ($config && $config->{tiles} && scalar(keys %{$config->{tiles}})) {
+        warn "Loaded dynamic tile config for $lang from wordd.";
+        return $config;
+    }
+
+    warn "Falling back to default tile config for $lang (wordd failed or returned empty)";
+    # Fallback Scrabble-like distribution
     return {
         tiles => {
             A => 9, B => 2, C => 2, D => 4, E => 12, F => 2, G => 3, H => 2,
@@ -68,64 +66,45 @@ sub _load_tile_config ($self, $lang) {
     };
 }
 
-# Generate letter values for a new game based on letter frequency
-sub generate_letter_values ($self, $lang) {
-    # Get current day of week in Buffalo, NY (America/New_York timezone)
-    my $now = DateTime->now(time_zone => 'America/New_York');
-    my $day_name = $now->day_name;  # Monday, Tuesday, etc.
-    my $day_letter = uc(substr($day_name, 0, 1));  # M, T, W, T, F, S, S
-    
-    my %values;
-    
-    # Get configuration for specific language
+# Generate tile values for a new game based on tile frequency
+sub generate_tile_values ($self, $lang) {
+    if (my $cached = $self->_tile_values_cache->{$lang}) {
+        # Only return cache if it's the same day
+        my $today = DateTime->now->ymd;
+        return $cached->{values} if $cached->{date} eq $today;
+    }
+
     my $config = $self->_get_tile_config($lang);
     my $tiles = $config->{tiles} // {};
-    my $unicorns = $config->{unicorns} // {};
-    
-    # Calculate total tile count
-    my $total_tiles = 0;
-    $total_tiles += $_ for values %$tiles;
-    
-    # Calculate frequency for each letter (excluding blanks)
-    my %frequencies;
-    for my $letter (keys %$tiles) {
-        next if $letter eq '_';
-        my $count = $tiles->{$letter};
-        $frequencies{$letter} = $count / $total_tiles;
-    }
-    
-    # Sort letters by frequency (rarest first for easier processing)
-    my @sorted_letters = sort { $frequencies{$a} <=> $frequencies{$b} } keys %frequencies;
-    
-    # Top 2 rarest are unicorns (already set in config, worth 10 points)
-    # Skip them in the distribution
-    my %unicorn_set = map { $_ => 1 } keys %$unicorns;
-    my @non_unicorn_letters = grep { !$unicorn_set{$_} } @sorted_letters;
-    
-    # Distribute remaining letters from 1-9 points based on frequency
-    # Rarest non-unicorn gets 9, most common gets 1
-    my $num_letters = scalar @non_unicorn_letters;
-    for my $i (0 .. $#non_unicorn_letters) {
-        my $letter = $non_unicorn_letters[$i];
-        # Rarest (index 0) = 9 points, most common (last index) = 1 point
-        # Linear distribution: points = 9 - (8 * i / (num_letters - 1))
-        my $points = $num_letters > 1 
-            ? int(9 - (8 * $i / ($num_letters - 1)) + 0.5)  # Round to nearest
-            : 5;  # Fallback for edge case
-        $values{$letter} = $points;
+    my %values;
+
+    # Basic Scrabble-like values based on frequency
+    for my $char (keys %$tiles) {
+        next if $char eq '_';
+        my $count = $tiles->{$char};
+        
+        # Lower frequency = higher value
+        if ($count >= 10) { $values{$char} = 1 }
+        elsif ($count >= 6) { $values{$char} = 2 }
+        elsif ($count >= 4) { $values{$char} = 3 }
+        elsif ($count >= 2) { $values{$char} = 4 }
+        else { $values{$char} = 5 }
     }
     
     # Set unicorns to their configured point value (10)
-    for my $letter (keys %$unicorns) {
-        $values{$letter} = $unicorns->{$letter};
+    my $unicorns = $config->{unicorns} // {};
+    for my $char (keys %$unicorns) {
+        $values{$char} = $unicorns->{$char};
     }
-    
-    # Override: Day-of-week letter is 7 points (takes precedence over frequency-based scoring)
-    $values{$day_letter} = 7;
     
     # Blank tile always 0
     $values{'_'} = 0;
     
+    $self->_tile_values_cache->{$lang} = {
+        date   => DateTime->now->ymd,
+        values => \%values,
+    };
+
     return \%values;
 }
 
@@ -141,15 +120,19 @@ sub vowels ($self, $lang) {
     return $self->_get_tile_config($lang)->{vowels};
 }
 
+sub word_count ($self, $lang) {
+    return $self->_get_tile_config($lang)->{word_count} // 0;
+}
+
 # Cache for bags
-has _bag_cache => (
+has _tile_bag_cache => (
     is      => 'ro',
     isa     => 'HashRef',
     default => sub { {} },
 );
 
-sub _get_bag ($self, $lang) {
-    if (my $cached = $self->_bag_cache->{$lang}) {
+sub _get_tile_bag ($self, $lang) {
+    if (my $cached = $self->_tile_bag_cache->{$lang}) {
         return $cached;
     }
     
@@ -159,7 +142,7 @@ sub _get_bag ($self, $lang) {
         push @bag, ($char) x $counts->{$char};
     }
     
-    $self->_bag_cache->{$lang} = \@bag;
+    $self->_tile_bag_cache->{$lang} = \@bag;
     return \@bag;
 }
 
@@ -169,31 +152,58 @@ sub is_vowel ($self, $char, $lang) {
     return grep { $_ eq $uc_char } @$vowel_list;
 }
 
-sub get_random_rack ($self, $lang) {
-    my $bag = $self->_get_bag($lang);
-    my @rack;
+sub get_random_rack ($self, $lang, $size = 7, $depth = 0) {
+    if ($depth > 5) {
+        warn "Max rack generation depth reached for $lang, returning partial/fallback";
+        return [ ('?') x ($ENV{RACK_SIZE} || 7) ];
+    }
+
+    my $config = $self->_get_tile_config($lang);
+    my $bag_hash = ($config->{bag} && scalar(keys %{$config->{bag}})) ? $config->{bag} : $config->{tiles};
     
+    my @bag;
+    if ($bag_hash) {
+        for my $char (keys %$bag_hash) {
+            my $count = $bag_hash->{$char} // 0;
+            if ($count > 0) {
+                push @bag, ($char) x $count;
+            }
+        }
+    }
+
+    if (!@bag) {
+        warn "Bag is empty for language $lang! Configuration error.";
+        # emergency fallback if even wordd is wrong
+        @bag = ('A'..'Z'); 
+    }
+
+    my @rack;
     # Simple random draw
     my $rack_size = $ENV{RACK_SIZE} || 7;
-    my @indices = (0 .. $#$bag);
+    my @indices = (0 .. $#bag);
     for (1 .. $rack_size) {
+        last unless @indices;
         my $idx = splice @indices, int(rand(@indices)), 1;
-        push @rack, $bag->[$idx];
+        push @rack, $bag[$idx];
     }
     
+    # Pad if somehow short
+    push @rack, '?' while @rack < $rack_size;
+
     # Use configurable constraints
     my $min_v   = $ENV{MIN_VOWELS} // 1;
     my $min_c   = $ENV{MIN_CONSONANTS} // 1;
     
-    my $v_count = grep { $self->is_vowel($_, $lang) } @rack;
-    my $c_count = grep { $_ ne '_' && !$self->is_vowel($_, $lang) } @rack;
+    my $v_count = grep { defined($_) && $self->is_vowel($_, $lang) } @rack;
+    my $c_count = grep { defined($_) && $_ ne '_' && $_ ne '?' && !$self->is_vowel($_, $lang) } @rack;
 
     unless ($v_count >= $min_v && $c_count >= $min_c) {
-        return $self->get_random_rack($lang);
+        return $self->get_random_rack($lang, $size, $depth + 1);
     }
     
     return \@rack;
 }
+
 
 sub get_length_bonus ($self, $word) {
     my $len = length($word);

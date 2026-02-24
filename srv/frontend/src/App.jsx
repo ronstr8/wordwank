@@ -34,7 +34,7 @@ function App() {
     const [isConnecting, setIsConnecting] = useState(true)
     const [connectionError, setConnectionError] = useState(null)
     const [blankChoice, setBlankChoice] = useState(null) // { slotIndex, tileId }
-    const [letterValue, setLetterValue] = useState(0) // Fixed score if mode is on
+    const [letterValue, setLetterValue] = useState({}) // Object mapping char -> points
     const [showRules, setShowRules] = useState(false);
     const [showDonations, setShowDonations] = useState(false);
     const [showStats, setShowStats] = useState(false); // Assuming this is for a future stats panel
@@ -85,6 +85,7 @@ function App() {
     const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
     const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
     const [statsVisible, setStatsVisible] = useState(() => loadPanelVisibility('stats'));
+    const [supportedLangs, setSupportedLangs] = useState({ en: { name: 'English', word_count: 0 } });
 
     // Save visibility states to localStorage when they change
     useEffect(() => {
@@ -109,8 +110,7 @@ function App() {
 
     const fetchLeaderboard = async () => {
         try {
-            const isLocal = window.location.hostname === 'localhost';
-            const apiPath = isLocal ? 'http://localhost:8080/players/leaderboard' : '/players/leaderboard';
+            const apiPath = '/players/leaderboard';
             const resp = await fetch(apiPath);
             if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
             const data = await resp.json();
@@ -186,8 +186,7 @@ function App() {
     useEffect(() => {
         if (!playerId) return;
 
-        const isLocal = window.location.hostname === 'localhost';
-        const wsHost = isLocal ? 'localhost:8081' : window.location.host;
+        const wsHost = window.location.host;
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         let socket = null;
         let reconnectTimeout = null;
@@ -263,21 +262,27 @@ function App() {
                             i18n.changeLanguage(data.payload.language);
                         }
                         if (data.payload.config) {
+                            console.debug('[WS] identity config:', data.payload.config);
                             setTileConfig({
                                 tiles: data.payload.config.tiles || {},
                                 unicorns: data.payload.config.unicorns || {}
                             });
                             // Populate initial letter values with unicorns
-                            setLetterValue(data.payload.config.unicorns || {});
+                            setLetterValue(data.payload.config.tile_values || {});
+                            if (data.payload.config.languages) {
+                                setSupportedLangs(data.payload.config.languages);
+                            }
                         }
+
                     }
                     setPlayerNames(prev => ({
                         ...prev,
                         [data.payload.id]: data.payload.name
                     }));
                 } else if (data.type === 'game_start') {
-                    const { uuid, rack: newRackLetters, rack_size, letter_values, time_left, tile_counts, unicorns, players: otherPlayers } = data.payload;
-                    const size = rack_size || newRackLetters.length;
+                    const { uuid, rack: newRackLetters, rack_size, tile_values, time_left, tile_counts, unicorns, players: otherPlayers } = data.payload;
+                    console.debug('[WS] game_start payload:', data.payload);
+
 
                     // Grouped Join Toast
                     if (otherPlayers && otherPlayers.length > 0) {
@@ -297,10 +302,10 @@ function App() {
                     setRack(newRack);
                     setTimeLeft(time_left);
                     setTotalTime(time_left || 30);
-                    setLetterValue(letter_values || 0);
+                    setLetterValue(tile_values || {});
                     setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
                     setResults(null);
-                    setGuess(Array(size).fill(null));
+                    setGuess(Array(rack_size || newRackLetters.length).fill(null));
                     setIsLocked(false);
                     setFeedback({ text: '', type: '' });
                     autoSubmittedRef.current = false; // Reset for new game
@@ -716,7 +721,9 @@ function App() {
                 gameId={gameId}
                 showToast={showToast}
                 handleInvite={handleInvite}
+                supportedLangs={supportedLangs}
             />
+
 
             {!isFocusMode && (
                 <header>
@@ -781,9 +788,16 @@ function App() {
                                     }
                                 }}
                             >
-                                <option value="en">EN</option>
-                                <option value="es">ES</option>
-                                <option value="fr">FR</option>
+                                {Object.entries(supportedLangs).map(([code, info]) => {
+                                    const name = typeof info === 'object' ? info.name : info;
+                                    const count = typeof info === 'object' ? info.word_count : 0;
+                                    const displayCount = count >= 1000 ? `${Math.round(count / 1000)}k` : count;
+                                    return (
+                                        <option key={code} value={code}>
+                                            {name || code.toUpperCase()} {count > 0 ? `(${displayCount})` : ''}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
                     </div>

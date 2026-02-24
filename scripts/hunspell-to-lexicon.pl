@@ -56,7 +56,7 @@ sub process_file ($input_file) {
 
 sub process_line ($line) {
     chomp $line;
-    return unless $line;
+    return unless $line && $line =~ /^[[:alpha:]]{2,}/;
 
     # Strip Hunspell flags (e.g., word/SFX)
     my ($word) = split('/', $line);

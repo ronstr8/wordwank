@@ -103,7 +103,7 @@ async fn main() -> std::io::Result<()> {
 
     let mut word_lists = HashMap::new();
     let mut supported_langs = Vec::new();
-    let mut letter_bags = HashMap::new();
+    let mut tile_bags = HashMap::new();
     let mut vowel_sets = HashMap::new();
     let mut consonant_sets = HashMap::new();
     let mut unicorn_sets = HashMap::new();
@@ -129,7 +129,7 @@ async fn main() -> std::io::Result<()> {
         // Store all pre-computed data
         word_lists.insert(lang.clone(), words);
         supported_langs.push(lang.clone());
-        letter_bags.insert(lang.clone(), bag);
+        tile_bags.insert(lang.clone(), bag);
         vowel_sets.insert(lang.clone(), vowels);
         consonant_sets.insert(lang.clone(), consonants);
         unicorn_sets.insert(lang.clone(), unicorns);
@@ -138,7 +138,7 @@ async fn main() -> std::io::Result<()> {
     let state = AppState {
         word_lists,
         supported_langs,
-        letter_bags,
+        tile_bags,
         vowel_sets,
         consonant_sets,
         unicorn_sets,

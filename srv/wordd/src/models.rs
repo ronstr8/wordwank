@@ -13,7 +13,7 @@ pub struct Word {
 pub struct AppState {
     pub word_lists: HashMap<String, Vec<Word>>,
     pub supported_langs: Vec<String>,
-    pub letter_bags: HashMap<String, HashMap<char, usize>>,
+    pub tile_bags: HashMap<String, HashMap<char, usize>>,
     pub vowel_sets: HashMap<String, Vec<char>>,
     pub consonant_sets: HashMap<String, Vec<char>>,
     pub unicorn_sets: HashMap<String, Vec<char>>,
@@ -31,6 +31,7 @@ pub struct ConfigResponse {
     pub unicorns: HashMap<char, usize>,
     pub vowels: Vec<char>,
     pub bag: HashMap<char, usize>,
+    pub word_count: usize,
 }
 
 #[derive(Deserialize)]

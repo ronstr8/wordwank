@@ -8,12 +8,32 @@ use UUID::Tiny qw(:std);
 
 has schema => sub {
     my $self = shift;
-    my $dsn = $ENV{DATABASE_URL} || 'dbi:Pg:dbname=wordwank;host=postgres';
-    return Wordwank::Schema->connect($dsn, $ENV{DB_USER}, $ENV{DB_PASS}, {
-        pg_enable_utf8 => 1,
-        quote_names    => 1,
-    });
+    my $dsn = $ENV{DATABASE_URL} || 'dbi:Pg:dbname=wordwank;host=postgresql';
+
+    # Defensive logging (clean DSN for logs)
+    my $log_dsn = $dsn;
+    $log_dsn =~ s/:password=[^;]+/:password=****/i;
+    $self->log->debug("Connecting to database: $log_dsn (user: " . ($ENV{DB_USER} // 'none') . ")");
+
+    my $schema;
+    eval {
+        $schema = Wordwank::Schema->connect($dsn, $ENV{DB_USER}, $ENV{DB_PASS}, {
+            pg_enable_utf8 => 1,
+            quote_names    => 1,
+            RaiseError     => 1,
+        });
+        # Test connection
+        $schema->storage->dbh;
+        $self->log->info("Database connected successfully.");
+    };
+    if ($@) {
+        $self->log->error("DATABASE CONNECTION FAILED: $@");
+        # We don't die here because we want the app to start and show errors in logs
+    }
+
+    return $schema;
 };
+
 
 has scorer => sub { Wordwank::Game::Scorer->new };
 
@@ -26,6 +46,10 @@ has games => sub { {} };
 has chat_history => sub { [] };
 
 has ua => sub { Mojo::UserAgent->new };
+
+# Shared i18n
+has translations => sub { {} };
+has _languages_cache => sub { undef };
 
 sub startup ($self) {
     # Plugins
@@ -54,7 +78,6 @@ sub startup ($self) {
     # Shared i18n: Load JSON locales from SHARE_DIR/locale
     my $share_base = $ENV{SHARE_DIR} || $self->home->child('share');
     my $share_dir  = Mojo::File->new($share_base)->child('locale');
-    my $translations = {};
 
     $self->helper(load_translations => sub ($c) {
         if (-d $share_dir) {
@@ -67,7 +90,7 @@ sub startup ($self) {
                 };
                 $c->app->log->error("Failed to load translation $file: $@") if $@;
             }
-            $translations = $new_translations;
+            $c->app->translations($new_translations);
             $c->app->log->debug("Translations reloaded from $share_dir");
         }
     });
@@ -75,12 +98,34 @@ sub startup ($self) {
     # Initial load
     $self->load_translations();
 
+    # Clear lang cache when translations change
+    $self->helper(clear_lang_cache => sub ($c) { $c->app->_languages_cache(undef) });
+
     # Periodic check for hot-updates (every 5 minutes)
     Mojo::IOLoop->recurring(300 => sub { $self->load_translations() });
+
+    $self->helper(languages => sub ($c) {
+        if (my $cached = $c->app->_languages_cache) {
+            return $cached;
+        }
+
+        my $trans = $c->app->translations;
+        my %langs;
+        for my $code (keys %$trans) {
+            # Native name is stored in app.lang_<code_here> in its own file
+            $langs{$code} = {
+                name       => $trans->{$code}{app}{"lang_$code"} || uc($code),
+                word_count => $c->app->scorer->word_count($code),
+            };
+        }
+        $c->app->_languages_cache(\%langs);
+        return \%langs;
+    });
 
     $self->helper(t => sub ($c, $key, $lang = undef, $args = {}) {
         $lang ||= 'en';
         
+        my $translations = $c->app->translations;
         # Traverse nested keys (e.g., 'app.error_word_not_found')
         my $val = $translations->{$lang} // $translations->{en} // {};
         for my $part (split /\./, $key) {
@@ -182,19 +227,39 @@ sub startup ($self) {
     # Background task: Pre-populate games (ensure every language has a pending or active game)
     $self->helper(prepopulate_games => sub ($c) {
         my $schema = $c->app->schema;
-        my @langs = qw(en es fr);
+        if (!$schema) {
+            $c->app->log->debug("Skipping pre-population: no database connection");
+            return;
+        }
+
+        my @langs = keys %{$c->app->translations};
         
         for my $lang (@langs) {
             # Check if there is an active (started) or pending (created but not started) game
-            my $game = $schema->resultset('Game')->search({
-                finished_at => undef,
-                language    => $lang,
-            }, { rows => 1 })->single;
+            my $game;
+            eval {
+                $game = $schema->resultset('Game')->search({
+                    finished_at => undef,
+                    language    => $lang,
+                }, { rows => 1 })->single;
+            };
+            if ($@) {
+                $c->app->log->warn("Pre-population check failed for $lang: $@");
+                next;
+            }
 
             if (!$game) {
                 $c->app->log->debug("Pre-populating pending game for $lang");
-                my $rack = $c->app->scorer->get_random_rack($lang);
-                my $vals = $c->app->scorer->generate_letter_values($lang);
+                my $rack;
+                my $vals;
+                eval {
+                    $rack = $c->app->scorer->get_random_rack($lang);
+                    $vals = $c->app->scorer->generate_tile_values($lang);
+                };
+                if ($@) {
+                    $c->app->log->warn("Failed to generate rack/values for $lang: $@");
+                    next;
+                }
                 
                 # Attempt to create, ignore if someone else beat us to it (duplicate ID or same criteria)
                 eval {

@@ -1,0 +1,57 @@
+# Common Scrabble-valid words not in standard Hunspell en_US/en_GB dictionaries
+# Migrated from inclusions.txt + curated Scrabble word bank
+HIMBO
+FAE
+# 2-letter Scrabble specials
+AA
+AE
+AI
+BA
+EM
+EN
+ET
+EX
+FA
+GI
+JO
+KA
+KI
+MU
+NU
+OD
+OE
+OM
+OP
+OS
+OW
+OX
+OY
+PE
+PI
+PO
+QI
+RE
+SH
+SI
+TA
+TI
+UT
+WO
+XI
+XU
+YA
+YO
+ZA
+ZO
+# 3-letter Scrabble specials
+QAT
+ZAX
+ZIT
+ZAP
+ZEP
+PHO
+TAO
+CHI
+PSI
+ETA
+OWT

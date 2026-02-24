@@ -5,10 +5,13 @@ metadata:
   namespace: {{ .Values.global.namespace }}
 data:
   en.json: |-
-{{ .Files.Get "share/locale/en.json" | indent 4 }}
+{{ .Files.Get "share/locale/en.json" | nindent 4 }}
   es.json: |-
-{{ .Files.Get "share/locale/es.json" | indent 4 }}
+{{ .Files.Get "share/locale/es.json" | nindent 4 }}
   fr.json: |-
-{{ .Files.Get "share/locale/fr.json" | indent 4 }}
+{{ .Files.Get "share/locale/fr.json" | nindent 4 }}
   de.json: |-
-{{ .Files.Get "share/locale/de.json" | indent 4 }}
+{{ .Files.Get "share/locale/de.json" | nindent 4 }}
+  ru.json: |-
+{{ .Files.Get "share/locale/ru.json" | nindent 4 }}
+

@@ -27,7 +27,7 @@ pub async fn get_config(
     let lang = path.into_inner().to_lowercase();
     
     // Retrieve pre-computed values from AppState
-    let bag = match data.letter_bags.get(&lang) {
+    let bag = match data.tile_bags.get(&lang) {
         Some(b) => b.clone(),
         None => return HttpResponse::BadRequest().finish(),
     };
@@ -45,16 +45,17 @@ pub async fn get_config(
         None => return HttpResponse::BadRequest().finish(),
     };
 
-    // tiles is same as bag for backward compatibility
+    let word_count = data.word_lists.get(&lang).map(|w| w.len()).unwrap_or(0);
     let tiles = bag.clone();
 
-    info!("Generated {} config with {} tiles, {} unicorns, and {} vowels", 
-          lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len());
+    info!("Generated {} config with {} tiles, {} unicorns, {} vowels, and {} words", 
+          lang, tiles.values().sum::<usize>(), unicorns.len(), vowels.len(), word_count);
 
     HttpResponse::Ok().json(ConfigResponse {
         tiles,
         unicorns,
         vowels,
         bag,
+        word_count,
     })
 }

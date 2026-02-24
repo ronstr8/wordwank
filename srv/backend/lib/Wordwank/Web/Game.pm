@@ -36,9 +36,10 @@ sub websocket ($self) {
             name     => $player->nickname,
             language => $player->language,
             config   => {
-                tiles    => $app->scorer->tile_counts($player->language // $DEFAULT_LANG),
-                unicorns => $app->scorer->unicorns($player->language // $DEFAULT_LANG),
-                values   => $app->scorer->generate_letter_values($player->language // $DEFAULT_LANG),
+                tiles       => $app->scorer->tile_counts($player->language // $DEFAULT_LANG),
+                unicorns    => $app->scorer->unicorns($player->language // $DEFAULT_LANG),
+                tile_values => $app->scorer->generate_tile_values($player->language // $DEFAULT_LANG),
+                languages   => $app->languages,
             }
         }
     }});
@@ -149,14 +150,14 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
             # Fallback (should be rare with background task): Create and start immediately
             $app->log->debug("No pending game found, creating emergency $lang game");
             my $rack = $app->scorer->get_random_rack($lang);
-            my $vals = $app->scorer->generate_letter_values($lang);
+            my $vals = $app->scorer->generate_tile_values($lang);
             
             $gid = create_uuid_as_string(UUID_V4);
             $active_game = eval {
                 $game_rs->create({
                     id            => $gid,
                     rack          => $rack,
-                    letter_values => $vals,
+                    letter_values => $vals, # DB column name
                     language      => $lang,
                     started_at    => DateTime->now,
                 });
@@ -220,13 +221,20 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
         payload => {
             uuid          => $gid,
             rack          => $active_game->rack,
-            letter_values => $active_game->letter_values,
-            tile_counts   => $app->scorer->tile_counts($game_lang),
+            rack_size     => scalar(@{$active_game->rack}),
+            tile_values   => $active_game->letter_values, # DB column is letter_values
+            tile_counts   => $app->scorer->tile_counts($game_lang), # Renamed from letter_counts
             unicorns      => $app->scorer->unicorns($game_lang),
             time_left     => $app->games->{$gid}{time_left},
             players       => \@other_nicknames,
         }
     }});
+
+    if (!$active_game->letter_values) {
+        $self->app->log->error("Game " . $active_game->id . " has NO letter_values in database!");
+    } else {
+        $self->app->log->debug("Broadcasting game_start for " . $active_game->id . " with letter values mapped.");
+    }
 
     # If this is the first player joining a game, notify admin
     if (scalar(keys %$game_clients) == 1) {
@@ -312,7 +320,9 @@ sub _handle_play ($self, $player, $payload) {
 
     # Non-blocking validation via wordd
     # Use the game's language for consistency
-    my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/validate/$lang/";
+    my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
+    my $wordd_port = $ENV{WORDD_PORT} || 2345;
+    my $wordd_url  = "http://$wordd_host:$wordd_port/validate/$lang/";
     
     $app->log->debug("Requesting validation from wordd: $wordd_url" . lc($word));
     $app->ua->get($wordd_url . lc($word) => sub ($ua, $tx) {
@@ -624,9 +634,10 @@ sub _handle_set_language ($self, $player, $payload) {
             name     => $player->nickname, 
             language => $lang,
             config   => {
-                tiles    => $self->app->scorer->tile_counts($lang),
-                unicorns => $self->app->scorer->unicorns($lang),
-                values   => $self->app->scorer->generate_letter_values($lang),
+                tiles       => $self->app->scorer->tile_counts($lang),
+                unicorns    => $self->app->scorer->unicorns($lang),
+                tile_values => $self->app->scorer->generate_tile_values($lang),
+                languages   => $self->app->languages,
             }
         }
     }});

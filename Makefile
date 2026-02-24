@@ -121,6 +121,8 @@ setup-storage:
 
 deploy: minikube-setup setup-storage
 	node scripts/sync-version.js
+	@mkdir -p helm/share/locale
+	@cp srv/frontend/src/locales/*.json helm/share/locale/
 	helm dependency update ./helm
 	kubectl delete validatingwebhookconfiguration ingress-nginx-admission || true
 	helm upgrade --install wordwank ./helm \
@@ -144,6 +146,7 @@ locales:
 		--from-file=es.json=helm/share/locale/es.json \
 		--from-file=fr.json=helm/share/locale/fr.json \
 		--from-file=de.json=helm/share/locale/de.json \
+		--from-file=ru.json=helm/share/locale/ru.json \
 		--dry-run=client -o yaml | kubectl apply --namespace $(NAMESPACE) -f -
 	@echo "✅ ConfigMap updated. Pods will pick up changes within 5 minutes."
 

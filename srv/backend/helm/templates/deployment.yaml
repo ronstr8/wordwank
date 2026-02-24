@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: {{ include "backend.fullname" . }}
   labels:
-    {{- include "backend.labels" . | nindent 4 }}
+{{- include "backend.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "backend.selectorLabels" . | nindent 6 }}
+{{ include "backend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "backend.selectorLabels" . | nindent 8 }}
+{{ include "backend.selectorLabels" . | nindent 8 }}
     spec:
       containers:
         - name: {{ .Chart.Name | quote }}
@@ -85,6 +85,11 @@ spec:
               value: "/app/share"
             - name: CHAT_HISTORY_SIZE
               value: {{ .Values.global.chatHistorySize | default .Values.env.CHAT_HISTORY_SIZE | default 50 | quote }}
+            - name: WORDD_HOST
+              value: "wordd"
+            - name: WORDD_PORT
+              value: "2345"
+
           volumeMounts:
             - name: locales-volume
               mountPath: /app/share/locale
@@ -98,7 +103,7 @@ kind: Service
 metadata:
   name: {{ include "backend.fullname" . }}
   labels:
-    {{- include "backend.labels" . | nindent 4 }}
+{{- include "backend.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -107,4 +112,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "backend.selectorLabels" . | nindent 4 }}
+{{ include "backend.selectorLabels" . | nindent 4 }}

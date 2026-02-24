@@ -4,14 +4,14 @@ metadata:
   name: ingress
   namespace: {{ .Values.global.namespace }}
   annotations:
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+{{ toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
-  {{- if .Values.ingress.tls.enabled }}
+{{- if .Values.ingress.tls.enabled }}
   tls:
     - hosts:
         - {{ .Values.ingress.host }}
       secretName: {{ .Values.ingress.tls.secretName }}
-  {{- end }}
+{{- end }}
   rules:
     - host: {{ .Values.ingress.host }}
       http:
