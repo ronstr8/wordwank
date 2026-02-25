@@ -2,6 +2,7 @@
 # Migrated from inclusions.txt + curated Scrabble word bank
 HIMBO
 FAE
+VAG
 # 2-letter Scrabble specials
 AA
 AE
