@@ -3,6 +3,8 @@
 HIMBO
 FAE
 VAG
+PINGS
+GOATS
 # 2-letter Scrabble specials
 AA
 AE

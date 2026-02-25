@@ -45,7 +45,7 @@
         "stats_button": "Stats",
         "music_on": "Activer la musique de fond",
         "music_off": "Désactiver la musique de fond",
-        "mute_on": "Couper tous les sons",
+        "mute_on": "Couper tous los sons",
         "mute_off": "Activer tous les sons",
         "exit_focus": "Quitter le mode focus",
         "menu_title": "Menu",
@@ -101,7 +101,7 @@
         "passkey_registered": "Passkey enregistrée avec succès !",
         "logout": "Déconnexion",
         "play_anonymously": "Jouer Anonymement",
-        "anonymous_disclaimer": "On ne dit jamais qui joue, mais si vous voulez garder votre rang de branlette, connectez-vous avec l'un des ci-dessous.",
+        "anonymous_disclaimer": "On ne dit jamais qui joue, but if you want to keep your wank rank, connectez-vous avec l'un des ci-dessous.",
         "continue_with_discord": "Continuer with Discord",
         "anonymous_failed": "La connexion anonyme a échoué."
     },
@@ -112,5 +112,27 @@
         "total_points": "Points Totaux",
         "words_played": "Mots Joués",
         "global_top_10": "Top 10 Global"
+    },
+    "ai": {
+        "thinking": [
+            "Je réfléchis...",
+            "Attends, je vois un mot...",
+            "Hmm, laisse-moi mélanger ça...",
+            "Attends, je peux faire mieux que ça...",
+            "Presque fini..."
+        ],
+        "reaction_beaten": [
+            "Bien joué, {{player}}!",
+            "Mince, tu m'as battu!",
+            "Beau coup, {{player}}.",
+            "Je ne m'attendais pas à ça!",
+            "Tu es un sacré wanker, {{player}}!"
+        ],
+        "reaction_impressed": [
+            "Whaou, {{word}}? Magnifique!",
+            "{{player}}, tu es une légende absolue!",
+            "Ce mot a sa place dans un dictionnaire!",
+            "Je suis vraiment impressionné par {{word}}."
+        ]
     }
 }

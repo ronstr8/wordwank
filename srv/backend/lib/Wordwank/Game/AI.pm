@@ -19,16 +19,65 @@ has 'min_score_to_win'  => 30;
 # Instance state
 has 'candidates'      => sub { [] };
 has 'play_time'       => 0;
+has 'player_id';
+has 'nickname'  => sub { 'WankBot' };
+has 'language'  => 'en';
 has 'played'          => 0;
 has 'thinking_times'  => sub { [] };
 has 'last_score'      => 0;
 has 'reacted_beaten'  => 0;
 
+# Bot Profiles
+my %PROFILES = (
+    'The Worm' => {
+        uuid              => '00000000-0000-4000-a000-000000000001',
+        wait_seconds_base => 15,
+        rnd_word_count    => 3,
+        min_score_to_play => 1,
+        min_score_to_win  => 40,
+    },
+    'QuickSilver' => {
+        uuid              => '00000000-0000-4000-a000-000000000002',
+        wait_seconds_base => 5,
+        rnd_word_count    => 5,
+        min_score_to_play => 5,
+        min_score_to_win  => 35,
+    },
+    'WankMaster' => {
+        uuid              => '00000000-0000-4000-a000-000000000003',
+        wait_seconds_base => 8,
+        rnd_word_count    => 8,
+        min_score_to_play => 10,
+        min_score_to_win  => 25,
+    },
+    'Sir Scrabble' => {
+        uuid              => '00000000-0000-4000-a000-000000000004',
+        wait_seconds_base => 12,
+        rnd_word_count    => 10,
+        min_score_to_play => 15,
+        min_score_to_win  => 20,
+    },
+);
+
 sub new_for_game ($class, $app, $game_id, $language) {
+    # Pick a random bot profile
+    my @bots = keys %PROFILES;
+    my $bot_name = $bots[int(rand(@bots))];
+    my $config = $PROFILES{$bot_name};
+
+    # Ensure player exists in DB
+    $app->schema->resultset('Player')->find_or_create({
+        id       => $config->{uuid},
+        nickname => $bot_name,
+    });
+
     my $self = $class->new(
-        app     => $app,
-        game_id => $game_id,
-        language => $language,
+        app       => $app,
+        game_id   => $game_id,
+        language  => $language,
+        nickname  => $bot_name,
+        player_id => $config->{uuid},
+        %$config,
     );
     $self->_init_schedule();
     return $self;
@@ -55,16 +104,22 @@ sub fetch_candidates ($self, $rack_str) {
     my $lang = $self->language;
     my $count = $self->rnd_word_count;
     my $wordd_base = $ENV{WORDD_URL} || "http://wordd:2345/";
-    my $url = "${wordd_base}rand/langs/$lang/word?letters=$rack_str&count=$count";
+    
+    my $letters = $rack_str;
+    $letters =~ s/_/?/g; # wordd uses ? for wildcards
+    
+    my $url = "${wordd_base}rand/langs/$lang/word?letters=$letters&count=$count";
 
     $self->app->ua->get($url => sub ($ua, $tx) {
         if ($tx->result->is_success) {
             my $body = $tx->result->body;
             my @words = split /\n/, $body;
+            # Ensure they are uppercase and trimmed
+            @words = map { uc(Mojo::Util::trim($_)) } grep { /\S/ } @words;
             $self->candidates(\@words);
-            $self->app->log->debug("AI " . $self->nickname . " fetched " . scalar(@words) . " candidates");
+            $self->app->log->debug("AI " . $self->nickname . " fetched " . scalar(@words) . " candidates for letters '$letters'");
         } else {
-            $self->app->log->error("AI " . $self->nickname . " failed to fetch words: " . $tx->result->message);
+            $self->app->log->error("AI " . $self->nickname . " failed to fetch words for '$letters': " . $tx->result->message);
         }
     });
 }
@@ -94,31 +149,43 @@ sub play_best_word ($self) {
     my $game_record = $game_data->{state};
 
     # Calculate scores for all candidates
-    my @scored = map {
-        { word => $_, score => $self->app->scorer->calculate_score($_, $game_record->letter_values) }
-    } @$words;
-
-    # Filter by min score
-    @scored = grep { $_->{score} >= $self->min_score_to_play } @scored;
-    return unless @scored;
+    my @scored;
+    my %seen_words;
+    for my $w (@$words) {
+        next if $seen_words{$w}++;
+        push @scored, { word => $w, score => $self->app->scorer->calculate_score($w, $game_record->letter_values) };
+    }
 
     # Sort DESC
     @scored = sort { $b->{score} <=> $a->{score} } @scored;
 
     my $chosen;
-    if ($scored[0]{score} >= $self->min_score_to_win) {
+    # Filter by min score for "good" plays
+    my @filtered = grep { $_->{score} >= $self->min_score_to_play } @scored;
+
+    if (@filtered) {
+        if ($filtered[0]{score} >= $self->min_score_to_win) {
+            $chosen = $filtered[0];
+            $self->app->log->debug("AI " . $self->nickname . " chose high-score word: " . $chosen->{word} . " (" . $chosen->{score} . ")");
+        } else {
+            # Random pick among valid-enough candidates
+            $chosen = $filtered[int(rand(@filtered))];
+            $self->app->log->debug("AI " . $self->nickname . " chose random word: " . $chosen->{word} . " (" . $chosen->{score} . ")");
+        }
+    } elsif (@scored) {
+        # FALLBACK: Just pick any valid word if no words meet the AI's "pride" threshold
+        # This prevents the AI from just skipping multiple rounds
         $chosen = $scored[0];
-    } else {
-        # Random pick among candidates
-        $chosen = $scored[int(rand(@scored))];
+        $self->app->log->debug("AI " . $self->nickname . " using fallback play: " . $chosen->{word} . " (" . $chosen->{score} . ")");
     }
 
-    $self->played(1);
-    $self->last_score($chosen->{score});
-    
-    # We "play" by directly inserting into DB and broadcasting, 
-    # similar to _perform_play in Game.pm
-    $self->_execute_play($chosen->{word}, $chosen->{score}, $game_record);
+    if ($chosen) {
+        $self->played(1);
+        $self->last_score($chosen->{score});
+        $self->_execute_play($chosen->{word}, $chosen->{score}, $game_record);
+    } else {
+        $self->app->log->debug("AI " . $self->nickname . " found NO valid plays this round (candidates: " . scalar(@$words) . ")");
+    }
 }
 
 sub _execute_play ($self, $word, $score, $game_record) {

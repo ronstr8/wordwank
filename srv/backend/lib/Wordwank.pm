@@ -77,6 +77,11 @@ sub startup ($self) {
 
     # Shared i18n: Load JSON locales from SHARE_DIR/locale
     my $share_base = $ENV{SHARE_DIR} || $self->home->child('share');
+    if (!-d $share_base) {
+        # Try finding it relative to the backend if we're in srv/backend
+        my $alt_share = $self->home->child('../../helm/share');
+        $share_base = $alt_share if -d $alt_share;
+    }
     my $share_dir  = Mojo::File->new($share_base)->child('locale');
 
     $self->helper(load_translations => sub ($c) {

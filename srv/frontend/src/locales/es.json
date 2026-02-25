@@ -48,7 +48,7 @@
         "mute_on": "Silenciar todos los sonidos",
         "mute_off": "Activar todos los sonidos",
         "exit_focus": "Salir del modo enfoque",
-        "menu_title": "Menú",
+        "menu_title": "Menu",
         "game_modes_title": "Modos de Juego",
         "focus_mode": "Modo Enfoque",
         "panels_title": "Paneles",
@@ -112,5 +112,27 @@
         "total_points": "Puntos Totales",
         "words_played": "Palabras Jugadas",
         "global_top_10": "Top 10 Global"
+    },
+    "ai": {
+        "thinking": [
+            "Pensando...",
+            "Espera, veo una palabra...",
+            "Hmm, déjame mezclar esto...",
+            "Espera, puedo wankear mejor que eso...",
+            "Ya casi..."
+        ],
+        "reaction_beaten": [
+            "¡Buena esa, {{player}}!",
+            "¡Maldición, me ganaste!",
+            "Buena jugada, {{player}}.",
+            "¡No me esperaba eso!",
+            "¡Eres todo un wanker, {{player}}!"
+        ],
+        "reaction_impressed": [
+            "¡Vaya, {{word}}? ¡Magnífico!",
+            "{{player}}, ¡eres una leyenda!",
+            "¡Esa palabra pertenece a un diccionario!",
+            "Estoy realmente impresionado por {{word}}."
+        ]
     }
 }

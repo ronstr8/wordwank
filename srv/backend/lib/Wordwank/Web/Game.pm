@@ -429,7 +429,9 @@ sub _start_game_timer ($self, $game) {
         
         # AI fetches candidates once Game has rack/letter_values (usually first second)
         if ($elapsed == 1) {
-            my $rack_str = join('', @{$game->rack});
+            my $rack = $game->rack // [];
+            my $rack_str = join('', map { ref $_ ? ($_->{letter} // '') : $_ } @$rack);
+            $app->log->debug("AI " . $g->{ai}->nickname . " fetching candidates for rack_str: $rack_str");
             $g->{ai}->fetch_candidates($rack_str);
         }
         $g->{ai}->tick($elapsed);
@@ -513,12 +515,25 @@ sub _end_game ($self, $game) {
         }
     }
     
-    # Solo player rule: if only one unique player submitted, it's a practice session
+    # Solo player rule: if only one unique human player submitted, 
+    # but allow it if they are playing against a Bot.
     my %seen_players = map { $_->get_column('player_id') => 1 } @plays;
     my $num_seen = scalar(keys %seen_players);
-    my $solo_game = ($num_seen <= 1);
     
-    $app->log->debug("Solo check: $num_seen unique players seen in game " . $game->id . ". Result: " . ($solo_game ? "SOLO" : "COMPETITIVE"));
+    # Is there an active AI in this game?
+    my $has_ai = $app->games->{$game->id}{ai} ? 1 : 0;
+    
+    # Solo is only true if only 1 human and NO ai.
+    # Actually, AI is in seen_players if it played.
+    # Let's count humans.
+    my $humans_seen = 0;
+    my $ai = $app->games->{$game->id}{ai};
+    for my $pid (keys %seen_players) {
+        $humans_seen++ unless $ai && $pid eq $ai->player_id;
+    }
+    
+    my $solo_game = ($humans_seen <= 1 && !$has_ai);
+    $app->log->debug("Solo check: $humans_seen humans, has_ai: $has_ai. Result: " . ($solo_game ? "SOLO" : "COMPETITIVE"));
     
     # Build enhanced results with bonuses
     my @results;

@@ -112,5 +112,27 @@
         "total_points": "Total Points",
         "words_played": "Words Played",
         "global_top_10": "Global Top 10"
+    },
+    "ai": {
+        "thinking": [
+            "Thinking...",
+            "Hold on, I see a word...",
+            "Hmm, let me jumble this...",
+            "Wait, I can wank better than that...",
+            "Almost there..."
+        ],
+        "reaction_beaten": [
+            "Nice one, {{player}}!",
+            "Damn, you beat me!",
+            "Good play, {{player}}.",
+            "I wasn't expecting that!",
+            "You're quite the wanker, {{player}}!"
+        ],
+        "reaction_impressed": [
+            "Whoa, {{word}}? Magnificent!",
+            "{{player}}, you absolute legend!",
+            "That word belongs in a dictionary!",
+            "I'm actually impressed by {{word}}."
+        ]
     }
 }
