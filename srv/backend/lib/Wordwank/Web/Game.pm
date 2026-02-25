@@ -1,6 +1,9 @@
 package Wordwank::Web::Game;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
+use v5.36;
+use utf8;
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::URL;
 use Mojo::Util;
 use UUID::Tiny qw(:std);
 use DateTime;
@@ -49,8 +52,14 @@ sub websocket ($self) {
     $app->log->debug("Player $player_id connected via $client_id");
 
     $self->on(message => sub ($c, $msg) {
-        my $data = eval { decode_json($msg) };
-        return $c->app->log->error("Invalid JSON: $@") if $@;
+        # Mojo's $msg can be characters if it's a text frame. 
+        # Mojo::JSON::decode_json expects UTF-8 bytes.
+        my $data = eval { decode_json(Mojo::Util::encode('UTF-8', $msg)) };
+        if ($@) {
+            $c->app->log->error("Invalid JSON from $player_id: $@");
+            $c->app->log->debug("Raw message was: " . Mojo::Util::dumper($msg));
+            return;
+        }
 
         my $type    = $data->{type}    // '';
         my $payload = $data->{payload} // {};
@@ -305,11 +314,24 @@ sub _handle_play ($self, $player, $payload) {
         return;
     }
 
-    # Verify word can be formed from rack
+    eval {
+        _perform_play($self, $player, $payload, $word, $game_data, $game_record);
+    };
+    if ($@) {
+        $app->log->error("CRASH in _handle_play for " . $player->id . ": $@");
+        $self->send({json => {
+            type    => 'error',
+            payload => "Fecking server error!"
+        }});
+    }
+}
+
+sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
+    my $app = $self->app;
     my $rack = $game_record->rack;
     my $lang = $game_record->language // $DEFAULT_LANG;
 
-    $app->log->debug("Checking word '$word' against player rack: @$rack");
+    $app->log->debug("Checking word '$word' against player rack: " . Mojo::Util::dumper($rack));
     unless ($app->scorer->can_form_word($word, $rack)) {
         $app->log->debug("Word '$word' FAILED rack check");
         return $self->send({json => {
@@ -322,11 +344,14 @@ sub _handle_play ($self, $player, $payload) {
     # Use the game's language for consistency
     my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
     my $wordd_port = $ENV{WORDD_PORT} || 2345;
-    my $wordd_url  = "http://$wordd_host:$wordd_port/validate/$lang/";
     
-    $app->log->debug("Requesting validation from wordd: $wordd_url" . lc($word));
-    $app->ua->get($wordd_url . lc($word) => sub ($ua, $tx) {
-        my $res = $tx->result;
+    # Use Mojo::URL for safe encoding of the word path segment
+    my $wordd_url = Mojo::URL->new("http://$wordd_host:$wordd_port/validate/$lang/")
+                             ->path(lc($word));
+    
+    $app->log->debug("Requesting validation from wordd: $wordd_url");
+    $app->ua->get($wordd_url => sub ($ua, $tx) {
+        my $res = $tx->res;
         if ($res->is_success) {
             $app->log->debug("Word '$word' VALIDATED by wordd");
             # Word is valid!
@@ -362,11 +387,16 @@ sub _handle_play ($self, $player, $payload) {
             }
         }
         else {
-            $app->log->debug("Word '$word' REJECTED by wordd. Status: " . ($res->code // 'unknown'));
-            # Word is invalid or wordd is down
+            my $code = $res->code // 0;
+            $app->log->debug("Word '$word' REJECTED by wordd. Status: $code");
+            
+            my $msg = ($code == 404) 
+                ? $self->t('app.error_word_not_found', $lang, { word => $word })
+                : "Fecking server error!";
+
             $self->send({json => {
                 type    => 'error',
-                payload => $self->t('app.error_word_not_found', $lang, { word => $word })
+                payload => $msg
             }});
         }
     });
