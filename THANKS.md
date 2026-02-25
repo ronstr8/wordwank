@@ -2,14 +2,18 @@
 
 This project wouldn't be possible without the excellent work of others. We're grateful to:
 
-## Spanish Word List
+## Dictionaries and Lexicons
 
-Our Spanish word dictionary (`srv/wordd/share/words/es/lexicon.txt`) is derived from:
+Wordwank's lexicons are primarily generated from [Hunspell](https://hunspell.github.io/) dictionaries. We are deeply grateful to the Hunspell project and the many contributors who maintain high-quality word lists for every language on Earth.
 
-- **Source**: [Lemarios del español](http://olea.org/proyectos/lemarios/) by Ismael Olea
-- **Via**: [javierarce/palabras](https://github.com/javierarce/palabras) GitHub repository
-- **License**: Public Domain / Freely distributable
-- **Modifications**: We normalized the list by removing accents (á→a, é→e, etc.) while preserving ñ, and filtered to include only lowercase words without punctuation, resulting in an original source count of 79,489 words.
+### Original Lexicon Sources
+
+Before moving to the Hunspell-based generation system, we utilized or derived from the following excellent resources:
+
+- **Spanish**: Derived from [Lemarios del español](http://olea.org/proyectos/lemarios/) by Ismael Olea, via the [javierarce/palabras](https://github.com/javierarce/palabras) repository.
+- **English/French/German/Russian**: Various open-source word lists that served as the foundation of the early prototypes.
+
+We normalized these lists (removing accents, filtering lengths, etc.) to create the initial high-speed validation files.
 
 ## Sound Credits
 

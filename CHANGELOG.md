@@ -5,6 +5,30 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-02-25
+
+### Added (1.5.0)
+
+- **Full Hunspell Affix Support**: Expanded `scripts/hunspell-to-lexicon.pl` with a custom expansion engine and `unmunch` integration.
+  - Successfully handles plurals, prefixes, and complex suffixes from `.aff` files.
+  - Priority given to `unmunch` on Arkham, with a zero-dependency Perl fallback for local dev.
+- **Lexicon Build Automation**: Added `make lexicon` and `make lexicons` targets to the root `Makefile` for automated word list generation across all supported languages (`de`, `en`, `es`, `fr`, `ru`).
+- **Documentation & Credits**:
+  - Refreshed `README.md` with new prerequisites and lexicography instructions.
+  - Updated `THANKS.md` to formally credit the Hunspell project and preserve links to historical word list providers.
+
+## [1.4.0] - 2026-02-25
+
+### Added (1.4.0)
+
+- **AI Adversary Emergence**: Introduced a new AI-powered player capable of joining games, pondering its moves in real-time (with localized "thoughts"), and challenging human players across all supported languages.
+- **Multilingual AI Intelligence**: The AI now understands and communicates in English, Spanish, French, German, and Russian, fully integrated with our shared locale system.
+
+### Fixed (1.4.0)
+
+- **AI Thought Localization**: Resolved a display bug where AI "thinking" states were showing as raw translation keys (`ai.thinking`) instead of their natural language equivalents.
+- **Recursive Locale Fixes**: Restored and validated AI thinking strings across all supported language JSON files.
+
 ## [1.3.0] - 2026-02-22
 
 ### Added (1.3.0)

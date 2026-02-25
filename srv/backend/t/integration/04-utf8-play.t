@@ -65,19 +65,26 @@ subtest 'Unicode word submission validates and broadcasts' => sub {
         payload => { word => 'ÑAME' }
     }));
     
-    # Wait for 'play' broadcast
-    $ws->success_timeout(2);
-    my $found = 0;
-    while ($ws->message_ok) {
+    # Wait for 'play' and 'chat' broadcasts
+    my $play_found = 0;
+    my $chat_found = 0;
+    
+    # Consume messages until we find what we need
+    for (1..50) { 
+        $ws->message_ok or last;
         my $payload = decode_json($ws->message->[1]);
-        if ($payload->{type} eq 'play') {
-            is($payload->{payload}{word}, 'ÑAME', 'Correct Unicode word echoed');
-            $found = 1;
-            last;
+        diag("Subtest 1 Received: " . $payload->{type});
+        if ($payload->{type} eq 'play' && ($payload->{payload}{word} // '') eq 'ÑAME') {
+            $play_found = 1;
+        } elsif ($payload->{type} eq 'chat' && ($payload->{sender} // '') eq 'SYSTEM') {
+            diag("Chat text: " . $payload->{payload}{text});
+            $chat_found = 1 if $payload->{payload}{text} =~ /jugó una palabra por \d+ pts/;
         }
+        last if $play_found && $chat_found;
     }
-    $ws->success_timeout(10);
-    ok($found, 'Received play broadcast for Unicode word');
+    
+    ok($play_found, 'Received play broadcast for Unicode word');
+    ok($chat_found, 'Received chat broadcast for Unicode word');
     
     $ws->finish_ok;
 };
@@ -96,18 +103,17 @@ subtest 'Server error handling (500) returns custom message' => sub {
     }));
     
     # Wait for 'error' message
-    $ws->success_timeout(2);
-    my $found = 0;
-    while ($ws->message_ok) {
+    my $error_found = 0;
+    for (1..50) {
+        $ws->message_ok or last;
         my $payload = decode_json($ws->message->[1]);
-        if ($payload->{type} eq 'error') {
-            is($payload->{payload}, 'Fecking server error!', 'Correct custom error message received');
-            $found = 1;
+        diag("Subtest 2 Received: " . $payload->{type});
+        if ($payload->{type} eq 'error' && $payload->{payload} eq 'Fecking server error!') {
+            $error_found = 1;
             last;
         }
     }
-    $ws->success_timeout(10);
-    ok($found, 'Received custom error message on wordd 500');
+    ok($error_found, 'Received custom error message on wordd 500');
     
     $ws->finish_ok;
 };

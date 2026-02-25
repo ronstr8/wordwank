@@ -20,13 +20,15 @@ Before embarking on your descent into the word-void, ensure your host (e.g., Ubu
 - **kubectl**: The command-line interface for our cluster.
 - **Helm**: To manage our eldritch charts.
 - **socat**: Required for bridging the cluster to your local network.
+- **hunspell** & **hunspell-tools**: For generating application lexicons with full affix expansion.
+- **hunspell-{lang}**: Dictionaries for your desired languages (e.g., `hunspell-en-us`, `hunspell-de-de`, etc.).
 
 ### Quick Install (Ubuntu/Debian)
 
 ```bash
 # Install core tools
 sudo apt update
-sudo apt install -y docker.io kubectl helm socat
+sudo apt install -y docker.io kubectl helm socat hunspell hunspell-tools hunspell-en-us hunspell-de-de hunspell-es hunspell-fr hunspell-ru
 
 # Install Minikube
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
@@ -148,6 +150,24 @@ Wordwank integrates with several external services for authentication, notificat
 Navigate to `https://wordwank.fazigu.org` (or `http://` if you skipped SSL setup) to begin.
 
 *My heathen prayers reach out to you, hoping that it works the first time. It took me so long to get comfortable with hooking my development environment up to the outside world in a way that didn't seem hacky and better mirrored the production environment, but I think this finally gets it right. Over the five years at my last job, nobody there seemed to care or wanted to brainstorm/troubleshoot the issue. I wish I'd had Antigravity back then.*
+
+### 8. Lexicons
+
+Wordwank uses high-speed, pre-compiled lexicons for word validation. If you want to update the word lists from the latest Hunspell dictionaries:
+
+```bash
+# Standard rebuild of all lexicons
+# This requires hunspell and hunspell-tools (unmunch) to be installed.
+make lexicons
+```
+
+You can customize the source and destination paths if your system stores dictionaries elsewhere:
+
+```bash
+make lexicons HUNSPELL_DICTS=/path/to/dicts WORDD_ROOT=srv/wordd/share/words
+```
+
+---
 
 ---
 

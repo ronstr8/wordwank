@@ -372,6 +372,19 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
             # Broadcast to all players in the game, but obfuscate word/score for others
             my $game_clients = $game_data->{clients} // {};
             my $timestamp = time;
+
+            # Also send a global chat message for the play
+            my $chat_msg = $self->t('app.played_word', $lang, { name => $player->nickname, score => $score });
+            $self->app->broadcast_all_clients({
+                type    => 'chat',
+                sender  => 'SYSTEM',
+                payload => {
+                    text       => $chat_msg,
+                    senderName => 'Wordwank',
+                },
+                timestamp => $timestamp,
+            });
+
             for my $pid (keys %$game_clients) {
                 my $c = $game_clients->{$pid};
                 next unless $c && $c->tx;

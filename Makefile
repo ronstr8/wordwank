@@ -150,6 +150,25 @@ locales:
 		--dry-run=client -o yaml | kubectl apply --namespace $(NAMESPACE) -f -
 	@echo "✅ ConfigMap updated. Pods will pick up changes within 5 minutes."
 
+# Lexicon generation from Hunspell dictionaries
+HUNSPELL_DICTS ?= /usr/share/hunspell
+WORDD_ROOT ?= srv/wordd/share/words
+LANGS = de en es fr ru
+
+lexicon:
+	@if [ -z "$(LANG)" ]; then echo "Usage: make lexicon LANG=en"; exit 1; fi
+	@echo "Generating lexicon for $(LANG)..."
+	@mkdir -p $(WORDD_ROOT)/$(LANG)
+	@find $(HUNSPELL_DICTS) -name "$(LANG)_[A-Z]*.dic" | xargs perl scripts/hunspell-to-lexicon.pl > $(WORDD_ROOT)/$(LANG)/lexicon.txt
+	@echo "✅ $(LANG) lexicon generated: $$(wc -l < $(WORDD_ROOT)/$(LANG)/lexicon.txt) words"
+
+lexicons:
+	@for lang in $(LANGS); do \
+		$(MAKE) lexicon LANG=$$lang; \
+	done
+	@echo "✅ All lexicons generated."
+	@wc -l $(WORDD_ROOT)/*/lexicon.txt
+
 # Cleanup
 clean:
 	@echo "Cleaning up local artifacts..."
