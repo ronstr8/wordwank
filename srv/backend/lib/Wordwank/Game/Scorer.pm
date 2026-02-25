@@ -48,11 +48,8 @@ sub _load_tile_config ($self, $lang) {
     }
 
     if ($config && $config->{tiles} && scalar(keys %{$config->{tiles}})) {
-        warn "Loaded dynamic tile config for $lang from wordd.";
         return $config;
     }
-
-    warn "Falling back to default tile config for $lang (wordd failed or returned empty)";
     # Fallback Scrabble-like distribution
     return {
         tiles => {

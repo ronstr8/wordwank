@@ -8,6 +8,7 @@ use Mojo::Util;
 use UUID::Tiny qw(:std);
 use DateTime;
 use Wordwank::Util::NameGenerator;
+use Wordwank::Game::AI;
 
 my $DEFAULT_GAME_DURATION = $ENV{GAME_DURATION} || 30;
 my $DEFAULT_LANG = $ENV{DEFAULT_LANG} || 'en';
@@ -152,6 +153,7 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
                 clients   => {},
                 state     => $active_game,
                 time_left => $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION,
+                ai        => Wordwank::Game::AI->new_for_game($app, $gid, $lang),
             };
             $self->_start_game_timer($active_game);
         }
@@ -185,6 +187,7 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
                 clients   => {}, 
                 state     => $active_game,
                 time_left => $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION,
+                ai        => Wordwank::Game::AI->new_for_game($app, $gid, $lang),
             };
             $self->_start_game_timer($active_game);
         }
@@ -202,6 +205,7 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
                  clients   => {},
                  state     => $active_game,
                  time_left => $total_dur - $elapsed,
+                 ai        => Wordwank::Game::AI->new_for_game($app, $gid, $lang),
              };
              $self->_start_game_timer($active_game);
         }
@@ -235,7 +239,7 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
             tile_counts   => $app->scorer->tile_counts($game_lang), # Renamed from letter_counts
             unicorns      => $app->scorer->unicorns($game_lang),
             time_left     => $app->games->{$gid}{time_left},
-            players       => \@other_nicknames,
+            players       => [ @other_nicknames, $app->games->{$gid}{ai}->nickname ],
         }
     }});
 
@@ -385,6 +389,9 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
                     }
                 }});
             }
+
+            # AI Reacts if beaten
+            $game_data->{ai}->check_reaction($player->nickname, $score);
         }
         else {
             my $code = $res->code // 0;
@@ -415,6 +422,17 @@ sub _start_game_timer ($self, $game) {
         }
 
         $g->{time_left}--;
+        
+        # Drive AI
+        my $total_dur = $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION;
+        my $elapsed = $total_dur - $g->{time_left};
+        
+        # AI fetches candidates once Game has rack/letter_values (usually first second)
+        if ($elapsed == 1) {
+            my $rack_str = join('', @{$game->rack});
+            $g->{ai}->fetch_candidates($rack_str);
+        }
+        $g->{ai}->tick($elapsed);
         
         # Broadcast timer update (clamped to 0)
         $self->_broadcast_to_game($gid, {
@@ -553,6 +571,13 @@ sub _end_game ($self, $game) {
         for my $result (@results) {
             my $player = $schema->resultset('Player')->find($result->{player_id});
             if ($player) {
+                # Skip AI player updates (they don't save rankings)
+                my $ai = $app->games->{$game->id}{ai};
+                if ($ai && $player->id eq $ai->player_id) {
+                    $app->log->debug("Skipping lifetime score update for AI player " . $player->id);
+                    next;
+                }
+
                 my $old_score = $player->lifetime_score || 0;
                 my $new_score = $old_score + $result->{score};
                 $player->update({ lifetime_score => $new_score });

@@ -131,6 +131,9 @@ sub startup ($self) {
         for my $part (split /\./, $key) {
             $val = $val->{$part} if ref $val eq 'HASH';
         }
+        if (defined $val && ref $val eq 'ARRAY') {
+            $val = $val->[int(rand(@$val))];
+        }
         $val = $key unless defined $val && !ref $val;
 
         # i18next-style interpolation: {{variable}}

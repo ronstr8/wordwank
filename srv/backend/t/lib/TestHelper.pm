@@ -24,6 +24,7 @@ sub get_test_mojo {
     local $ENV{DATABASE_URL} = 'dbi:SQLite:dbname=:memory:';
     local $ENV{DB_USER} = '';
     local $ENV{DB_PASS} = '';
+    local $ENV{SHARE_DIR} = '../../helm/share';
     
     require Wordwank;
     my $t = Test::Mojo->new('Wordwank');
@@ -84,26 +85,7 @@ sub create_ws_client {
         die "Expected 'game_start' message, got: " . ($response->{type} || 'unknown');
     }
     
-    # Consume ALL pending messages (player_joined, identity, timer, etc.)
-    # This ensures tests start with a clean message queue
-    # We use a timeout to detect when there are no more messages
-    my $consumed = 0;
-    for (my $i = 0; $i < 20; $i++) {  # Maximum pending messages
-        my $has_message = eval {
-            use Mojo::IOLoop;
-            # Set a very short timeout to check if message is available
-            my $got_msg = 0;
-            Mojo::IOLoop->timer(0.1 => sub { $got_msg = -1 unless $got_msg });
-            $t->message_ok;
-            $got_msg = 1;
-            return $got_msg == 1;
-        };
-        
-        last unless $has_message && !$@;
-        $consumed++;
-    }
-    
-    return ($t, $player_id);
+    return ($t, $player_id, $response->{payload});
 }
 
 # Wait for a specific message type on a WebSocket
@@ -139,8 +121,6 @@ sub cleanup_test_games {
         $schema->resultset('Game')->delete;
         $schema->resultset('Play')->delete;
     };
-    
-    warn "Cleanup warning: $@" if $@;
 }
 
 1;
