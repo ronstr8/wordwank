@@ -53,9 +53,10 @@ sub websocket ($self) {
     $app->log->debug("Player $player_id connected via $client_id");
 
     $self->on(message => sub ($c, $msg) {
-        # Mojo's $msg can be characters if it's a text frame. 
+        # Mojo's $msg can be characters if it's a text frame.
         # Mojo::JSON::decode_json expects UTF-8 bytes.
-        my $data = eval { decode_json(Mojo::Util::encode('UTF-8', $msg)) };
+        my $bytes = utf8::is_utf8($msg) ? Mojo::Util::encode('UTF-8', $msg) : $msg;
+        my $data = eval { decode_json($bytes) };
         if ($@) {
             $c->app->log->error("Invalid JSON from $player_id: $@");
             $c->app->log->debug("Raw message was: " . Mojo::Util::dumper($msg));
@@ -381,6 +382,7 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
                 payload => {
                     text       => $chat_msg,
                     senderName => 'Wordwank',
+                    isSystem   => 1,
                 },
                 timestamp => $timestamp,
             });
@@ -586,12 +588,17 @@ sub _end_game ($self, $game) {
                 length_bonus    => $length_bonus,
                 duped_by        => $bonuses->{duped_by} // [],
                 is_dupe         => $is_duper{$player_id} ? 1 : 0,
+                created_at      => $play->get_column('created_at'),
             };
         }
     }
     
     # Convert to sorted array
-    @results = sort { $b->{score} <=> $a->{score} } values %player_total_scores;
+    # Tie-breaker: earlier creation time wins
+    @results = sort { 
+        $b->{score} <=> $a->{score} 
+        || $a->{created_at} cmp $b->{created_at} 
+    } values %player_total_scores;
     
     # Update player cumulative scores in database (skip for solo games)
     if (!$solo_game) {
@@ -634,6 +641,17 @@ sub _end_game ($self, $game) {
             payload => {
                 text       => $announce_msg,
                 senderName => 'SYSTEM',
+            },
+            timestamp => time,
+        });
+
+        # Add centered separator after game end summary
+        $app->broadcast_all_clients({
+            type    => 'chat',
+            sender  => 'SYSTEM',
+            payload => {
+                isSeparator => 1,
+                text        => '---',
             },
             timestamp => time,
         });

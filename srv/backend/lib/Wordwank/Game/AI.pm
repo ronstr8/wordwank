@@ -29,28 +29,28 @@ has 'reacted_beaten'  => 0;
 
 # Bot Profiles
 my %PROFILES = (
-    'The Worm' => {
+    'Yertyl' => {
         uuid              => '00000000-0000-4000-a000-000000000001',
         wait_seconds_base => 15,
         rnd_word_count    => 3,
         min_score_to_play => 1,
         min_score_to_win  => 40,
     },
-    'QuickSilver' => {
+    'Flash' => {
         uuid              => '00000000-0000-4000-a000-000000000002',
         wait_seconds_base => 5,
         rnd_word_count    => 5,
         min_score_to_play => 5,
         min_score_to_win  => 35,
     },
-    'WankMaster' => {
+    'Wanko' => {
         uuid              => '00000000-0000-4000-a000-000000000003',
         wait_seconds_base => 8,
         rnd_word_count    => 8,
         min_score_to_play => 10,
         min_score_to_win  => 25,
     },
-    'Sir Scrabble' => {
+    'Scrabbler' => {
         uuid              => '00000000-0000-4000-a000-000000000004',
         wait_seconds_base => 12,
         rnd_word_count    => 10,
@@ -216,6 +216,18 @@ sub _execute_play ($self, $word, $score, $game_record) {
         }
     };
     $app->broadcaster->announce_to_game($msg, $self->game_id);
+
+    # Global Chat Broadcast
+    my $chat_msg = $app->t('app.played_word', $self->language, { name => $self->nickname, score => $score });
+    $app->broadcast_all_clients({
+        type    => 'chat',
+        sender  => 'SYSTEM',
+        payload => {
+            text       => $chat_msg,
+            senderName => $self->nickname,
+        },
+        timestamp => $timestamp,
+    });
 }
 
 sub chat ($self, $key, $args = {}) {

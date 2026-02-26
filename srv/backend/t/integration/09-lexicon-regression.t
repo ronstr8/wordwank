@@ -8,6 +8,7 @@ use DateTime;
 use lib 'lib', 't/lib';
 use TestHelper qw(get_test_mojo create_ws_client cleanup_test_games);
 
+$ENV{GAME_DURATION} = 60; # Shorter to reduce noise
 my $t = get_test_mojo();
 
 # This test requires a running wordd or we should mock it.
@@ -44,42 +45,53 @@ subtest 'English Affixes Regression' => sub {
     my @words_to_test = qw(playing plays played rework undo prepay prepaid faster fastest slowly kindly);
     setup_mock_wordd_lexicon(\@words_to_test);
 
-    # Create a game with a rack that can form these words (using blanks for simplicity)
-    my $gid = UUID::Tiny::create_uuid_as_string(UUID_V4());
-    $t->app->schema->resultset('Game')->create({
-        id            => $gid,
-        rack          => '{*,*,*,*,*,*,*}', # 7 blanks can form anything
-        letter_values => Mojo::JSON::encode_json({ map { $_ => 1 } ('A'..'Z') }),
-        language      => 'en',
-        started_at    => DateTime->now,
-    });
-
-    my ($ws, $player_id) = create_ws_client(
-        test_mojo => $t,
-        nickname  => 'LexiconTester',
-        language  => 'en',
-    );
-
     for my $word (@words_to_test) {
-        $ws->send_ok(encode_json({
+        # Create a fresh game for each word to avoid duration issues
+        my $gid = UUID::Tiny::create_uuid_as_string(UUID_V4());
+        $t->app->schema->resultset('Game')->create({
+            id            => $gid,
+            rack          => '{_,_,_,_,_,_,_}', # 7 blanks can form anything
+            letter_values => Mojo::JSON::encode_json({ map { $_ => 1 } ('A'..'Z') }),
+            language      => 'en',
+            started_at    => DateTime->now,
+        });
+
+        my ($ws, $player_id) = create_ws_client(
+            test_mojo => $t,
+            nickname  => "Tester_$word",
+            language  => 'en',
+        );
+
+        $ws->send_ok({json => {
             type => 'play',
             payload => { word => $word }
-        }));
+        }});
 
         my $play_found = 0;
-        for (1..50) {
-            $ws->message_ok or last;
-            my $payload = decode_json($ws->message->[1]);
-            diag("Received: " . $payload->{type});
+        my $attempts = 0;
+        while ($attempts < 500) {
+            last unless $ws->message_ok;
+            my $msg = $ws->message;
+            last unless defined $msg;
+            
+            my $payload = decode_json($msg->[1]);
+            # Ignore noisy types
+            next if $payload->{type} =~ /^(timer|identity|chat_history)$/;
+            
+            $attempts++;
+            # diag("Received: " . $payload->{type});
             if ($payload->{type} eq 'play' && ($payload->{payload}{word} // '') eq uc($word)) {
                 $play_found = 1;
                 last;
             }
             if ($payload->{type} eq 'error') {
                 diag("Error for word $word: " . $payload->{payload});
+                last;
             }
+            last if $payload->{type} eq 'game_end';
         }
         ok($play_found, "Word '$word' validated and broadcast");
+        $ws->finish_ok;
     }
 
     $ws->finish_ok;

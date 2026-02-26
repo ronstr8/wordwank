@@ -245,6 +245,8 @@ function App() {
                         sender: data.sender,
                         senderName: senderName || data.sender,
                         text: text,
+                        isSystem: !!(data.payload && data.payload.isSystem),
+                        isSeparator: !!(data.payload && data.payload.isSeparator),
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                     }]);
                 } else if (data.type === 'chat_history') {
@@ -252,6 +254,8 @@ function App() {
                         sender: msg.sender,
                         senderName: msg.payload.senderName || msg.sender,
                         text: msg.payload.text,
+                        isSystem: !!(msg.payload && msg.payload.isSystem),
+                        isSeparator: !!(msg.payload && msg.payload.isSeparator),
                         timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
                     }));
                     setMessages(history);
@@ -325,26 +329,27 @@ function App() {
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
                     };
 
+                    if (data.sender === playerIdRef.current) {
+                        setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
+                        setIsLocked(true);
+                        setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+                    }
+
                     // Toast Notification for Mobile/Subtle UI
                     const score = data.payload.score;
                     const isSplat = score >= 40;
 
-                    let toastMsg;
-                    if (playObj.word) {
-                        toastMsg = `${playObj.playerName} played ${playObj.word} for ${score} pts. ${isSplat ? '💥' : ''}`;
-                    } else {
-                        toastMsg = `${playObj.playerName} played a word for ${score} pts. ${isSplat ? '💥' : ''}`;
+                    let toastMsg = data.payload.msg; // Fallback
+                    if (data.payload.playerName && data.payload.score !== undefined) {
+                        toastMsg = tRef.current('app.played_word', {
+                            name: data.payload.playerName,
+                            score: data.payload.score
+                        }) + (isSplat ? ' 💥' : '');
                     }
                     showToast(toastMsg, isSplat);
 
                     if (isSplat) {
                         playRef.current('bigsplat');
-                    }
-
-                    if (data.sender === playerIdRef.current) {
-                        setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
-                        setIsLocked(true);
-                        setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
                     }
                 } else if (data.type === 'player_joined') {
                     if (data.payload.id !== playerIdRef.current) {

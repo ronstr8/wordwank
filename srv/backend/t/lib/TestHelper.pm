@@ -67,15 +67,13 @@ sub create_ws_client {
     }
     
     # Now send join message
-    my $join_msg = encode_json({
+    $t->send_ok({json => {
         type => 'join',
         payload => {
             nickname => $nickname,
             language => $language,
         }
-    });
-    
-    $t->send_ok($join_msg);
+    }});
     
     # Wait for game_start confirmation
     $t->message_ok->or(sub { die "No game_start confirmation received" });

@@ -14,6 +14,7 @@ use TestHelper qw(get_test_mojo create_ws_client cleanup_test_games);
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
+$ENV{GAME_DURATION} = 120;
 my $t = get_test_mojo();
 
 # Manual mock for Mojo::UserAgent that simulates wordd validation
@@ -24,7 +25,9 @@ sub setup_mock_wordd ($code, $expected_word_match = undef) {
         no warnings 'redefine';
         *Mojo::UserAgent::get = sub ($self, $url, $cb) {
             my $tx = Mojo::Transaction::HTTP->new;
-            if ($expected_word_match && $url =~ /$expected_word_match/) {
+            # Mojo::URL can be a string or object.
+            my $url_str = "$url";
+            if ($expected_word_match && $url_str =~ /$expected_word_match/i) {
                 $tx->res->code(200);
                 $tx->res->body('OK');
             } else {
@@ -43,7 +46,7 @@ subtest 'Unicode word submission validates and broadcasts' => sub {
     setup_mock_wordd(200, '%c3%b1ame'); # Match encoded ÑAME
 
     # Manually create a game with Ñ in the rack
-    my $gid = UUID::Tiny::create_uuid_as_string(UUID_V4);
+    my $gid = UUID::Tiny::create_uuid_as_string(UUID_V4());
     $t->app->schema->resultset('Game')->create({
         id            => $gid,
         rack          => '{Ñ,A,M,E,X,Y,Z}', # Postgres format for inflation
@@ -60,27 +63,38 @@ subtest 'Unicode word submission validates and broadcasts' => sub {
     );
     
     # Submit Unicode word
-    $ws->send_ok(encode_json({
+    $ws->send_ok({json => {
         type => 'play',
         payload => { word => 'ÑAME' }
-    }));
+    }});
     
     # Wait for 'play' and 'chat' broadcasts
     my $play_found = 0;
     my $chat_found = 0;
     
     # Consume messages until we find what we need
-    for (1..50) { 
-        $ws->message_ok or last;
-        my $payload = decode_json($ws->message->[1]);
-        diag("Subtest 1 Received: " . $payload->{type});
+    my $attempts = 0;
+    while ($attempts < 500) { 
+        last unless $ws->message_ok;
+        my $msg = $ws->message;
+        last unless defined $msg;
+        
+        my $payload = decode_json($msg->[1]);
+        next if $payload->{type} =~ /^(timer|identity|chat_history)$/;
+        
+        $attempts++;
+        # diag("Subtest 1 Received: " . $payload->{type});
         if ($payload->{type} eq 'play' && ($payload->{payload}{word} // '') eq 'ÑAME') {
             $play_found = 1;
         } elsif ($payload->{type} eq 'chat' && ($payload->{sender} // '') eq 'SYSTEM') {
-            diag("Chat text: " . $payload->{payload}{text});
+            # diag("Chat text: " . $payload->{payload}{text});
+            # Check for localized Spanish message
             $chat_found = 1 if $payload->{payload}{text} =~ /jugó una palabra por \d+ pts/;
         }
         last if $play_found && $chat_found;
+        
+        # If we hit game_end before finding what we need, something is wrong
+        last if $payload->{type} eq 'game_end';
     }
     
     ok($play_found, 'Received play broadcast for Unicode word');
@@ -97,21 +111,34 @@ subtest 'Server error handling (500) returns custom message' => sub {
         nickname  => 'ErrorTester',
     );
     
-    $ws->send_ok(encode_json({
+    $ws->send_ok({json => {
         type => 'play',
         payload => { word => 'FOO' }
-    }));
+    }});
     
     # Wait for 'error' message
     my $error_found = 0;
-    for (1..50) {
-        $ws->message_ok or last;
-        my $payload = decode_json($ws->message->[1]);
-        diag("Subtest 2 Received: " . $payload->{type});
+    my $err_attempts = 0;
+    while ($err_attempts < 500) {
+        last unless $ws->message_ok;
+        my $msg = $ws->message;
+        last unless defined $msg;
+        
+        my $payload = decode_json($msg->[1]);
+        # diag("Subtest 2 Received Type: " . $payload->{type});
+        next if $payload->{type} =~ /^(timer|identity|chat_history)$/;
+        
+        $err_attempts++;
+        # diag("Subtest 2 Processing: " . $payload->{type});
         if ($payload->{type} eq 'error' && $payload->{payload} eq 'Fecking server error!') {
             $error_found = 1;
             last;
         }
+        if ($payload->{type} eq 'error') {
+            diag("Received different error: " . $payload->{payload});
+            last;
+        }
+        last if $payload->{type} eq 'game_end';
     }
     ok($error_found, 'Received custom error message on wordd 500');
     
@@ -120,3 +147,4 @@ subtest 'Server error handling (500) returns custom message' => sub {
 
 cleanup_test_games($t);
 done_testing();
+

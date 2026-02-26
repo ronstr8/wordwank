@@ -122,7 +122,6 @@ setup-storage:
 deploy: minikube-setup setup-storage
 	node scripts/sync-version.js
 	@mkdir -p helm/share/locale
-	@cp srv/frontend/src/locales/*.json helm/share/locale/
 	helm dependency update ./helm
 	kubectl delete validatingwebhookconfiguration ingress-nginx-admission || true
 	helm upgrade --install wordwank ./helm \

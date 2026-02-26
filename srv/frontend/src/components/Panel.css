@@ -138,10 +138,34 @@
     font-size: 0.95rem;
 }
 
+.chat-separator {
+    width: 60%;
+    margin: 15px auto;
+    text-align: center;
+}
+
+.chat-separator hr {
+    border: none;
+    border-top: 3px solid #f1c40f;
+    opacity: 0.8;
+}
+
 .chat-sender {
     font-weight: bold;
     color: #3498db;
     margin-right: 5px;
+}
+
+.chat-msg.system-msg {
+    font-style: italic;
+    opacity: 0.9;
+    color: #bdc3c7;
+}
+
+.chat-icon {
+    margin-right: 4px;
+    filter: sepia(1) saturate(2) hue-rotate(180deg);
+    /* Make it look a bit more "techy" if desired, or just leave as is */
 }
 
 .chat-input-area {
