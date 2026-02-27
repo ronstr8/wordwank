@@ -5,6 +5,7 @@ import Timer from './components/Timer'
 import Chat from './components/Chat'
 import Results from './components/Results'
 import Leaderboard from './components/Leaderboard'
+import WankerLog from './components/WankerLog'
 import DraggablePanel from './components/DraggablePanel'
 import useSound from './hooks/useSound'
 import './App.css'
@@ -25,6 +26,7 @@ function App() {
     const [totalTime, setTotalTime] = useState(30) // Default to 30, updated on game_start
     const playerIdRef = useRef(null)
     const [messages, setMessages] = useState([])
+    const [logMessages, setLogMessages] = useState([])
     const [ws, setWs] = useState(null)
     const [playerId, setPlayerId] = useState(null)
     const [results, setResults] = useState(null)
@@ -85,6 +87,7 @@ function App() {
 
     const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
     const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
+    const [logVisible, setLogVisible] = useState(() => loadPanelVisibility('log'));
     const [statsVisible, setStatsVisible] = useState(() => loadPanelVisibility('stats'));
     const [supportedLangs, setSupportedLangs] = useState({ en: { name: 'English', word_count: 0 } });
 
@@ -96,6 +99,10 @@ function App() {
     useEffect(() => {
         savePanelVisibility('chat', chatVisible);
     }, [chatVisible]);
+
+    useEffect(() => {
+        savePanelVisibility('log', logVisible);
+    }, [logVisible]);
 
     useEffect(() => {
         savePanelVisibility('stats', statsVisible);
@@ -242,14 +249,22 @@ function App() {
                     // Show chat toast notification (left side)
                     showChatToast(senderName, text);
 
-                    setMessages(prev => [...prev, {
+
+                    const msgObj = {
                         sender: data.sender,
                         senderName: senderName || data.sender,
                         text: text,
                         isSystem: !!(data.payload && data.payload.isSystem),
                         isSeparator: !!(data.payload && data.payload.isSeparator),
                         timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                    }]);
+                    };
+
+                    setMessages(prev => [...prev, msgObj]);
+
+                    // Route system/game messages to log as well
+                    if (msgObj.isSystem || msgObj.isSeparator || data.sender === 'SYSTEM') {
+                        setLogMessages(prev => [...prev, msgObj]);
+                    }
                 } else if (data.type === 'chat_history') {
                     const history = data.payload.map(msg => ({
                         sender: msg.sender,
@@ -260,6 +275,7 @@ function App() {
                         timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
                     }));
                     setMessages(history);
+                    setLogMessages(history.filter(m => m.isSystem || m.isSeparator || m.sender === 'SYSTEM'));
                 } else if (data.type === 'identity') {
                     if (data.payload.id === playerIdRef.current) {
                         setNickname(data.payload.name);
@@ -354,6 +370,18 @@ function App() {
                     if (isSplat) {
                         playRef.current('bigsplat');
                     }
+
+                    // Log the play
+                    setLogMessages(prev => [...prev, {
+                        sender: data.sender,
+                        senderName: data.payload.playerName || data.sender,
+                        text: tRef.current('app.played_word', {
+                            name: data.payload.playerName || data.sender,
+                            score: data.payload.score
+                        }),
+                        isSystem: true,
+                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                    }]);
                 } else if (data.type === 'player_joined') {
                     if (data.payload.id !== playerIdRef.current) {
                         // Show join toast only once per player per game
@@ -361,10 +389,22 @@ function App() {
                             showToast(tRef.current('app.player_joined', { name: data.payload.name }));
                             joinToastShown.current.add(data.payload.id);
                         }
+                        setLogMessages(prev => [...prev, {
+                            sender: 'SYSTEM',
+                            text: tRef.current('app.player_joined', { name: data.payload.name }),
+                            isSystem: true,
+                            timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                        }]);
                     }
                 } else if (data.type === 'player_quit') {
                     if (data.payload.id !== playerIdRef.current) {
                         showToast(tRef.current('app.player_quit', { name: data.payload.name }));
+                        setLogMessages(prev => [...prev, {
+                            sender: 'SYSTEM',
+                            text: tRef.current('app.player_quit', { name: data.payload.name }),
+                            isSystem: true,
+                            timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                        }]);
                     }
                 } else if (data.type === 'error') {
                     setFeedback({ text: data.payload, type: 'error' });
@@ -387,6 +427,14 @@ function App() {
                     setIsLocked(true);
                     playRef.current('game_over');
                     fetchLeaderboard();
+
+                    // Log the game end
+                    setLogMessages(prev => [...prev, {
+                        sender: 'SYSTEM',
+                        text: resultsData.summary,
+                        isSystem: true,
+                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                    }]);
                 }
             };
         };
@@ -713,6 +761,8 @@ function App() {
                 setLeaderboardVisible={setLeaderboardVisible}
                 chatVisible={chatVisible}
                 setChatVisible={setChatVisible}
+                logVisible={logVisible}
+                setLogVisible={setLogVisible}
                 statsVisible={statsVisible}
                 setStatsVisible={setStatsVisible}
                 showRules={showRules}
@@ -765,6 +815,12 @@ function App() {
                             onClick={() => setChatVisible(!chatVisible)}
                         >
                             {t('app.chat')}
+                        </button>
+                        <button
+                            className={`panel-toggle ${logVisible ? 'active' : ''}`}
+                            onClick={() => setLogVisible(!logVisible)}
+                        >
+                            Log
                         </button>
                     </div>
 
@@ -995,6 +1051,19 @@ function App() {
                     storageKey="chat"
                 >
                     <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
+                </DraggablePanel>
+            )}
+
+            {!isFocusMode && logVisible && (
+                <DraggablePanel
+                    title="Wanker Log"
+                    id="log"
+                    initialPos={{ x: 20, y: 380 }}
+                    initialSize={{ width: 300, height: 350 }}
+                    onClose={() => setLogVisible(false)}
+                    storageKey="log"
+                >
+                    <WankerLog messages={logMessages} />
                 </DraggablePanel>
             )}
 

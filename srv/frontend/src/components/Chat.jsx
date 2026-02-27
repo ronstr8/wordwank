@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useTranslation, Trans } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
+import MessageList from './MessageList'
 import './Panel.css'
 
 const Chat = ({ messages, onSendMessage }) => {
@@ -16,31 +17,7 @@ const Chat = ({ messages, onSendMessage }) => {
 
     return (
         <>
-            <div className="panel-content chat-history">
-                {(messages || []).map((msg, i) => {
-                    if (msg.isSeparator) {
-                        return <div key={i} className="chat-separator"><hr /></div>;
-                    }
-                    const isSystem = msg.isSystem || msg.sender === 'SYSTEM';
-                    return (
-                        <div key={i} className={`chat-msg ${isSystem ? 'system-msg' : ''}`}>
-                            {isSystem ? (
-                                <>
-                                    <span className="chat-icon">🤖 </span>
-                                    <span className="chat-text">{msg.sender === 'SYSTEM' ? t(msg.text) : msg.text}</span>
-                                </>
-                            ) : (
-                                <Trans
-                                    t={t}
-                                    i18nKey="app.chat_format"
-                                    values={{ player: msg.senderName || msg.sender, text: msg.text }}
-                                    components={{ v: <span className="chat-sender" /> }}
-                                />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+            <MessageList messages={messages} />
             <form onSubmit={handleSend} className="chat-input-area">
                 <input
                     type="text"

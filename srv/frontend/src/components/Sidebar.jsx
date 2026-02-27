@@ -10,6 +10,8 @@ const Sidebar = ({
     setLeaderboardVisible,
     chatVisible,
     setChatVisible,
+    logVisible,
+    setLogVisible,
     statsVisible,
     setStatsVisible,
     showRules,
@@ -81,6 +83,13 @@ const Sidebar = ({
                         >
                             <span className="sidebar-icon">💬</span>
                             {t('app.chat')}
+                        </button>
+                        <button
+                            className={`sidebar-btn ${logVisible ? 'active' : ''}`}
+                            onClick={() => handleAction(() => setLogVisible(!logVisible))}
+                        >
+                            <span className="sidebar-icon">📜</span>
+                            Wanker Log
                         </button>
                         <button
                             className={`sidebar-btn ${statsVisible ? 'active' : ''}`}

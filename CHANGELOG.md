@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Dynamic LLM AI Characters**: Replaced canned AI chat with dynamic, persona-driven dialogue powered by Ollama. **Note: This feature is in early testing phase.**
   - **Persona System**: Custom prompts for Yertyl (grumpy turtle), Flash (speedster), Wanko (pun-master), and Scrabbler (sophisticated linguist).
   - **Context-Aware Preamble**: AI now considers game rules and its current tile rack when generating reactions.
+- **Wanker Log Panel**: Re-introduced the "Play-by-Play" style log window as a dedicated, non-interactive "Wanker Log" to reduce chat noise while maintaining event visibility.
+  - Refactored chat logic into a reusable `MessageList` component.
+  - Toggles available in header and sidebar with position/visibility persistence.
 - **Integration Test Suite Expansion**: Added `08-llm-ai-player.t` to verify character personalities and prompt enrichment.
 
 ### Improved (1.7.0)
