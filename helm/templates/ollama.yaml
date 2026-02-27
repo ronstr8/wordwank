@@ -35,20 +35,7 @@ spec:
               port: 11434
             initialDelaySeconds: 30
             periodSeconds: 10
-      initContainers:
-        - name: pull-model
-          image: curlimages/curl:latest
-          command:
-            - "sh"
-            - "-c"
-            - |
-              # Wait for ollama to be ready
-              until curl -s http://localhost:11434/api/tags > /dev/null; do
-                echo "Waiting for ollama..."
-                sleep 5
-              done
-              echo "Pulling model {{ .Values.ollama.model | default "phi3:mini" }}..."
-              curl -X POST http://localhost:11434/api/pull -d "{\"name\": \"{{ .Values.ollama.model | default "phi3:mini" }}\"}"
+# Models are now baked into the custom image at srv/ollama/Dockerfile
 ---
 apiVersion: v1
 kind: Service

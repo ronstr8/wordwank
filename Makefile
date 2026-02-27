@@ -8,7 +8,7 @@ DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = wordwank
 DOMAIN = wordwank.fazigu.org
 
-SERVICES = frontend backend wordd
+SERVICES = frontend backend wordd ollama
 
 .PHONY: all build clean deploy undeploy help $(SERVICES) minikube-setup registry-tunnel metallb-install metallb-config cert-manager-setup
 
@@ -107,6 +107,12 @@ backend: minikube-setup registry-tunnel
 	docker push $(REGISTRY)/wordwank-backend:$(TAG)
 	kubectl rollout restart deployment/backend -n $(NAMESPACE) || true
 	kubectl rollout status deployment/backend -n $(NAMESPACE) || true
+
+ollama: minikube-setup registry-tunnel
+	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/wordwank-ollama:$(TAG) ./srv/ollama
+	docker push $(REGISTRY)/wordwank-ollama:$(TAG)
+	kubectl rollout restart deployment/ollama -n $(NAMESPACE) || true
+	kubectl rollout status deployment/ollama -n $(NAMESPACE) || true
 
 
 # Helm Commands

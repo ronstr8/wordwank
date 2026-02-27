@@ -110,7 +110,7 @@ postgresql:
 ollama:
   enabled: true
   image:
-    repository: ollama/ollama
+    repository: localhost:5000/wordwank-ollama
     tag: latest
   service:
     type: ClusterIP
