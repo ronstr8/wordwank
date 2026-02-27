@@ -360,7 +360,7 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
     my $rack = $game_record->rack;
     my $lang = $game_record->language // $DEFAULT_LANG;
 
-    $app->log->debug("Checking word '$word' against player rack: " . Mojo::Util::dumper($rack));
+    $app->log->debug("Checking word '$word' against player rack [" . join('', @{$rack}) . "]");
     unless ($app->scorer->can_form_word($word, $rack)) {
         $app->log->debug("Word '$word' FAILED rack check");
         return $self->send({json => {

@@ -89,6 +89,10 @@ spec:
               value: "wordd"
             - name: WORDD_PORT
               value: "2345"
+            - name: OLLAMA_URL
+              value: {{ .Values.ollama.url | default "http://ollama:11434" | quote }}
+            - name: OLLAMA_MODEL
+              value: {{ .Values.ollama.model | default "phi3:mini" | quote }}
 
           volumeMounts:
             - name: locales-volume

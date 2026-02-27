@@ -16,14 +16,12 @@ has 'wait_seconds_base' => 5;
 has 'rnd_word_count'    => 5;
 has 'min_score_to_play' => 2;
 has 'min_score_to_win'  => 30;
+has 'character_prompt';
 
 # Instance state
 has 'rack'            => sub { '' }; # Current letters in hand
 has 'candidates'      => sub { [] };
 has 'play_time'       => 0;
-has 'player_id';
-has 'nickname'  => sub { 'WankBot' };
-has 'language'  => 'en';
 has 'played'          => 0;
 has 'thinking_times'  => sub { [] };
 has 'last_score'      => 0;
@@ -155,6 +153,7 @@ sub tick ($self, $seconds_elapsed) {
 
 sub generate_speech ($self, $event_type, $args = {}) {
     my $ollama_url = $ENV{OLLAMA_URL};
+    $self->app->log->debug("AI " . $self->nickname . " generating speech for event $event_type (Ollama: " . ($ollama_url // 'OFF') . ")");
     unless ($ollama_url) {
         # Fallback to canned responses
         my $key = "ai.$event_type";
@@ -163,7 +162,7 @@ sub generate_speech ($self, $event_type, $args = {}) {
         return;
     }
 
-    my $prompt = $self->{character_prompt} // "You are a competitive word game player.";
+    my $prompt = $self->character_prompt // "You are a competitive word game player.";
     my $lang   = $self->language;
     my $rules  = $self->app->t('app.rules_summary', $lang);
     my $rack   = $self->rack;
@@ -182,7 +181,9 @@ sub generate_speech ($self, $event_type, $args = {}) {
 
     my $full_prompt = $preamble . "Character Profile: $prompt\n\nTask: Say something brief (max 15 words) about this situation: $event_desc\nDon't use quotes in your response.";
 
-    $self->app->ua->post($ollama_url . "/api/generate" => json => {
+    # 5-second timeout for AI speech to avoid blocking the game flow
+    my $ua = $self->app->ua->clone->request_timeout(5);
+    $ua->post($ollama_url . "/api/generate" => json => {
         model => $ENV{OLLAMA_MODEL} // 'phi3:mini',
         prompt => $full_prompt,
         stream => \0,
@@ -195,7 +196,8 @@ sub generate_speech ($self, $event_type, $args = {}) {
             $speech =~ s/^\s+|\s+$//g;
             $self->_broadcast_chat($speech) if $speech;
         } else {
-            $self->app->log->error("Ollama speech generation failed: " . ($tx->error->{message} // 'Unknown error'));
+            my $err_msg = $tx->error ? $tx->error->{message} : "Status " . ($res->code // 'unknown');
+            $self->app->log->error("Ollama speech generation failed ($event_type): $err_msg");
             # Fallback
             $self->chat("ai.$event_type", $args);
         }
