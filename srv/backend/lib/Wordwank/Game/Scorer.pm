@@ -33,14 +33,7 @@ sub _get_tile_config ($self, $lang) {
 }
 
 sub _load_tile_config ($self, $lang) {
-    
-    # wordd is the internal lexicon authority service
-    my $host = $ENV{WORDD_HOST} || 'wordd';
-    my $port = $ENV{WORDD_PORT} || 2345;
-    my $url  = "http://$host:$port/config/$lang";
-    
-    my $ua = HTTP::Tiny->new(timeout => 2);
-    my $response = $ua->get($url);
+    my $response = $self->_fetch_tile_config_from_service($lang);
     
     my $config;
     if ($response->{success}) {
@@ -61,6 +54,16 @@ sub _load_tile_config ($self, $lang) {
         unicorns => { J => 10, Q => 10 },
         vowels => ['A', 'E', 'I', 'O', 'U'],
     };
+}
+
+sub _fetch_tile_config_from_service ($self, $lang) {
+    # wordd is the internal lexicon authority service
+    my $host = $ENV{WORDD_HOST} || 'wordd';
+    my $port = $ENV{WORDD_PORT} || 2345;
+    my $url  = "http://$host:$port/config/$lang";
+    
+    my $ua = HTTP::Tiny->new(timeout => 2);
+    return $ua->get($url);
 }
 
 # Generate tile values for a new game based on tile frequency

@@ -109,17 +109,23 @@ sub fetch_candidates ($self, $rack_str) {
     $letters =~ s/_/?/g; # wordd uses ? for wildcards
     
     my $url = "${wordd_base}rand/langs/$lang/word?letters=$letters&count=$count";
+    
+    $self->_request_candidates($url, $letters);
+}
 
+sub _request_candidates ($self, $url, $letters) {
     $self->app->ua->get($url => sub ($ua, $tx) {
-        if ($tx->result->is_success) {
-            my $body = $tx->result->body;
+        my $res = $tx->res;
+        if ($res->is_success) {
+            my $body = $res->body;
             my @words = split /\n/, $body;
             # Ensure they are uppercase and trimmed
             @words = map { uc(Mojo::Util::trim($_)) } grep { /\S/ } @words;
             $self->candidates(\@words);
             $self->app->log->debug("AI " . $self->nickname . " fetched " . scalar(@words) . " candidates for letters '$letters'");
         } else {
-            $self->app->log->error("AI " . $self->nickname . " failed to fetch words for '$letters': " . $tx->result->message);
+            my $err = $tx->error;
+            $self->app->log->error("AI " . $self->nickname . " failed to fetch words for '$letters': " . ($err->{message} // 'Unknown error'));
         }
     });
 }

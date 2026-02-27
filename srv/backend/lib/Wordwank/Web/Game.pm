@@ -277,7 +277,7 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
             id   => $player->id, 
             name => $player->nickname
         }
-    });
+    }, $player->id); # Exclude sender
 
     # Send chat history to the new player
     $self->send({json => {
@@ -347,17 +347,9 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
 
     # Non-blocking validation via wordd
     # Use the game's language for consistency
-    my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
-    my $wordd_port = $ENV{WORDD_PORT} || 2345;
     
-    # Use Mojo::URL for safe encoding of the word path segment
-    my $wordd_url = Mojo::URL->new("http://$wordd_host:$wordd_port/validate/$lang/")
-                             ->path(lc($word));
-    
-    $app->log->debug("Requesting validation from wordd: $wordd_url");
-    $app->ua->get($wordd_url => sub ($ua, $tx) {
-        my $res = $tx->res;
-        if ($res->is_success) {
+    $self->_validate_word_with_service($word, $lang, sub ($res) {
+        if ($res && $res->is_success) {
             $app->log->debug("Word '$word' VALIDATED by wordd");
             # Word is valid!
             my $score = $app->scorer->calculate_score($word, $game_record->letter_values);
@@ -695,28 +687,26 @@ sub _end_game ($self, $game) {
         delete $self->app->games->{$game->id};
     };
 
-    my $clean_rack = join('', grep { /[A-Z]/ } @{$game->rack});
-    my $rand_base = ($ENV{WORDD_URL} // "http://wordd:2345/");
-    my $rand_url = "${rand_base}rand/langs/$winner_lang/word?letters=$clean_rack&count=1";
-    
-    $self->app->log->debug("Fetching suggested word from rack [$clean_rack] via $rand_url");
-    $self->app->ua->get($rand_url => sub ($ua, $tx) {
-        my $suggested = $tx->result->is_success ? $tx->result->body : undef;
-        $suggested =~ s/\s+//g if $suggested;
-        $self->app->log->debug("Wordd suggested word: " . ($suggested // 'NONE'));
+    my $suggest_cb = sub ($suggested_res = undef) {
+        my $suggested_word;
+        if ($suggested_res && $suggested_res->is_success) {
+            $suggested_word = uc(Mojo::Util::trim($suggested_res->body));
+        }
+        $self->app->log->debug("Wordd suggested word: " . ($suggested_word // 'NONE'));
 
         # 2. Fetch winner definition
         if ($winner_word) {
-            my $wordd_url = $ENV{WORDD_URL} || "http://wordd:2345/word/$winner_lang/";
-            my $full_url = $wordd_url . lc($winner_word);
-            $self->app->ua->get($full_url => sub ($ua_def, $tx_def) {
-                my $res = $tx_def->result;
-                $send_results->($res->body, $suggested);
+            $self->_fetch_definition_with_service($winner_word, $winner_lang, sub ($def_res = undef) {
+                $send_results->($def_res && $def_res->is_success ? $def_res->body : undef, $suggested_word);
             });
         } else {
-            $send_results->(undef, $suggested);
+            $send_results->(undef, $suggested_word);
         }
-    });
+    };
+
+    my $clean_rack = join('', grep { /[A-Z]/ } @{$game->rack});
+    $self->app->log->debug("Fetching suggested word from rack [$clean_rack]");
+    $self->_fetch_suggested_word_with_service($clean_rack, $winner_lang, $suggest_cb);
 }
 
 sub _handle_set_language ($self, $player, $payload) {
@@ -775,6 +765,30 @@ sub _handle_disconnect ($self, $player_id) {
     for my $game (values %{$self->app->games}) {
         delete $game->{clients}{$player_id};
     }
+}
+
+sub _validate_word_with_service ($self, $word, $lang, $cb) {
+    my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
+    my $wordd_port = $ENV{WORDD_PORT} || 2345;
+    my $url = Mojo::URL->new("http://$wordd_host:$wordd_port/validate/$lang/")->path(lc($word));
+    
+    $self->app->ua->get($url => sub ($ua, $tx) { $cb->($tx->res) });
+}
+
+sub _fetch_definition_with_service ($self, $word, $lang, $cb) {
+    my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
+    my $wordd_port = $ENV{WORDD_PORT} || 2345;
+    my $url = "http://$wordd_host:$wordd_port/define/$lang/" . lc($word);
+    
+    $self->app->ua->get($url => sub ($ua, $tx) { $cb->($tx->res) });
+}
+
+sub _fetch_suggested_word_with_service ($self, $letters, $lang, $cb) {
+    my $wordd_host = $ENV{WORDD_HOST} || 'wordd';
+    my $wordd_port = $ENV{WORDD_PORT} || 2345;
+    my $url = "http://$wordd_host:$wordd_port/rand/langs/$lang/word?letters=" . lc($letters) . "&count=1";
+    
+    $self->app->ua->get($url => sub ($ua, $tx) { $cb->($tx->res) });
 }
 
 1;

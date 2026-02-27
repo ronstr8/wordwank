@@ -58,6 +58,7 @@ function App() {
     });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
+    const [showPlayToasts, setShowPlayToasts] = useState(false); // toggle for play toasts
     const [chatToasts, setChatToasts] = useState([]);
 
     useEffect(() => {
@@ -353,7 +354,11 @@ function App() {
                     }
                 } else if (data.type === 'player_joined') {
                     if (data.payload.id !== playerIdRef.current) {
-                        showToast(tRef.current('app.player_joined', { name: data.payload.name }));
+                        // Show join toast only once per player per game
+                        if (!joinToastShown.current.has(data.payload.id)) {
+                            showToast(tRef.current('app.player_joined', { name: data.payload.name }));
+                            joinToastShown.current.add(data.payload.id);
+                        }
                     }
                 } else if (data.type === 'error') {
                     setFeedback({ text: data.payload, type: 'error' });
@@ -403,6 +408,8 @@ function App() {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 2000); // 2 seconds as requested
     }, []);
+    // Ref to track shown join toasts per player per game
+    const joinToastShown = useRef(new Set());
 
     const showChatToast = useCallback((senderName, text) => {
         const id = Date.now();
@@ -759,6 +766,9 @@ function App() {
                         {/* Group 1: Authentication */}
                         <div className="button-group">
                             <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title={t('app.rules_title')}>{t('app.help_label')}</button>
+                            <label style={{ marginLeft: '8px', color: '#fff' }}>
+                                <input type="checkbox" checked={showPlayToasts} onChange={() => setShowPlayToasts(prev => !prev)} /> Show Play Toasts
+                            </label>
                             <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
                             <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
                             <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title={t('app.stats_button')}>🏆</button>

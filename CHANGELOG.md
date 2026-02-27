@@ -5,6 +5,21 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-02-26
+
+### Fixed (1.6.0)
+
+- **First-to-Score Wins**: Corrected tie-breaking logic in `Game.pm`. Ties are now resolved by submission time (`created_at`), ensuring the first player to achieve a winning score is declared the victor.
+- **Frontend ReferenceError**: Resolved `ReferenceError: player is not defined` in `Chat.jsx` by streamlining `Trans` component interpolation.
+- **System Stability**: Replaced unsafe `$tx->result` calls with `$tx->res` in `Game.pm` and `AI.pm` to prevent backend crashes during external service connection failures.
+- **Handshake Robustness**: Hardened `TestHelper.pm` with a resilient, timeout-aware message waiting loop, making integration tests immune to intermediate join notifications.
+- **Join Notifications Restored**: Re-enabled player join and identity broadcasts, providing better situational awareness in multi-player sessions.
+
+### Improved (1.6.0)
+
+- **Testability Architecture**: Refactored `Game.pm` and `AI.pm` to isolate external service calls (validation, definitions, AI candidates) into overridable methods, enabling full mocking support.
+- **Modernized Test Suite**: Updated `03-multi-player.t` to use `done_testing()`, providing more robust verification of variable game flows.
+
 ## [1.5.0] - 2026-02-25
 
 ### Added (1.5.0)
