@@ -3,6 +3,7 @@ use Mojo::Base -base, -signatures;
 use Mojo::Util;
 use UUID::Tiny qw(:std);
 use Wordwank::Util::NameGenerator;
+use Mojo::JSON qw(encode_json decode_json);
 
 has 'app';
 has 'game_id';
@@ -17,6 +18,7 @@ has 'min_score_to_play' => 2;
 has 'min_score_to_win'  => 30;
 
 # Instance state
+has 'rack'            => sub { '' }; # Current letters in hand
 has 'candidates'      => sub { [] };
 has 'play_time'       => 0;
 has 'player_id';
@@ -35,6 +37,7 @@ my %PROFILES = (
         rnd_word_count    => 3,
         min_score_to_play => 1,
         min_score_to_win  => 40,
+        character_prompt  => "You are Yertyl, a slow, thoughtful, and slightly grumpy turtle who hates being rushed. You speak in short, punchy sentences and occasionally complain about the speed of younger 'wankers'.",
     },
     'Flash' => {
         uuid              => '00000000-0000-4000-a000-000000000002',
@@ -42,6 +45,7 @@ my %PROFILES = (
         rnd_word_count    => 5,
         min_score_to_play => 5,
         min_score_to_win  => 35,
+        character_prompt  => "You are Flash, a hyper-active, caffeine-fueled speedster who talks too fast and thinks everyone else is too slow. Use lots of exclamation marks and energetic words.",
     },
     'Wanko' => {
         uuid              => '00000000-0000-4000-a000-000000000003',
@@ -49,6 +53,7 @@ my %PROFILES = (
         rnd_word_count    => 8,
         min_score_to_play => 10,
         min_score_to_win  => 25,
+        character_prompt  => "You are Wanko, a self-proclaimed 'wank master' who is overly confident and uses too many puns about 'wanking words'. You think you are the best at this game.",
     },
     'Scrabbler' => {
         uuid              => '00000000-0000-4000-a000-000000000004',
@@ -56,6 +61,7 @@ my %PROFILES = (
         rnd_word_count    => 10,
         min_score_to_play => 15,
         min_score_to_win  => 20,
+        character_prompt  => "You are Scrabbler, a serious, competitive linguist who thinks Wordwank is beneath them but plays it anyway. Use sophisticated vocabulary and sound slightly superior.",
     },
 );
 
@@ -101,6 +107,7 @@ sub _init_schedule ($self) {
 }
 
 sub fetch_candidates ($self, $rack_str) {
+    $self->rack($rack_str);
     my $lang = $self->language;
     my $count = $self->rnd_word_count;
     my $wordd_base = $ENV{WORDD_URL} || "http://wordd:2345/";
@@ -142,8 +149,69 @@ sub tick ($self, $seconds_elapsed) {
     # Time to think?
     if (@{$self->thinking_times} && $seconds_elapsed >= $self->thinking_times->[0]) {
         shift @{$self->thinking_times};
-        $self->chat('ai.thinking');
+        $self->generate_speech('thinking');
     }
+}
+
+sub generate_speech ($self, $event_type, $args = {}) {
+    my $ollama_url = $ENV{OLLAMA_URL};
+    unless ($ollama_url) {
+        # Fallback to canned responses
+        my $key = "ai.$event_type";
+        $key = "ai.reaction_beaten" if $event_type eq 'beaten';
+        $self->chat($key, $args);
+        return;
+    }
+
+    my $prompt = $self->{character_prompt} // "You are a competitive word game player.";
+    my $lang   = $self->language;
+    my $rules  = $self->app->t('app.rules_summary', $lang);
+    my $rack   = $self->rack;
+
+    my $preamble = "General Game Context:\n"
+                 . "Rules: $rules\n"
+                 . "Current Language: $lang\n"
+                 . "Your Current Tiles (Rack): $rack\n\n";
+
+    my $event_desc = "";
+    if ($event_type eq 'thinking') {
+        $event_desc = "You are currently thinking of your next word using your tiles ($rack).";
+    } elsif ($event_type eq 'beaten') {
+        $event_desc = "Your last play was beaten by player '" . ($args->{player} // 'someone') . "'.";
+    }
+
+    my $full_prompt = $preamble . "Character Profile: $prompt\n\nTask: Say something brief (max 15 words) about this situation: $event_desc\nDon't use quotes in your response.";
+
+    $self->app->ua->post($ollama_url . "/api/generate" => json => {
+        model => $ENV{OLLAMA_MODEL} // 'phi3:mini',
+        prompt => $full_prompt,
+        stream => \0,
+    } => sub {
+        my ($ua, $tx) = @_;
+        my $res = $tx->res;
+        if ($res->is_success) {
+            my $data = $res->json;
+            my $speech = $data->{response} // "";
+            $speech =~ s/^\s+|\s+$//g;
+            $self->_broadcast_chat($speech) if $speech;
+        } else {
+            $self->app->log->error("Ollama speech generation failed: " . ($tx->error->{message} // 'Unknown error'));
+            # Fallback
+            $self->chat("ai.$event_type", $args);
+        }
+    });
+}
+
+sub _broadcast_chat ($self, $text) {
+    my $msg = {
+        type    => 'chat',
+        sender  => $self->player_id,
+        payload => {
+            text       => $text,
+            senderName => $self->nickname,
+        }
+    };
+    $self->app->broadcaster->announce_to_game($msg, $self->game_id);
 }
 
 sub play_best_word ($self) {
@@ -238,20 +306,9 @@ sub _execute_play ($self, $word, $score, $game_record) {
 
 sub chat ($self, $key, $args = {}) {
     my $lang = $self->language;
-    my $msg_pool = $self->app->t($key, $lang);
-    
     my $text = $self->app->t($key, $lang, $args);
 
-    # Send directly to this game's players
-    my $msg = {
-        type    => 'chat',
-        sender  => $self->player_id,
-        payload => {
-            text       => $text,
-            senderName => $self->nickname,
-        }
-    };
-    $self->app->broadcaster->announce_to_game($msg, $self->game_id);
+    $self->_broadcast_chat($text);
 }
 
 sub check_reaction ($self, $player_name, $player_score) {
@@ -260,7 +317,7 @@ sub check_reaction ($self, $player_name, $player_score) {
 
     if ($player_score > $self->last_score) {
         $self->reacted_beaten(1);
-        $self->chat('ai.reaction_beaten', { player => $player_name });
+        $self->generate_speech('beaten', { player => $player_name });
     }
 }
 

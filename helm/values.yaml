@@ -58,12 +58,17 @@ backend:
     tag: "latest"
   service:
     port: 3000
+  ollama:
+    url: "http://ollama:11434"
+    model: "phi3:mini"
   database:
     url: "dbi:Pg:dbname=wordwank;host=postgresql"
     user: "wordwank_backend"
   env:
     ADMIN_SMS_EMAIL: "17169032417@tmomail.net"
     CHAT_HISTORY_SIZE: 50
+    OLLAMA_URL: "http://ollama:11434"
+    OLLAMA_MODEL: "phi3:mini"
 
 # PostgreSQL dependency configuration
 postgresql:
@@ -101,3 +106,19 @@ postgresql:
       enabled: true
       storageClass: postgresql-local
       size: 10Gi
+
+ollama:
+  enabled: true
+  image:
+    repository: ollama/ollama
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 11434
+  resources:
+    limits:
+      cpu: "4"
+      memory: "4Gi"
+    requests:
+      cpu: "2"
+      memory: "2Gi"

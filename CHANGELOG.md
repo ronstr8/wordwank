@@ -5,6 +5,29 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-02-27
+
+### Added (1.7.0)
+
+- **Dynamic LLM AI Characters**: Replaced canned AI chat with dynamic, persona-driven dialogue powered by Ollama. **Note: This feature is in early testing phase.**
+  - **Persona System**: Custom prompts for Yertyl (grumpy turtle), Flash (speedster), Wanko (pun-master), and Scrabbler (sophisticated linguist).
+  - **Context-Aware Preamble**: AI now considers game rules and its current tile rack when generating reactions.
+- **Integration Test Suite Expansion**: Added `08-llm-ai-player.t` to verify character personalities and prompt enrichment.
+
+### Improved (1.7.0)
+
+- **AI Thinking Accuracy**: AI now maintains awareness of its current tiles during the thinking phase.
+- **Deployment Payload**: Optimized `AI.pm` async callbacks for better reliability under load.
+
+### Changed (1.7.0)
+
+- **Chat Format Reversion**: Reverted `app.chat_format` to a cleaner `{{player}} : {{text}}` across all localized JSON files.
+
+### Fixed (1.7.0)
+
+- **AI Broadcast Typos**: Resolved a critical typo in `AI.pm` that prevented AI reactions from broadcasting to the game channel.
+- **WebSocket Handshake Races**: Stabilized integration tests to prevent timeouts during backend initialization.
+
 ## [1.6.0] - 2026-02-26
 
 ### Fixed (1.6.0)
