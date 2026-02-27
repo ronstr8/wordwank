@@ -26,10 +26,13 @@ sub websocket ($self) {
     my $schema    = $self->app->schema;
     my $app       = $self->app;
 
+    my $lang = $self->param('lang') || $self->req->headers->header('Accept-Language') || 'en';
+
     # 1. Identity & Database Setup
     my $player = $schema->resultset('Player')->find_or_create({
         id       => $player_id,
         nickname => generate_procedural_name($player_id),
+        language => $lang,
     });
 
     # Send identity immediately
@@ -67,7 +70,7 @@ sub websocket ($self) {
         my $payload = $data->{payload} // {};
 
         if ($type eq 'join') {
-            $c->_handle_join($player, $payload->{gid});
+            $c->_handle_join($player, $payload);
         }
         elsif ($type eq 'chat') {
             $c->_handle_chat($player, $payload);
@@ -85,9 +88,19 @@ sub websocket ($self) {
     });
 }
 
-sub _handle_join ($self, $player, $invite_gid = undef) {
+sub _handle_join ($self, $player, $payload = undef) {
     my $app = $self->app;
     my $schema = $app->schema;
+
+    # Update player info from payload if provided
+    if (ref $payload eq 'HASH') {
+        my %update;
+        $update{nickname} = $payload->{nickname} if $payload->{nickname};
+        $update{language} = $payload->{language} if $payload->{language};
+        $player->update(\%update) if %update;
+    }
+
+    my $invite_gid = ref $payload eq 'HASH' ? $payload->{gid} : undef;
     my $lang = $player->language // $DEFAULT_LANG;
     $app->log->debug("Player " . $player->id . " ($lang) attempting to join..." . ($invite_gid ? " (invited to $invite_gid)" : ""));
     
@@ -262,13 +275,22 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
     }
 
     # Notify others of the join via a dedicated event instead of chat
-    $self->_broadcast_to_game($gid, {
-        type    => 'player_joined',
-        payload => {
-            id   => $player->id,
-            name => $player->nickname
+    # Only notify if they haven't encountered each other before
+    for my $pid (keys %$game_clients) {
+        next if $pid eq $player->id;
+        unless ($self->_have_encountered($player->id, $pid)) {
+            my $c = $game_clients->{$pid};
+            if ($c && $c->tx) {
+                $c->send({json => {
+                    type    => 'player_joined',
+                    payload => {
+                        id   => $player->id,
+                        name => $player->nickname
+                    }
+                }});
+            }
         }
-    }, $player->id); # Exclude sender
+    }
 
     # Also broadcast identity so other clients update their playerNames map
     $self->_broadcast_to_game($gid, {
@@ -288,16 +310,18 @@ sub _handle_join ($self, $player, $invite_gid = undef) {
 
 sub _handle_chat ($self, $player, $payload) {
     my $text = ref $payload eq 'HASH' ? $payload->{text} : $payload;
-    
-    # Global chat: broadcast to ALL connected players, not just the current game
-    $self->app->broadcast_all_clients({
-        type    => 'chat',
-        sender  => $player->id,
-        payload => {
-            text       => $text,
-            senderName => $player->nickname,
-        }
-    });
+    # Isolate chat to the current game
+    my $game_data = $self->_get_player_game($player->id);
+    if ($game_data) {
+        $self->_broadcast_to_game($game_data->{state}->id, {
+            type    => 'chat',
+            sender  => $player->id,
+            payload => {
+                text       => $text,
+                senderName => $player->nickname,
+            }
+        });
+    }
 }
 
 sub _handle_play ($self, $player, $payload) {
@@ -366,9 +390,9 @@ sub _perform_play ($self, $player, $payload, $word, $game_data, $game_record) {
             my $game_clients = $game_data->{clients} // {};
             my $timestamp = time;
 
-            # Also send a global chat message for the play
+            # Also send a chat message for the play (restricting to game scope)
             my $chat_msg = $self->t('app.played_word', $lang, { name => $player->nickname, score => $score });
-            $self->app->broadcast_all_clients({
+            $self->_broadcast_to_game($game_record->id, {
                 type    => 'chat',
                 sender  => 'SYSTEM',
                 payload => {
@@ -627,7 +651,7 @@ sub _end_game ($self, $game) {
             score  => $winner->{score}
         });
 
-        $app->broadcast_all_clients({
+        $self->_broadcast_to_game($game->id, {
             type    => 'chat',
             sender  => 'SYSTEM',
             payload => {
@@ -638,7 +662,7 @@ sub _end_game ($self, $game) {
         });
 
         # Add centered separator after game end summary
-        $app->broadcast_all_clients({
+        $self->_broadcast_to_game($game->id, {
             type    => 'chat',
             sender  => 'SYSTEM',
             payload => {
@@ -761,9 +785,38 @@ sub _get_player_game ($self, $player_id) {
     return undef;
 }
 
+sub _have_encountered ($self, $p1_id, $p2_id) {
+    my $schema = $self->app->schema;
+    # Check if they share any game_id in the plays table
+    my $shared_games = $schema->resultset('Play')->search(
+        { player_id => $p1_id },
+        { select => ['game_id'] }
+    );
+    my $count = $schema->resultset('Play')->search(
+        { 
+            player_id => $p2_id,
+            game_id   => { -in => $shared_games->get_column('game_id')->as_query }
+        }
+    )->count;
+    return $count > 0;
+}
+
 sub _handle_disconnect ($self, $player_id) {
-    for my $game (values %{$self->app->games}) {
-        delete $game->{clients}{$player_id};
+    for my $game_id (keys %{$self->app->games}) {
+        my $game = $self->app->games->{$game_id};
+        if (exists $game->{clients}{$player_id}) {
+            my $player = $self->app->schema->resultset('Player')->find($player_id);
+            if ($player) {
+                $self->_broadcast_to_game($game_id, {
+                    type    => 'player_quit',
+                    payload => {
+                        id   => $player->id,
+                        name => $player->nickname,
+                    }
+                }, $player_id);
+            }
+            delete $game->{clients}{$player_id};
+        }
     }
 }
 

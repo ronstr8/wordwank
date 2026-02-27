@@ -30,11 +30,10 @@ sub get_test_mojo {
     $ENV{DB_PASS} = '';
     $ENV{SHARE_DIR} = '../../helm/share';
     
-    require Wordwank;
-    
     # Mock out background tasks that might interfere with tests before app creation
     {
         no warnings 'redefine';
+        require Wordwank;
         *Wordwank::prepopulate_games = sub { 1 };
     }
 
@@ -64,28 +63,42 @@ sub create_ws_client {
     my $nickname = $args{nickname} || 'TestPlayer' . int(rand(10000));
     my $language = $args{language} || 'en';
     
-    # Disable external service calls during tests globally
     _apply_mocks();
 
-    # Create a NEW Test::Mojo instance for each client linked to the same app
     my $t = Test::Mojo->new($base_mojo->app);
+    $t->{test_stash} = [];
 
-    # Start WebSocket connection
-    $t->app->log->debug("TestHelper: Connecting to /ws for $nickname...");
-    $t->websocket_ok('/ws')
-      ->status_is(101)
-      ->or(sub { die "WebSocket connection failed for $nickname" });
+    my $ws_url = "/ws?lang=$language";
+    $t->websocket_ok($ws_url => {'Accept-Language' => $language})
+      ->status_is(101);
     
+    # Pick up any message already buffered by Test::Mojo during handshake
+    if ($t->message) {
+        my $data = eval { decode_json($t->message->[1]) };
+        if (ref $data eq 'HASH') {
+            push @{$t->{test_stash}}, $data;
+        }
+    }
+
+    # Attach listener to the transaction to catch future messages
+    my $tx = $t->tx;
+    $tx->on(message => sub {
+        my ($tx, $msg) = @_;
+        my $data = eval { decode_json($msg) };
+        if (ref $data eq 'HASH') {
+            push @{$t->{test_stash}}, $data;
+        }
+    });
+
     # Handshake Phase 1: Identity
-    $t->app->log->debug("TestHelper: Waiting for identity message for $nickname...");
     my $identity = wait_for_message($t, 'identity', 10);
-    if (!$identity || !$identity->{id}) {
-        die "Timed out waiting for personal identity message for $nickname";
+    unless ($identity) {
+        Test::More::fail("Timed out waiting for identity for $nickname");
+        return ($t, undef, undef);
     }
     my $player_id = $identity->{id};
     
     # Now send join message
-    $t->app->log->debug("TestHelper: Sending join for $nickname (lang: $language)...");
     $t->send_ok({json => {
         type => 'join',
         payload => {
@@ -95,42 +108,36 @@ sub create_ws_client {
     }});
     
     # Handshake Phase 2: Game Start
-    $t->app->log->debug("TestHelper: Waiting for game_start message for $nickname...");
     my $game_payload = wait_for_message($t, 'game_start', 10);
-    if (!$game_payload) {
-        die "Timed out waiting for game_start message for $nickname";
+    unless ($game_payload) {
+        Test::More::fail("Timed out waiting for game_start for $nickname");
+        return ($t, $player_id, undef);
     }
-    $t->app->log->debug("TestHelper: Received game_start payload: " . Data::Dumper::Dumper($game_payload));
-    $t->app->log->debug("TestHelper: Handshake complete for $nickname");
+    
     return ($t, $player_id, $game_payload);
 }
 
-# Wait for a specific message type on a WebSocket (noise resilient)
 sub wait_for_message {
     my ($t, $type, $timeout) = @_;
-    $timeout //= 10;   # Increased default timeout to improve reliability
+    $timeout //= 10;
     
     my $start = time;
     while (time - $start < $timeout) {
-        my $payload;
-        my $found = 0;
-        eval {
-            $t->message_ok(1); 
-            my $msg = $t->message;
-            if ($msg) {
-                my $data = eval { decode_json($msg->[1]) };
-                if (ref $data eq 'HASH') {
-                    if ($data->{type} && $data->{type} eq $type) {
-                        $payload = $data->{payload};
-                        $found = 1;
-                    } else {
-                        $t->app->log->debug("Received message of type '" . ($data->{type} // 'UNKNOWN') . "' while waiting for '$type'");
-                    }
-                }
+        # Check stash
+        my $stash = $t->{test_stash} //= [];
+        for (my $i = 0; $i < @$stash; $i++) {
+            if (($stash->[$i]{type} // '') eq $type) {
+                my $match = splice(@$stash, $i, 1);
+                return $match->{payload};
             }
-        };
-        return $payload if $found;
-        select(undef, undef, undef, 0.05);
+        }
+
+        # Pulse the loop quietly but aggressively
+        # One tick might not be enough on Windows for both client/server to process frames
+        for (1..5) {
+            $t->ua->ioloop->one_tick;
+        }
+        select(undef, undef, undef, 0.05); # Tiny sleep to yield
     }
     
     return undef;
@@ -157,7 +164,12 @@ sub _apply_mocks {
         *Wordwank::Web::Game::_validate_word_with_service = sub {
             my ($self, $word, $lang, $cb) = @_;
             $self->app->log->debug("MOCKED validation for '$word'");
-            $cb->(Mojo::Message::Response->new(code => 200, body => "OK"));
+            # Support testing invalid words via magic string
+            my $valid = ($word =~ /INVALID/i) ? 0 : 1;
+            $cb->(Mojo::Message::Response->new(code => 200, body => encode_json({ 
+                valid => $valid,
+                definition => $valid ? "Mocked definition for $word" : undef,
+            })));
         } unless defined &Wordwank::Web::Game::_validate_word_with_service_MOCKED;
         *Wordwank::Web::Game::_validate_word_with_service_MOCKED = sub { 1 };
 
@@ -192,8 +204,8 @@ sub cleanup_test_games {
 
     eval {
         my $schema = $t->app->schema;
-        $schema->resultset('Game')->delete;
         $schema->resultset('Play')->delete;
+        $schema->resultset('Game')->delete;
         $schema->resultset('Player')->delete;
     };
 }

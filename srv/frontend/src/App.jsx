@@ -347,7 +347,9 @@ function App() {
                             score: data.payload.score
                         }) + (isSplat ? ' 💥' : '');
                     }
-                    showToast(toastMsg, isSplat);
+                    if (showPlayToasts) {
+                        showToast(toastMsg, isSplat);
+                    }
 
                     if (isSplat) {
                         playRef.current('bigsplat');
@@ -359,6 +361,10 @@ function App() {
                             showToast(tRef.current('app.player_joined', { name: data.payload.name }));
                             joinToastShown.current.add(data.payload.id);
                         }
+                    }
+                } else if (data.type === 'player_quit') {
+                    if (data.payload.id !== playerIdRef.current) {
+                        showToast(tRef.current('app.player_quit', { name: data.payload.name }));
                     }
                 } else if (data.type === 'error') {
                     setFeedback({ text: data.payload, type: 'error' });
