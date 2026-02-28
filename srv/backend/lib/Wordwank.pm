@@ -184,8 +184,6 @@ sub startup ($self) {
     # WebSocket for game
     $r->websocket('/ws')->to('game#websocket');
 
-    # Payment Routes
-    $r->post('/payment/stripe/checkout')->to('payment#create_checkout_session');
 
     # HTTP API for stats
     $r->get('/players/leaderboard')->to('stats#leaderboard');

@@ -237,6 +237,7 @@ function App() {
 
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
+                console.debug('[WS] incoming:', data.type, data);
                 if (data.type === 'chat') {
                     const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
                     const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNamesRef.current[data.sender];
@@ -247,7 +248,9 @@ function App() {
                     }
 
                     // Show chat toast notification (left side)
-                    showChatToast(senderName, text);
+                    if (data.payload && !data.payload.isSeparator && !data.payload.skipToast) {
+                        showChatToast(senderName, text);
+                    }
 
 
                     const msgObj = {
@@ -266,14 +269,18 @@ function App() {
                         setLogMessages(prev => [...prev, msgObj]);
                     }
                 } else if (data.type === 'chat_history') {
-                    const history = data.payload.map(msg => ({
-                        sender: msg.sender,
-                        senderName: msg.payload.senderName || msg.sender,
-                        text: msg.payload.text,
-                        isSystem: !!(msg.payload && msg.payload.isSystem),
-                        isSeparator: !!(msg.payload && msg.payload.isSeparator),
-                        timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
-                    }));
+                    const history = data.payload.map(msg => {
+                        const payload = msg.payload || {};
+                        const isObject = typeof payload === 'object';
+                        return {
+                            sender: msg.sender,
+                            senderName: (isObject ? payload.senderName : null) || msg.sender,
+                            text: isObject ? payload.text : (typeof payload === 'string' ? payload : ''),
+                            isSystem: !!(isObject && payload.isSystem),
+                            isSeparator: !!(isObject && payload.isSeparator),
+                            timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
+                        };
+                    });
                     setMessages(history);
                     setLogMessages(history.filter(m => m.isSystem || m.isSeparator || m.sender === 'SYSTEM'));
                 } else if (data.type === 'identity') {
@@ -701,21 +708,6 @@ function App() {
         }
     };
 
-    const handleStripeCheckout = async () => {
-        try {
-            const resp = await fetch('/payment/stripe/checkout', { method: 'POST' });
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.url) {
-                    window.location.href = data.url;
-                }
-            } else {
-                console.error('Stripe checkout failed');
-            }
-        } catch (err) {
-            console.error('Stripe error:', err);
-        }
-    };
 
     const handleLogout = async () => {
         try {
@@ -1140,25 +1132,33 @@ function App() {
                         <p className="donation-text">{t('app.donate_desc')}</p>
 
                         <div className="donation-options">
-                            <a
-                                href={`https://www.paypal.com/donate/?business=${encodeURIComponent(CONFIG.PAYPAL_EMAIL)}&no_recurring=0&currency_code=USD`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="donation-link paypal"
-                            >
-                                <span>PayPal</span>
-                                <span className="donation-subtitle">Fast & Secure</span>
-                            </a>
+                            {CONFIG.PAYPAL_ENABLED && (
+                                <a
+                                    href={`https://www.paypal.com/donate/?business=${encodeURIComponent(CONFIG.PAYPAL_EMAIL)}&no_recurring=0&currency_code=USD`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="donation-link paypal"
+                                >
+                                    <span>PayPal</span>
+                                    <span className="donation-subtitle">Fast & Secure</span>
+                                </a>
+                            )}
 
-                            <div className="donation-divider">{t('app.donate_or')}</div>
+                            {CONFIG.PAYPAL_ENABLED && CONFIG.KOFI_ENABLED && (
+                                <div className="donation-divider">{t('app.donate_or')}</div>
+                            )}
 
-                            <button
-                                onClick={handleStripeCheckout}
-                                className="donation-link stripe"
-                            >
-                                <span>Stripe</span>
-                                <span className="donation-subtitle">Debit or Credit</span>
-                            </button>
+                            {CONFIG.KOFI_ENABLED && (
+                                <a
+                                    href={`https://ko-fi.com/${CONFIG.KOFI_ID || 'wordwank'}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="donation-link kofi"
+                                >
+                                    <span>Ko-fi</span>
+                                    <span className="donation-subtitle">{t('app.donate_google_pay', 'Supports Google Pay')}</span>
+                                </a>
+                            )}
                         </div>
 
                         <p className="donation-footer">{t('app.donate_footer')}</p>

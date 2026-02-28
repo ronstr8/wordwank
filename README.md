@@ -137,13 +137,11 @@ Wordwank integrates with several external services for authentication, notificat
    - In your Discord server, go to a channel's settings -> **Integrations** -> **Webhooks**.
    - Create a new webhook and copy the **Webhook URL** to `helm/secrets.yaml` under `admin-discord-webhook`.
 
-#### 💳 Stripe Payments
+#### ☕ Ko-fi Donations
 
-1. Go to the [Stripe Dashboard](https://dashboard.stripe.com/).
-2. Look for the **Developers** link (usually a toggle in the **top-right** corner of the dashboard).
-   - If you can't see it, ensure you're in the main dashboard view.
-   - Alternatively, go directly to: [https://dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys).
-3. Under the **API keys** tab, copy the **Secret key** (starts with `sk_...`) to `helm/secrets.yaml` under `stripe-secret-key`.
+1. Go to your [Ko-fi Dashboard](https://ko-fi.com/manage/index).
+2. Note your **Ko-fi Page ID** (e.g., if your link is `ko-fi.com/wordwank`, your ID is `wordwank`).
+3. Set `VITE_KOFI_ID` in your frontend `.env` file or environment variables.
 
 ### 7. PLAYTIME
 

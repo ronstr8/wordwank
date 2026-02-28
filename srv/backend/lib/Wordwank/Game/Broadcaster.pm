@@ -39,6 +39,7 @@ sub _send_to_pid ($self, $pid, $msg) {
     for my $gid (keys %{$self->app->games}) {
         my $client = $self->app->games->{$gid}{clients}{$pid};
         if ($client && $client->tx) {
+            $self->app->log->debug("Broadcaster[Game $gid]: Sending type '" . ($msg->{type} // 'unknown') . "' to player $pid");
             $client->send({json => $msg});
             return; # Found and sent
         }
@@ -54,6 +55,7 @@ sub announce_to_game ($self, $msg, $game_id, $exclude_list = []) {
         next if $exclude{$pid};
         my $client = $game_clients->{$pid};
         if ($client && $client->tx) {
+            $self->app->log->debug("Broadcaster[Game $game_id]: Sending type '" . ($msg->{type} // 'unknown') . "' to player $pid");
             $client->send({json => $msg});
         }
     }

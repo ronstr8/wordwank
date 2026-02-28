@@ -5,6 +5,17 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-02-28
+
+### Added (1.8.0)
+
+- **Ko-fi Donation Integration**: Replaced Stripe with Ko-fi for a simpler, Google Pay-compatible donation experience.
+- **Donation Visibility Toggles**: Added `VITE_KOFI_ENABLED` and `VITE_PAYPAL_ENABLED` toggles to allow full control over which payment options are displayed in the UI.
+
+### Removed (1.8.0)
+
+- **Legacy Payment Provider**: Completely removed all legacy payment-related backend controllers, frontend logic, and environment configurations.
+
 ## [1.7.0] - 2026-02-27
 
 ### Added (1.7.0)
@@ -88,9 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added (1.2.0)
 
-- **Stripe Integration**: Fully integrated Stripe Checkout for donations and subscriptions.
-  - Implemented backend payment verification and session fulfillment.
-  - Added Stripe credentials to Helm secret management.
+- **Payment Integration**: Initial integration for community donations.
 - **Invite Friend Feature**: New "🔗 INVITE FRIEND" button in sidebar and header for instant game link sharing.
   - Automatic clipboard copy of unique game invite links.
   - Frontend auto-join logic for invite-parameterized URLs.

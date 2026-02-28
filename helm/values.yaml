@@ -17,6 +17,10 @@ global:
   defaultLanguage: en
   chatHistorySize: 50
   totalTiles: 100
+  kofiId: "wordwank"
+  kofiEnabled: false
+  paypalEnabled: true
+  paypalEmail: "quinnfazigu@gmail.com"
 
 # Persistent storage configuration
 persistence:

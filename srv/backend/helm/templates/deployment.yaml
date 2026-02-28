@@ -55,11 +55,6 @@ spec:
                 secretKeyRef:
                   name: db-secrets
                   key: discord-client-secret
-            - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: db-secrets
-                  key: stripe-secret-key
             - name: ADMIN_DISCORD_WEBHOOK
               valueFrom:
                 secretKeyRef:

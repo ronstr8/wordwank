@@ -484,6 +484,7 @@ sub _start_game_timer ($self, $game) {
 sub _end_game ($self, $game) {
     my $schema = $self->app->schema;
     my $app = $self->app;
+    $app->log->debug("Starting _end_game for " . $game->id);
     $game->update({ finished_at => DateTime->now });
 
     my @plays = $schema->resultset('Play')->search(
@@ -642,6 +643,7 @@ sub _end_game ($self, $game) {
     my $winner = $results[0];
     my $winner_word = $winner ? $winner->{word} : undef;
     my $winner_lang = $game->language // $DEFAULT_LANG;
+    $app->log->debug("Calculated winner: " . ($winner ? $winner->{player} : 'NONE') . " in game " . $game->id);
     
     # Global Win Broadcast (To all connected players)
     if (!$solo_game && $winner && $winner->{score} > 0) {
@@ -657,22 +659,13 @@ sub _end_game ($self, $game) {
             payload => {
                 text       => $announce_msg,
                 senderName => 'SYSTEM',
-            },
-            timestamp => time,
-        });
-
-        # Add centered separator after game end summary
-        $self->_broadcast_to_game($game->id, {
-            type    => 'chat',
-            sender  => 'SYSTEM',
-            payload => {
-                isSeparator => 1,
-                text        => '---',
+                skipToast  => 1,
             },
             timestamp => time,
         });
     }
 
+    $self->app->log->debug("Building results payload for " . scalar(@results) . " players in game " . $game->id);
     # Build payload with bonus details
     my $results_payload = [ map { 
         my $item = { 
@@ -730,6 +723,7 @@ sub _end_game ($self, $game) {
 
     my $clean_rack = join('', grep { /[A-Z]/ } @{$game->rack});
     $self->app->log->debug("Fetching suggested word from rack [$clean_rack]");
+    $self->app->log->debug("Fetching suggested word for " . $game->id . " rack: [$clean_rack]");
     $self->_fetch_suggested_word_with_service($clean_rack, $winner_lang, $suggest_cb);
 }
 

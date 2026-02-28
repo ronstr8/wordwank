@@ -4,6 +4,7 @@ use Mojo::Util;
 use UUID::Tiny qw(:std);
 use Wordwank::Util::NameGenerator;
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::UserAgent;
 
 has 'app';
 has 'game_id';
@@ -181,8 +182,8 @@ sub generate_speech ($self, $event_type, $args = {}) {
 
     my $full_prompt = $preamble . "Character Profile: $prompt\n\nTask: Say something brief (max 15 words) about this situation: $event_desc\nDon't use quotes in your response.";
 
-    # 5-second timeout for AI speech to avoid blocking the game flow
-    my $ua = $self->app->ua->clone->request_timeout(5);
+    # 15-second timeout for AI speech to avoid blocking the game flow
+    my $ua = Mojo::UserAgent->new->request_timeout(15);
     $ua->post($ollama_url . "/api/generate" => json => {
         model => $ENV{OLLAMA_MODEL} // 'phi3:mini',
         prompt => $full_prompt,

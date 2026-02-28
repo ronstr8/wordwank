@@ -9,6 +9,10 @@ global:
   imagePullPolicy: Always
   maxPlayers: 13
   randomLetterScoreMode: "true"
+  kofiId: "wordwank"
+  kofiEnabled: false
+  paypalEnabled: false
+  paypalEmail: "quinnfazigu@gmail.com"
 
 # Persistent storage configuration
 persistence:

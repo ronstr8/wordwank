@@ -829,16 +829,16 @@ header {
     box-shadow: 0 6px 0 #005a96;
 }
 
-.donation-link.stripe {
-    background: #635bff;
+.donation-link.kofi {
+    background: #29abe0;
     color: white;
-    box-shadow: 0 4px 0 #4f48cc;
+    box-shadow: 0 4px 0 #1f82aa;
 }
 
-.donation-link.stripe:hover {
-    background: #7a73ff;
+.donation-link.kofi:hover {
+    background: #35b3e8;
     transform: translateY(-2px);
-    box-shadow: 0 6px 0 #4f48cc;
+    box-shadow: 0 6px 0 #1f82aa;
 }
 
 .donation-link span:first-child {
