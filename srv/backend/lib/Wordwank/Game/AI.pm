@@ -97,7 +97,7 @@ sub _init_schedule ($self) {
     $self->play_time($self->wait_seconds_base + int(rand($range)));
     
     # 1-2 thinking chats
-    my $chats = 1 + int(rand(2));
+    my $chats = 0; # SILENCE 1 + int(rand(2));
     my @thinking;
     for (1 .. $chats) {
         push @thinking, 2 + int(rand($self->play_time - 2)) if $self->play_time > 3;
