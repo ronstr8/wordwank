@@ -178,12 +178,6 @@ sub add_word ($word) {
     # Needs to be at least 2 chars
     return if length($word) < 2;
 
-    # Filter out words with no vowels/y if they are 3+ chars 
-    # (prevents common suffixes/abbreviations like FTH from bloating lexicon)
-    if (length($word) > 2) {
-        return unless $word =~ /[aeiouy]/i;
-    }
-
     $WORDS{lc($word)}++;
 }
 
