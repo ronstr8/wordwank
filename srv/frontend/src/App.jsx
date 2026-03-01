@@ -2,10 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Tile from './components/Tile'
 import Timer from './components/Timer'
-import Chat from './components/Chat'
+import Messages from './components/Messages'
 import Results from './components/Results'
-import Leaderboard from './components/Leaderboard'
-import WankerLog from './components/WankerLog'
 import DraggablePanel from './components/DraggablePanel'
 import useSound from './hooks/useSound'
 import './App.css'
@@ -26,11 +24,10 @@ function App() {
     const [totalTime, setTotalTime] = useState(30) // Default to 30, updated on game_start
     const playerIdRef = useRef(null)
     const [messages, setMessages] = useState([])
-    const [logMessages, setLogMessages] = useState([])
     const [ws, setWs] = useState(null)
     const [playerId, setPlayerId] = useState(null)
     const [results, setResults] = useState(null)
-    const [leaderboard, setLeaderboard] = useState([])
+    const [statsData, setStatsData] = useState(null)
     const [feedback, setFeedback] = useState({ text: '', type: '' })
     const [isLocked, setIsLocked] = useState(false)
     const [isConnecting, setIsConnecting] = useState(true)
@@ -60,8 +57,8 @@ function App() {
     });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [toasts, setToasts] = useState([]);
-    const [showPlayToasts, setShowPlayToasts] = useState(false); // toggle for play toasts
     const [chatToasts, setChatToasts] = useState([]);
+    const hasLogConnected = useRef(false);
 
     useEffect(() => {
         localStorage.setItem('focus_mode', JSON.stringify(isFocusMode));
@@ -85,24 +82,14 @@ function App() {
         }
     };
 
-    const [leaderboardVisible, setLeaderboardVisible] = useState(() => loadPanelVisibility('leaderboard'));
-    const [chatVisible, setChatVisible] = useState(() => loadPanelVisibility('chat'));
-    const [logVisible, setLogVisible] = useState(() => loadPanelVisibility('log'));
+    const [messagesVisible, setMessagesVisible] = useState(() => loadPanelVisibility('messages', true));
     const [statsVisible, setStatsVisible] = useState(() => loadPanelVisibility('stats'));
     const [supportedLangs, setSupportedLangs] = useState({ en: { name: 'English', word_count: 0 } });
 
-    // Save visibility states to localStorage when they change
-    useEffect(() => {
-        savePanelVisibility('leaderboard', leaderboardVisible);
-    }, [leaderboardVisible]);
 
     useEffect(() => {
-        savePanelVisibility('chat', chatVisible);
-    }, [chatVisible]);
-
-    useEffect(() => {
-        savePanelVisibility('log', logVisible);
-    }, [logVisible]);
+        savePanelVisibility('messages', messagesVisible);
+    }, [messagesVisible]);
 
     useEffect(() => {
         savePanelVisibility('stats', statsVisible);
@@ -116,19 +103,29 @@ function App() {
         guessRef.current = guess;
     }, [guess]);
 
-    const fetchLeaderboard = async () => {
+    const logSystemMessage = useCallback((text, type = 'system', data = null) => {
+        setMessages(prev => [...prev, {
+            sender: 'SYSTEM',
+            text,
+            isSystem: true,
+            type,
+            data,
+            timestamp: new Date().toLocaleTimeString()
+        }]);
+    }, []);
+
+    const fetchLeaderboard = useCallback(async () => {
         try {
             const apiPath = '/players/leaderboard';
             const resp = await fetch(apiPath);
             if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
             const data = await resp.json();
-
-            setLeaderboard(data);
+            setStatsData(data);
         } catch (err) {
-            console.error('Failed to fetch leaderboard:', err);
-            setLeaderboard([]);
+            console.error('Failed to fetch stats:', err);
+            setStatsData(null);
         }
-    };
+    }, []);
 
     const getCookie = (name) => {
         const value = `; ${document.cookie}`;
@@ -165,11 +162,16 @@ function App() {
 
     useEffect(() => {
         const init = async () => {
+            if (!hasLogConnected.current) {
+                logSystemMessage(t('app.connecting'));
+                hasLogConnected.current = true;
+            }
             await checkAuth();
             fetchLeaderboard();
         };
         init();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount
 
     const playerNamesRef = useRef(playerNames);
     useEffect(() => {
@@ -201,7 +203,6 @@ function App() {
 
         const connect = () => {
             if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
-
 
             socket = new WebSocket(`${protocol}//${wsHost}/ws?id=${playerId}`);
 
@@ -236,212 +237,204 @@ function App() {
             };
 
             socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                console.debug('[WS] incoming:', data.type, data);
-                if (data.type === 'chat') {
-                    const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
-                    const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNamesRef.current[data.sender];
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('[WS] Received:', data.type, data);
 
-                    if (senderName === 'Elsegame') {
-                        showToast(text);
-                        return;
-                    }
+                    if (data.type === 'chat') {
+                        const text = typeof data.payload === 'string' ? data.payload : data.payload.text;
+                        const senderName = typeof data.payload === 'object' ? data.payload.senderName : playerNamesRef.current[data.sender];
 
-                    // Show chat toast notification (left side)
-                    if (data.payload && !data.payload.isSeparator && !data.payload.skipToast) {
-                        showChatToast(senderName, text);
-                    }
-
-
-                    const msgObj = {
-                        sender: data.sender,
-                        senderName: senderName || data.sender,
-                        text: text,
-                        isSystem: !!(data.payload && data.payload.isSystem),
-                        isSeparator: !!(data.payload && data.payload.isSeparator),
-                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                    };
-
-                    setMessages(prev => [...prev, msgObj]);
-
-                    // Route system/game messages to log as well
-                    if (msgObj.isSystem || msgObj.isSeparator || data.sender === 'SYSTEM') {
-                        setLogMessages(prev => [...prev, msgObj]);
-                    }
-                } else if (data.type === 'chat_history') {
-                    const history = data.payload.map(msg => {
-                        const payload = msg.payload || {};
-                        const isObject = typeof payload === 'object';
-                        return {
-                            sender: msg.sender,
-                            senderName: (isObject ? payload.senderName : null) || msg.sender,
-                            text: isObject ? payload.text : (typeof payload === 'string' ? payload : ''),
-                            isSystem: !!(isObject && payload.isSystem),
-                            isSeparator: !!(isObject && payload.isSeparator),
-                            timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
-                        };
-                    });
-                    setMessages(history);
-                    setLogMessages(history.filter(m => m.isSystem || m.isSeparator || m.sender === 'SYSTEM'));
-                } else if (data.type === 'identity') {
-                    if (data.payload.id === playerIdRef.current) {
-                        setNickname(data.payload.name);
-                        if (data.payload.language) {
-                            i18n.changeLanguage(data.payload.language);
+                        const isSystem = !!(data.payload && (data.payload.isSystem || data.sender === 'SYSTEM'));
+                        let translatedText = text;
+                        if (typeof text === 'string' && text.includes('ai.')) {
+                            translatedText = tRef.current(text, { player: senderName || data.sender });
                         }
-                        if (data.payload.config) {
-                            console.debug('[WS] identity config:', data.payload.config);
-                            setTileConfig({
-                                tiles: data.payload.config.tiles || {},
-                                unicorns: data.payload.config.unicorns || {}
-                            });
-                            // Populate initial letter values with unicorns
-                            setLetterValue(data.payload.config.tile_values || {});
-                            if (data.payload.config.languages) {
-                                setSupportedLangs(data.payload.config.languages);
+
+                        if (senderName === 'Elsegame') {
+                            logSystemMessage(translatedText);
+                            return;
+                        }
+
+                        // Show chat toast notification (left side)
+                        if (data.payload && !data.payload.isSeparator && !data.payload.skipToast) {
+                            showChatToast(senderName, translatedText);
+                        }
+
+                        const msgObj = {
+                            sender: data.sender,
+                            senderName: senderName || data.sender,
+                            text: translatedText,
+                            isSystem: isSystem,
+                            isSeparator: !!(data.payload && data.payload.isSeparator),
+                            timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                        };
+
+                        setMessages(prev => [...prev, msgObj]);
+                    }
+                    else if (data.type === 'chat_history') {
+                        const history = data.payload.map(msg => {
+                            const payload = msg.payload || {};
+                            const isObject = typeof payload === 'object';
+                            return {
+                                sender: msg.sender,
+                                senderName: (isObject ? payload.senderName : null) || msg.sender,
+                                text: isObject ? payload.text : (typeof payload === 'string' ? payload : ''),
+                                isSystem: !!(isObject && (payload.isSystem || msg.sender === 'SYSTEM')),
+                                isSeparator: !!(isObject && payload.isSeparator),
+                                type: isObject ? (payload.type || (msg.type === 'chat' ? payload.type : undefined)) : undefined,
+                                data: isObject ? payload.data : undefined,
+                                timestamp: new Date(msg.timestamp * 1000).toLocaleTimeString()
+                            };
+                        });
+                        // Use functional update to avoid racing against fresh local messages
+                        setMessages(prev => {
+                            // Only set history if we don't have a more recent local history 
+                            // or merge if necessary. For simplicity, we prioritize history 
+                            // but only if it's significantly longer or we are initializing.
+                            if (prev.length > history.length) {
+                                console.log('[WS] Skipping chat_history: local history is longer/newer');
+                                return prev;
+                            }
+                            return history;
+                        });
+                    } else if (data.type === 'identity') {
+                        if (data.payload.id === playerIdRef.current) {
+                            setNickname(data.payload.name);
+                            if (data.payload.language) {
+                                i18n.changeLanguage(data.payload.language);
+                            }
+                            if (data.payload.config) {
+                                setTileConfig({
+                                    tiles: data.payload.config.tiles || {},
+                                    unicorns: data.payload.config.unicorns || {}
+                                });
+                                setLetterValue(data.payload.config.tile_values || {});
+                                if (data.payload.config.languages) {
+                                    setSupportedLangs(data.payload.config.languages);
+                                }
                             }
                         }
+                        setPlayerNames(prev => ({
+                            ...prev,
+                            [data.payload.id]: data.payload.name
+                        }));
+                    } else if (data.type === 'game_start') {
+                        const { uuid, rack: newRackLetters, rack_size, tile_values, time_left, tile_counts, unicorns, players: otherPlayers } = data.payload;
 
-                    }
-                    setPlayerNames(prev => ({
-                        ...prev,
-                        [data.payload.id]: data.payload.name
-                    }));
-                } else if (data.type === 'game_start') {
-                    const { uuid, rack: newRackLetters, rack_size, tile_values, time_left, tile_counts, unicorns, players: otherPlayers } = data.payload;
-                    console.debug('[WS] game_start payload:', data.payload);
+                        // Removed redundant manual logSystemMessage for game_start
+                        // as backend sends a 'chat' message for this.
 
-
-                    // Grouped Join Toast
-                    if (otherPlayers && otherPlayers.length > 0) {
-                        const playersList = otherPlayers.join(', ').replace(/, ([^,]*)$/, ` ${tRef.current('app.and', 'and')} $1`);
-                        showToast(tRef.current('app.players_starting', { players: playersList }));
-                    } else {
-                        showToast(tRef.current('app.players_starting_you'));
-                    }
-
-                    const newRack = newRackLetters.map((letter, idx) => ({
-                        id: `tile-${idx}-${Date.now()}`,
-                        letter,
-                        position: idx,
-                        isUsed: false
-                    }));
-                    setGameId(uuid);
-                    setRack(newRack);
-                    setTimeLeft(time_left);
-                    setTotalTime(time_left || 30);
-                    setLetterValue(tile_values || {});
-                    setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
-                    setResults(null);
-                    setGuess(Array(rack_size || newRackLetters.length).fill(null));
-                    setIsLocked(false);
-                    setFeedback({ text: '', type: '' });
-                    autoSubmittedRef.current = false; // Reset for new game
-                    startAmbienceRef.current(); // Start background loop
-                    fetchLeaderboard();
-                } else if (data.type === 'timer') {
-                    if (data.payload && data.payload.time_left !== undefined) {
-                        const newTime = Math.max(0, data.payload.time_left);
-                        setTimeLeft(newTime);
-                    }
-                } else if (data.type === 'play') {
-                    const playObj = {
-                        player: data.sender,
-                        playerName: data.payload.playerName || playerNamesRef.current[data.sender] || data.sender,
-                        word: data.payload.word,
-                        score: data.payload.score,
-                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                    };
-
-                    if (data.sender === playerIdRef.current) {
-                        setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
-                        setIsLocked(true);
-                        setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
-                    }
-
-                    // Toast Notification for Mobile/Subtle UI
-                    const score = data.payload.score;
-                    const isSplat = score >= 40;
-
-                    let toastMsg = data.payload.msg; // Fallback
-                    if (data.payload.playerName && data.payload.score !== undefined) {
-                        toastMsg = tRef.current('app.played_word', {
-                            name: data.payload.playerName,
-                            score: data.payload.score
-                        }) + (isSplat ? ' 💥' : '');
-                    }
-                    if (showPlayToasts) {
-                        showToast(toastMsg, isSplat);
-                    }
-
-                    if (isSplat) {
-                        playRef.current('bigsplat');
-                    }
-
-                    // Log the play
-                    setLogMessages(prev => [...prev, {
-                        sender: data.sender,
-                        senderName: data.payload.playerName || data.sender,
-                        text: tRef.current('app.played_word', {
-                            name: data.payload.playerName || data.sender,
-                            score: data.payload.score
-                        }),
-                        isSystem: true,
-                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                    }]);
-                } else if (data.type === 'player_joined') {
-                    if (data.payload.id !== playerIdRef.current) {
-                        // Show join toast only once per player per game
-                        if (!joinToastShown.current.has(data.payload.id)) {
-                            showToast(tRef.current('app.player_joined', { name: data.payload.name }));
-                            joinToastShown.current.add(data.payload.id);
+                        const newRack = newRackLetters.map((letter, idx) => ({
+                            id: `tile-${idx}-${Date.now()}`,
+                            letter,
+                            position: idx,
+                            isUsed: false
+                        }));
+                        setGameId(uuid);
+                        setRack(newRack);
+                        setTimeLeft(time_left);
+                        setTotalTime(time_left || 30);
+                        setLetterValue(tile_values || {});
+                        setTileConfig({ tiles: tile_counts || {}, unicorns: unicorns || {} });
+                        setResults(null);
+                        setGuess(Array(rack_size || newRackLetters.length).fill(null));
+                        setIsLocked(false);
+                        setFeedback({ text: '', type: '' });
+                        autoSubmittedRef.current = false;
+                        startAmbienceRef.current();
+                        fetchLeaderboard();
+                    } else if (data.type === 'timer') {
+                        if (data.payload && data.payload.time_left !== undefined) {
+                            const newTime = Math.max(0, data.payload.time_left);
+                            setTimeLeft(newTime);
                         }
-                        setLogMessages(prev => [...prev, {
-                            sender: 'SYSTEM',
-                            text: tRef.current('app.player_joined', { name: data.payload.name }),
-                            isSystem: true,
-                            timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                        }]);
-                    }
-                } else if (data.type === 'player_quit') {
-                    if (data.payload.id !== playerIdRef.current) {
-                        showToast(tRef.current('app.player_quit', { name: data.payload.name }));
-                        setLogMessages(prev => [...prev, {
-                            sender: 'SYSTEM',
-                            text: tRef.current('app.player_quit', { name: data.payload.name }),
-                            isSystem: true,
-                            timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                        }]);
-                    }
-                } else if (data.type === 'error') {
-                    setFeedback({ text: data.payload, type: 'error' });
-                    setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
-                } else if (data.type === 'play_result') {
-                    // No longer tracking historical plays in state
-                } else if (data.type === 'game_end') {
-                    const resultsData = {
-                        results: data.payload.results || [],
-                        summary: data.payload.summary || (data.payload.results && data.payload.results.length > 0 ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')),
-                        is_solo: data.payload.is_solo || false,
-                        definition: data.payload.definition, // Store at top level
-                        suggested_word: data.payload.suggested_word
-                    };
+                    } else if (data.type === 'play') {
+                        if (data.sender === playerIdRef.current) {
+                            setFeedback({ text: tRef.current('app.accepted'), type: 'success' });
+                            setIsLocked(true);
+                            setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+                        }
 
-                    if (resultsData.results.length > 0 && data.payload.definition) {
-                        resultsData.results[0].definition = data.payload.definition;
-                    }
-                    setResults(resultsData);
-                    setIsLocked(true);
-                    playRef.current('game_over');
-                    fetchLeaderboard();
+                        const score = data.payload.score;
+                        const isSplat = score >= 40;
+                        if (isSplat) {
+                            playRef.current('bigsplat');
+                        }
 
-                    // Log the game end
-                    setLogMessages(prev => [...prev, {
-                        sender: 'SYSTEM',
-                        text: resultsData.summary,
-                        isSystem: true,
-                        timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
-                    }]);
+                        // Removed redundant manual log message for 'play'
+                        // as backend sends a 'chat' message for this.
+                    } else if (data.type === 'player_joined') {
+                        if (data.payload.id !== playerIdRef.current) {
+                            if (!joinToastShown.current.has(data.payload.id)) {
+                                logSystemMessage(tRef.current('app.player_joined', { name: data.payload.name }));
+                                joinToastShown.current.add(data.payload.id);
+                            }
+                        }
+                    } else if (data.type === 'player_quit') {
+                        if (data.payload.id !== playerIdRef.current) {
+                            logSystemMessage(tRef.current('app.player_quit', { name: data.payload.name }));
+                        }
+                    } else if (data.type === 'error') {
+                        setFeedback({ text: data.payload, type: 'error' });
+                        setTimeout(() => setFeedback({ text: '', type: '' }), 5000);
+                    } else if (data.type === 'game_end') {
+                        console.log('[WS] Processing game_end', data.payload);
+                        const resultsData = {
+                            results: data.payload.results || [],
+                            summary: data.payload.summary || (data.payload.results && data.payload.results.length > 0 ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')),
+                            is_solo: data.payload.is_solo || false,
+                            definition: data.payload.definition,
+                            suggested_word: data.payload.suggested_word
+                        };
+
+                        if (resultsData.results.length > 0 && data.payload.definition) {
+                            resultsData.results[0].definition = data.payload.definition;
+                        }
+                        setResults(resultsData);
+                        setIsLocked(true);
+
+                        // Round over notification
+                        // Redundant logSystemMessage removed
+
+                        try {
+                            if (playRef.current) playRef.current('game_over');
+                        } catch (e) {
+                            console.error('[WS] Failed to play game_over sound:', e);
+                        }
+
+                        fetchLeaderboard();
+
+                        const resultsTable = (resultsData.results || []).map(r => {
+                            const pName = String(r.nickname || r.player || 'Anonymous').padEnd(12);
+                            const pScore = String(r.score || 0).padStart(3);
+                            const pWord = r.word || '???';
+                            return `${pName} : ${pScore} pts (${pWord})`;
+                        }).join('\n');
+
+                        setMessages(prev => {
+                            const newMsg = {
+                                sender: 'SYSTEM',
+                                text: resultsData.summary,
+                                isSystem: true,
+                                type: 'results_table',
+                                data: resultsData.results,
+                                timestamp: new Date(data.timestamp * 1000).toLocaleTimeString()
+                            };
+
+                            // Final safety check against exact message duplication
+                            const last = prev[prev.length - 1];
+                            if (last && last.text === newMsg.text && last.type === 'results_table') return prev;
+
+                            return [
+                                ...prev,
+                                newMsg,
+                                { isSeparator: true }
+                            ];
+                        });
+                    }
+                } catch (err) {
+                    console.error('[WS] Error processing message:', err, event.data);
                 }
             };
         };
@@ -553,14 +546,7 @@ function App() {
     };
 
     const returnTile = (slotIndex) => {
-        if (isLocked || timeLeft === 0) return;
-        const tile = guess[slotIndex];
-        if (!tile) return;
-
-        // We need to know the original letter. Let's store it in the guess object.
-        // Actually, just looking at 'char' works, but for blanks we need to know it was a blank.
-        // Let's assume for now tiles have an 'isBlank' or similar. 
-        // Better: store original letter in guess object.
+        returnToRack(slotIndex);
     };
 
     const moveTileToGuess = (tile) => {
@@ -749,12 +735,8 @@ function App() {
                 onClose={() => setSidebarOpen(false)}
                 isFocusMode={isFocusMode}
                 setIsFocusMode={setIsFocusMode}
-                leaderboardVisible={leaderboardVisible}
-                setLeaderboardVisible={setLeaderboardVisible}
-                chatVisible={chatVisible}
-                setChatVisible={setChatVisible}
-                logVisible={logVisible}
-                setLogVisible={setLogVisible}
+                messagesVisible={messagesVisible}
+                setMessagesVisible={setMessagesVisible}
                 statsVisible={statsVisible}
                 setStatsVisible={setStatsVisible}
                 showRules={showRules}
@@ -797,22 +779,10 @@ function App() {
 
                     <div className="header-toggles desktop-only">
                         <button
-                            className={`panel-toggle ${leaderboardVisible ? 'active' : ''}`}
-                            onClick={() => setLeaderboardVisible(!leaderboardVisible)}
+                            className={`panel-toggle ${messagesVisible ? 'active' : ''}`}
+                            onClick={() => setMessagesVisible(!messagesVisible)}
                         >
-                            {t('app.leaderboard')}
-                        </button>
-                        <button
-                            className={`panel-toggle ${chatVisible ? 'active' : ''}`}
-                            onClick={() => setChatVisible(!chatVisible)}
-                        >
-                            {t('app.chat')}
-                        </button>
-                        <button
-                            className={`panel-toggle ${logVisible ? 'active' : ''}`}
-                            onClick={() => setLogVisible(!logVisible)}
-                        >
-                            Log
+                            {t('app.messages_title', 'Messages')}
                         </button>
                     </div>
 
@@ -820,9 +790,6 @@ function App() {
                         {/* Group 1: Authentication */}
                         <div className="button-group">
                             <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title={t('app.rules_title')}>{t('app.help_label')}</button>
-                            <label style={{ marginLeft: '8px', color: '#fff' }}>
-                                <input type="checkbox" checked={showPlayToasts} onChange={() => setShowPlayToasts(prev => !prev)} /> Show Play Toasts
-                            </label>
                             <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
                             <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
                             <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title={t('app.stats_button')}>🏆</button>
@@ -1006,19 +973,6 @@ function App() {
                 </div>
             )}
 
-            {!isFocusMode && leaderboardVisible && (
-                <DraggablePanel
-                    title={t('app.leaderboard')}
-                    id="leaderboard"
-                    initialPos={{ x: 20, y: 150 }}
-                    initialSize={{ width: 250, height: 400 }}
-                    onClose={() => setLeaderboardVisible(false)}
-                    storageKey="leaderboard"
-                >
-                    <Leaderboard players={leaderboard.leaders || []} />
-                </DraggablePanel>
-            )}
-
             {!isFocusMode && statsVisible && (
                 <DraggablePanel
                     title="Stats"
@@ -1028,34 +982,21 @@ function App() {
                     onClose={() => setStatsVisible(false)}
                     storageKey="stats"
                 >
-                    <PlayerStats data={leaderboard} />
+                    <PlayerStats data={statsData} />
                 </DraggablePanel>
             )}
 
 
-            {!isFocusMode && chatVisible && (
+            {!isFocusMode && messagesVisible && (
                 <DraggablePanel
-                    title={t('app.chat')}
-                    id="chat"
+                    title={t('app.messages_title', 'Messages')}
+                    id="messages"
                     initialPos={{ x: window.innerWidth - 320, y: 380 }}
-                    initialSize={{ width: 300, height: 350 }}
-                    onClose={() => setChatVisible(false)}
-                    storageKey="chat"
+                    initialSize={{ width: 300, height: 400 }}
+                    onClose={() => setMessagesVisible(false)}
+                    storageKey="messages"
                 >
-                    <Chat messages={messages} onSendMessage={sendMessage} playerNames={playerNames} />
-                </DraggablePanel>
-            )}
-
-            {!isFocusMode && logVisible && (
-                <DraggablePanel
-                    title="Wanker Log"
-                    id="log"
-                    initialPos={{ x: 20, y: 380 }}
-                    initialSize={{ width: 300, height: 350 }}
-                    onClose={() => setLogVisible(false)}
-                    storageKey="log"
-                >
-                    <WankerLog messages={logMessages} />
+                    <Messages messages={messages} onSendMessage={sendMessage} />
                 </DraggablePanel>
             )}
 

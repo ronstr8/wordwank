@@ -199,8 +199,9 @@ sub generate_speech ($self, $event_type, $args = {}) {
         } else {
             my $err_msg = $tx->error ? $tx->error->{message} : "Status " . ($res->code // 'unknown');
             $self->app->log->error("Ollama speech generation failed ($event_type): $err_msg");
-            # Fallback
-            $self->chat("ai.$event_type", $args);
+            my $fallback_key = "ai.$event_type";
+            $fallback_key = "ai.reaction_beaten" if $event_type eq 'beaten';
+            $self->chat($fallback_key, $args);
         }
     });
 }

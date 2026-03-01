@@ -484,7 +484,8 @@ sub _start_game_timer ($self, $game) {
 sub _end_game ($self, $game) {
     my $schema = $self->app->schema;
     my $app = $self->app;
-    $app->log->debug("Starting _end_game for " . $game->id);
+    my $game_id = $game->id;
+    $app->log->debug("Starting _end_game for $game_id");
     $game->update({ finished_at => DateTime->now });
 
     my @plays = $schema->resultset('Play')->search(
@@ -645,28 +646,7 @@ sub _end_game ($self, $game) {
     my $winner_lang = $game->language // $DEFAULT_LANG;
     $app->log->debug("Calculated winner: " . ($winner ? $winner->{player} : 'NONE') . " in game " . $game->id);
     
-    # Global Win Broadcast (To all connected players)
-    if (!$solo_game && $winner && $winner->{score} > 0) {
-        my $announce_msg = $self->t('results.global_announce', $winner_lang, {
-            winner => $winner->{player},
-            word   => $winner->{word},
-            score  => $winner->{score}
-        });
-
-        $self->_broadcast_to_game($game->id, {
-            type    => 'chat',
-            sender  => 'SYSTEM',
-            payload => {
-                text       => $announce_msg,
-                senderName => 'SYSTEM',
-                skipToast  => 1,
-            },
-            timestamp => time,
-        });
-    }
-
-    $self->app->log->debug("Building results payload for " . scalar(@results) . " players in game " . $game->id);
-    # Build payload with bonus details
+    # Build enhanced results with bonuses
     my $results_payload = [ map { 
         my $item = { 
             player => $_->{player}, 
@@ -687,21 +667,51 @@ sub _end_game ($self, $game) {
 
     my $send_results = sub ($definition = undef, $suggested_word = undef) {
         $self->app->log->debug("Broadcasting game_end with definition: " . (defined $definition ? length($definition) . " chars" : "NONE") . " and suggested: " . ($suggested_word // 'NONE'));
-        $self->_broadcast_to_game($game->id, {
+        
+        # Push the win summary to global chat history so it persists on refresh
+        my $summary = $winner 
+            ? $self->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
+            : $self->t('results.no_winner', $winner_lang);
+
+        my $history_msg = {
+            type      => 'chat',
+            sender    => 'SYSTEM',
+            timestamp => time,
+            payload   => {
+                text       => $summary,
+                senderName => 'SYSTEM',
+                isSystem   => 1,
+                type       => 'results_table',
+                data       => $results_payload,
+            }
+        };
+
+        # Push to history via helper
+        my $history = $self->app->chat_history;
+        my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
+        push @$history, $history_msg;
+        shift @$history while @$history > $limit;
+
+        # Broadcast to EVERYONE ELSE (Global Announcement)
+        # But EXCLUDE the current game because they get 'game_end' which already covers this.
+        my @game_pids = keys %{$self->app->games->{$game_id}{clients} // {}};
+        $self->app->broadcaster->announce_all_but($history_msg, \@game_pids);
+
+        $self->_broadcast_to_game($game_id, {
             type      => 'game_end',
             timestamp => time,
             payload   => {
                 results => $results_payload,
                 is_solo => $solo_game,
-                summary => $winner 
-                    ? $self->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
-                    : $self->t('results.no_winner', $winner_lang),
+                summary => $summary,
                 definition     => $definition,
                 suggested_word => $suggested_word,
             }
         });
+        
+        $self->app->log->debug("Finished broadcasting game_end for $game_id. Deleting game from memory.");
         # Cleanup memory
-        delete $self->app->games->{$game->id};
+        delete $self->app->games->{$game_id};
     };
 
     my $suggest_cb = sub ($suggested_res = undef) {

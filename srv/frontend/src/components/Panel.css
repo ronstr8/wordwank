@@ -44,12 +44,75 @@
     transform: scale(1.2);
 }
 
+.messages-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.system-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.9em;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.results-table td {
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-style: normal;
+    /* Override system-msg italics */
+}
+
+.results-table .col-player {
+    font-weight: 600;
+    color: var(--primary-color, #4a90e2);
+}
+
+.results-table .col-word {
+    font-family: 'Courier New', Courier, monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.results-table .col-score {
+    text-align: right;
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.results-table .col-score.is-dupe {
+    color: #ff4d4d;
+    font-size: 0.85em;
+}
+
 .panel-body {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    /* Critical for flex child scrolling */
+}
+
+/* Specific override for the messages panel to prevent double scrollbars */
+.panel-draggable:has(.messages-container) .panel-body {
+    overflow: hidden;
+    padding: 0;
 }
 
 .resize-handle {
@@ -105,6 +168,23 @@
     gap: 10px;
     text-align: left;
     font-family: 'Fredoka', sans-serif;
+    min-height: 0;
+}
+
+.messages-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .play-entry {
@@ -136,6 +216,9 @@
 
 .chat-msg {
     font-size: 0.95rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 .chat-separator {
@@ -156,16 +239,16 @@
     margin-right: 5px;
 }
 
-.chat-msg.system-msg {
+.system-msg {
     font-style: italic;
     opacity: 0.9;
     color: #bdc3c7;
 }
 
 .chat-icon {
-    margin-right: 4px;
-    filter: sepia(1) saturate(2) hue-rotate(180deg);
-    /* Make it look a bit more "techy" if desired, or just leave as is */
+    flex-shrink: 0;
+    display: inline-block;
+    min-width: 1.2em;
 }
 
 .chat-input-area {

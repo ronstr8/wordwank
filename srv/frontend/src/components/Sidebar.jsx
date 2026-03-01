@@ -6,12 +6,8 @@ const Sidebar = ({
     onClose,
     isFocusMode,
     setIsFocusMode,
-    leaderboardVisible,
-    setLeaderboardVisible,
-    chatVisible,
-    setChatVisible,
-    logVisible,
-    setLogVisible,
+    messagesVisible,
+    setMessagesVisible,
     statsVisible,
     setStatsVisible,
     showRules,
@@ -71,25 +67,11 @@ const Sidebar = ({
                     <div className="sidebar-section">
                         <h3>{t('app.panels_title')}</h3>
                         <button
-                            className={`sidebar-btn ${leaderboardVisible ? 'active' : ''}`}
-                            onClick={() => handleAction(() => setLeaderboardVisible(!leaderboardVisible))}
-                        >
-                            <span className="sidebar-icon">🏆</span>
-                            {t('app.leaderboard')}
-                        </button>
-                        <button
-                            className={`sidebar-btn ${chatVisible ? 'active' : ''}`}
-                            onClick={() => handleAction(() => setChatVisible(!chatVisible))}
+                            className={`sidebar-btn ${messagesVisible ? 'active' : ''}`}
+                            onClick={() => handleAction(() => setMessagesVisible(!messagesVisible))}
                         >
                             <span className="sidebar-icon">💬</span>
-                            {t('app.chat')}
-                        </button>
-                        <button
-                            className={`sidebar-btn ${logVisible ? 'active' : ''}`}
-                            onClick={() => handleAction(() => setLogVisible(!logVisible))}
-                        >
-                            <span className="sidebar-icon">📜</span>
-                            Wanker Log
+                            {t('app.messages_title', 'Messages')}
                         </button>
                         <button
                             className={`sidebar-btn ${statsVisible ? 'active' : ''}`}
