@@ -47,11 +47,29 @@ has chat_history => sub { [] };
 
 has ua => sub { Mojo::UserAgent->new };
 
+has wordd => sub ($self) { 
+    require Wordwank::Service::Wordd;
+    Wordwank::Service::Wordd->new(app => $self) 
+};
+has state_processor => sub ($self) { 
+    require Wordwank::Game::StateProcessor;
+    Wordwank::Game::StateProcessor->new(app => $self) 
+};
+has game_registry => sub ($self) { 
+    require Wordwank::Game::Registry;
+    Wordwank::Game::Registry->new(app => $self) 
+};
+has game_manager => sub ($self) {
+    require Wordwank::Game::Manager;
+    Wordwank::Game::Manager->new(app => $self)
+};
+
 # Shared i18n
 has translations => sub { {} };
 has _languages_cache => sub { undef };
 
 sub startup ($self) {
+    warn "DEBUG: [Wordwank] startup() BEGIN\n";
     # Plugins
     $self->plugin('NotYAMLConfig' => {file => 'wordwank.yml', optional => 1});
     

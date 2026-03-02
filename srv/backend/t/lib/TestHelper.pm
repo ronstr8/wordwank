@@ -1,11 +1,15 @@
 package TestHelper;
 use strict;
 use warnings;
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use Test::Mojo;
 use Mojo::JSON qw(encode_json decode_json);
 use UUID::Tiny qw(:std);
 use DBI;
+
+use IO::Handle;
+STDOUT->autoflush(1);
+STDERR->autoflush(1);
 
 use Exporter 'import';
 our @EXPORT = qw(
@@ -68,27 +72,24 @@ sub create_ws_client {
     my $t = Test::Mojo->new($base_mojo->app);
     $t->{test_stash} = [];
 
+    # Attach listener to catch messages from the very beginning of the handshake
+    $t->ua->on(websocket => sub ($ua, $tx) {
+        warn "DEBUG: [TestHelper] UA event: websocket transaction started\n";
+        $tx->on(message => sub ($tx, $msg) {
+            warn "DEBUG: [TestHelper] RAW frame received: $msg\n";
+            my $data = eval { decode_json($msg) };
+            if (ref $data eq 'HASH') {
+                warn "DEBUG: [TestHelper] Decoded message type: " . ($data->{type} // 'unknown') . "\n";
+                push @{$t->{test_stash}}, $data;
+            } else {
+                warn "DEBUG: [TestHelper] JSON Decode FAILED for frame: $msg\n";
+            }
+        });
+    });
+
     my $ws_url = "/ws?lang=$language";
     $t->websocket_ok($ws_url => {'Accept-Language' => $language})
       ->status_is(101);
-    
-    # Pick up any message already buffered by Test::Mojo during handshake
-    if ($t->message) {
-        my $data = eval { decode_json($t->message->[1]) };
-        if (ref $data eq 'HASH') {
-            push @{$t->{test_stash}}, $data;
-        }
-    }
-
-    # Attach listener to the transaction to catch future messages
-    my $tx = $t->tx;
-    $tx->on(message => sub {
-        my ($tx, $msg) = @_;
-        my $data = eval { decode_json($msg) };
-        if (ref $data eq 'HASH') {
-            push @{$t->{test_stash}}, $data;
-        }
-    });
 
     # Handshake Phase 1: Identity
     my $identity = wait_for_message($t, 'identity', 10);
@@ -121,25 +122,42 @@ sub wait_for_message {
     my ($t, $type, $timeout) = @_;
     $timeout //= 10;
     
+    warn "DEBUG: [wait_for_message] Waiting for type '$type' (Timeout: ${timeout}s)...\n";
+    
     my $start = time;
     while (time - $start < $timeout) {
-        # Check stash
+        # 1. Check stash
         my $stash = $t->{test_stash} //= [];
         for (my $i = 0; $i < @$stash; $i++) {
-            if (($stash->[$i]{type} // '') eq $type) {
+            my $m_type = $stash->[$i]{type} // 'unknown';
+            if ($m_type eq $type) {
+                warn "DEBUG: [wait_for_message] Found '$type' in stash at pos $i\n";
                 my $match = splice(@$stash, $i, 1);
                 return $match->{payload};
             }
         }
 
-        # Pulse the loop quietly but aggressively
-        # One tick might not be enough on Windows for both client/server to process frames
-        for (1..5) {
+        # 2. Check Test::Mojo latest message (some frames might be here)
+        if (my $msg = $t->message) {
+            my $data = eval { decode_json($msg->[1]) };
+            if (ref $data eq 'HASH') {
+                my $m_type = $data->{type} // 'unknown';
+                if ($m_type eq $type) {
+                    warn "DEBUG: [wait_for_message] Found '$type' in T-MESSAGE buffer\n";
+                    return $data->{payload};
+                }
+            }
+        }
+
+        # Pulse the loop aggressively
+        for (1..20) {
             $t->ua->ioloop->one_tick;
         }
-        select(undef, undef, undef, 0.05); # Tiny sleep to yield
+        select(undef, undef, undef, 0.05); 
     }
     
+    warn "DEBUG: [wait_for_message] TIMEOUT waiting for '$type'. Stash contains: " . 
+         join(', ', map { $_->{type} // '?' } @{$t->{test_stash}}) . "\n";
     return undef;
 }
 
@@ -148,7 +166,7 @@ sub _apply_mocks {
     {
         no warnings 'redefine';
         use Wordwank::Game::AI;
-        use Wordwank::Web::Game;
+        use Wordwank::Service::Wordd;
         use Wordwank::Game::Scorer;
         use Mojo::Message::Response;
 
@@ -160,34 +178,34 @@ sub _apply_mocks {
         } unless defined &Wordwank::Game::AI::_request_candidates_MOCKED;
         *Wordwank::Game::AI::_request_candidates_MOCKED = sub { 1 };
 
-        # Game mocks (prevent wordd calls)
-        *Wordwank::Web::Game::_validate_word_with_service = sub {
+        # Wordd Service mocks (prevent actual network calls)
+        *Wordwank::Service::Wordd::validate = sub {
             my ($self, $word, $lang, $cb) = @_;
-            $self->app->log->debug("MOCKED validation for '$word'");
+            $self->app->log->debug("MOCKED Wordd::validate for '$word'");
             # Support testing invalid words via magic string
             my $valid = ($word =~ /INVALID/i) ? 0 : 1;
             $cb->(Mojo::Message::Response->new(code => 200, body => encode_json({ 
                 valid => $valid,
                 definition => $valid ? "Mocked definition for $word" : undef,
             })));
-        } unless defined &Wordwank::Web::Game::_validate_word_with_service_MOCKED;
-        *Wordwank::Web::Game::_validate_word_with_service_MOCKED = sub { 1 };
+        } unless defined &Wordwank::Service::Wordd::validate_MOCKED;
+        *Wordwank::Service::Wordd::validate_MOCKED = sub { 1 };
 
-        *Wordwank::Web::Game::_fetch_definition_with_service = sub {
+        *Wordwank::Service::Wordd::define = sub {
             my ($self, $word, $lang, $cb) = @_;
             $cb->(Mojo::Message::Response->new(code => 404));
-        } unless defined &Wordwank::Web::Game::_fetch_definition_with_service_MOCKED;
-        *Wordwank::Web::Game::_fetch_definition_with_service_MOCKED = sub { 1 };
+        } unless defined &Wordwank::Service::Wordd::define_MOCKED;
+        *Wordwank::Service::Wordd::define_MOCKED = sub { 1 };
 
-        *Wordwank::Web::Game::_fetch_suggested_word_with_service = sub {
+        *Wordwank::Service::Wordd::suggest = sub {
             my ($self, $letters, $lang, $cb) = @_;
             $cb->(Mojo::Message::Response->new(code => 404));
-        } unless defined &Wordwank::Web::Game::_fetch_suggested_word_with_service_MOCKED;
-        *Wordwank::Web::Game::_fetch_suggested_word_with_service_MOCKED = sub { 1 };
+        } unless defined &Wordwank::Service::Wordd::suggest_MOCKED;
+        *Wordwank::Service::Wordd::suggest_MOCKED = sub { 1 };
 
-        # Scorer mocks (prevent wordd config fetch)
+        # Scorer mocks
         *Wordwank::Game::Scorer::_fetch_tile_config_from_service = sub {
-            return { success => 0 }; # Fallback to internal Scrabble-like config
+            return { success => 0 };
         } unless defined &Wordwank::Game::Scorer::_fetch_tile_config_from_service_MOCKED;
         *Wordwank::Game::Scorer::_fetch_tile_config_from_service_MOCKED = sub { 1 };
     }
