@@ -114,6 +114,9 @@ ollama: minikube-setup registry-tunnel
 	kubectl rollout restart deployment/ollama -n $(NAMESPACE) || true
 	kubectl rollout status deployment/ollama -n $(NAMESPACE) || true
 
+migrate: ## Run pending database migrations inside the cluster
+	kubectl exec -n $(NAMESPACE) -it deploy/backend -- perl -Ilib bin/migrate.pl
+
 
 # Helm Commands
 # i18n Note: Master truth lives in helm/share/locale/

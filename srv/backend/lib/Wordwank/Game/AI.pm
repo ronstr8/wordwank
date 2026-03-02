@@ -1,5 +1,6 @@
 package Wordwank::Game::AI;
 use Mojo::Base -base, -signatures;
+use utf8;
 use Mojo::Util;
 use UUID::Tiny qw(:std);
 use Wordwank::Util::NameGenerator;
@@ -28,61 +29,21 @@ has 'thinking_times'  => sub { [] };
 has 'last_score'      => 0;
 has 'reacted_beaten'  => 0;
 
-# Bot Profiles
-my %PROFILES = (
-    'Yertyl' => {
-        uuid              => '00000000-0000-4000-a000-000000000001',
-        wait_seconds_base => 15,
-        rnd_word_count    => 3,
-        min_score_to_play => 1,
-        min_score_to_win  => 40,
-        character_prompt  => "You are Yertyl, a slow, thoughtful, and slightly grumpy turtle who hates being rushed. You speak in short, punchy sentences and occasionally complain about the speed of younger 'wankers'.",
-    },
-    'Flash' => {
-        uuid              => '00000000-0000-4000-a000-000000000002',
-        wait_seconds_base => 5,
-        rnd_word_count    => 5,
-        min_score_to_play => 5,
-        min_score_to_win  => 35,
-        character_prompt  => "You are Flash, a hyper-active, caffeine-fueled speedster who talks too fast and thinks everyone else is too slow. Use lots of exclamation marks and energetic words.",
-    },
-    'Wanko' => {
-        uuid              => '00000000-0000-4000-a000-000000000003',
-        wait_seconds_base => 8,
-        rnd_word_count    => 8,
-        min_score_to_play => 10,
-        min_score_to_win  => 25,
-        character_prompt  => "You are Wanko, a self-proclaimed 'wank master' who is overly confident and uses too many puns about 'wanking words'. You think you are the best at this game.",
-    },
-    'Scrabbler' => {
-        uuid              => '00000000-0000-4000-a000-000000000004',
-        wait_seconds_base => 12,
-        rnd_word_count    => 10,
-        min_score_to_play => 15,
-        min_score_to_win  => 20,
-        character_prompt  => "You are Scrabbler, a serious, competitive linguist who thinks Wordwank is beneath them but plays it anyway. Use sophisticated vocabulary and sound slightly superior.",
-    },
-);
-
-sub new_for_game ($class, $app, $game_id, $language) {
-    # Pick a random bot profile
-    my @bots = keys %PROFILES;
-    my $bot_name = $bots[int(rand(@bots))];
-    my $config = $PROFILES{$bot_name};
-
-    # Ensure player exists in DB
-    $app->schema->resultset('Player')->find_or_create({
-        id       => $config->{uuid},
-        nickname => $bot_name,
-    });
+sub new_from_player ($class, $app, $game_id, $player, $language = undef) {
+    my $brain = $player->brain // {};
+    my $lang  = $language // $player->language // 'en';
 
     my $self = $class->new(
-        app       => $app,
-        game_id   => $game_id,
-        language  => $language,
-        nickname  => $bot_name,
-        player_id => $config->{uuid},
-        %$config,
+        app               => $app,
+        game_id           => $game_id,
+        language          => $lang,
+        nickname          => $player->nickname,
+        player_id         => $player->id,
+        character_prompt  => $brain->{character_prompt},
+        wait_seconds_base => $brain->{wait_seconds_base} // 8,
+        rnd_word_count    => $brain->{rnd_word_count} // 5,
+        min_score_to_play => $brain->{min_score_to_play} // 2,
+        min_score_to_win  => $brain->{min_score_to_win} // 30,
     );
     $self->_init_schedule();
     return $self;

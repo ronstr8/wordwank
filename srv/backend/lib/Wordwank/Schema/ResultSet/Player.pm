@@ -114,4 +114,56 @@ sub create_session {
     });
 }
 
+sub find_active_ais {
+    my ($self) = @_;
+    my @all_ais = $self->search({ brain => { '!=', undef } })->all;
+    my $now = DateTime->now(time_zone => 'local');
+    
+    my @scheduled;
+    my @extra_candidates;
+
+    for my $ai (@all_ais) {
+        my $brain = $ai->brain;
+        next unless $brain && $brain->{schedule};
+        
+        if ($self->_is_on_schedule($brain->{schedule}, $now)) {
+            push @scheduled, $ai;
+        } else {
+            push @extra_candidates, $ai;
+        }
+    }
+    
+    # Rare jump-in logic for others
+    my $extra_ai;
+    if (@extra_candidates) {
+        # Pick one at random to check probability
+        my $candidate = $extra_candidates[int(rand(@extra_candidates))];
+        my $prob = $candidate->brain->{probability} // 0.02; # 2% default
+        if (rand() < $prob) {
+            $extra_ai = $candidate;
+        }
+    }
+
+    return (\@scheduled, $extra_ai);
+}
+
+sub _is_on_schedule {
+    my ($self, $schedule, $now) = @_;
+    
+    my $day_map = [qw/sun mon tue wed thu fri sat sun/];
+    my $day = lc $day_map->[$now->day_of_week % 7];
+    my $time = sprintf("%02d:%02d", $now->hour, $now->minute);
+    
+    # Check 'all' or specific day
+    my @rules = (@{$schedule->{all} // []}, @{$schedule->{$day} // []});
+    
+    for my $range (@rules) {
+        my ($start, $end) = split /-/, $range;
+        next unless $start && $end;
+        return 1 if $time ge $start && $time le $end;
+    }
+    
+    return 0;
+}
+
 1;

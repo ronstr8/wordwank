@@ -4,6 +4,7 @@ use MooseX::NonMoose;
 extends 'DBIx::Class::Core';
 
 use Mojo::JSON;
+use Mojo::Util qw(encode decode);
 __PACKAGE__->table('games');
 __PACKAGE__->load_components(qw/InflateColumn::DateTime TimeStamp/);
 __PACKAGE__->add_columns(
@@ -41,8 +42,8 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key('id');
 __PACKAGE__->inflate_column('letter_values', {
-    inflate => sub { Mojo::JSON::decode_json(shift) },
-    deflate => sub { Mojo::JSON::encode_json(shift) },
+    inflate => sub { my $v = shift; return undef unless defined $v; Mojo::JSON::decode_json(encode('UTF-8', $v)) },
+    deflate => sub { my $v = shift; return undef unless defined $v; decode('UTF-8', Mojo::JSON::encode_json($v)) },
 });
 
 __PACKAGE__->inflate_column('rack', {

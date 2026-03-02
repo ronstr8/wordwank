@@ -115,11 +115,29 @@ sub get_or_create_game ($self, $player, $invite_gid = undef) {
 sub _init_in_memory_game ($self, $gid, $game_record, $lang, $time_left = undef) {
     my $app = $self->app;
     require Wordwank::Game::AI;
+    
+    my ($scheduled, $extra) = $app->schema->resultset('Player')->find_active_ais();
+    my @ais;
+    
+    # Use scheduled AIs (usually 1, but could be more)
+    if (@$scheduled) {
+        push @ais, map { Wordwank::Game::AI->new_from_player($app, $gid, $_, $lang) } @$scheduled;
+    } else {
+        # FALLBACK: if no one is scheduled, pick a random AI so the game isn't empty
+        my $random_ai = $app->schema->resultset('Player')->search({ brain => { '!=', undef } }, { order_by => 'random()', rows => 1 })->single;
+        push @ais, Wordwank::Game::AI->new_from_player($app, $gid, $random_ai, $lang) if $random_ai;
+    }
+    
+    # Add extra jump-in AI if present
+    if ($extra) {
+        push @ais, Wordwank::Game::AI->new_from_player($app, $gid, $extra, $lang);
+    }
+
     $app->games->{$gid} = {
         clients   => {},
         state     => $game_record,
         time_left => $time_left // ($ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION),
-        ai        => Wordwank::Game::AI->new_for_game($app, $gid, $lang),
+        ais       => \@ais,
     };
 }
 

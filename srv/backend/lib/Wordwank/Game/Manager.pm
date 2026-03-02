@@ -69,7 +69,7 @@ sub join_player ($self, $controller, $player, $payload = undef) {
             tile_counts   => $app->scorer->tile_counts($game_lang),
             unicorns      => $app->scorer->unicorns($game_lang),
             time_left     => $app->games->{$gid}{time_left},
-            players       => [ @other_nicknames, $app->games->{$gid}{ai}->nickname ],
+            players       => [ @other_nicknames, map { $_->nickname } @{$app->games->{$gid}{ais} // []} ],
         }
     }});
 
@@ -231,7 +231,7 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
             }
 
             # AI Reacts if beaten
-            $game_data->{ai}->check_reaction($player->nickname, $score);
+            $_->check_reaction($player->nickname, $score) for @{$game_data->{ais} // []};
         }
         else {
             my $code = $res->code // 0;
@@ -267,14 +267,17 @@ sub start_game_timer ($self, $game) {
         my $total_dur = $ENV{GAME_DURATION} || $DEFAULT_GAME_DURATION;
         my $elapsed = $total_dur - $g->{time_left};
         
-        # AI fetches candidates once Game has rack/letter_values (usually first second)
-        if ($elapsed == 1) {
-            my $rack = $game->rack // [];
-            my $rack_str = join('', map { ref $_ ? ($_->{letter} // '') : $_ } @$rack);
-            $app->log->debug("AI " . $g->{ai}->nickname . " fetching candidates for rack_str: $rack_str");
-            $g->{ai}->fetch_candidates($rack_str);
+        my $rack = $game->rack // [];
+        my $rack_str = join('', map { ref $_ ? ($_->{letter} // '') : $_ } @$rack);
+
+        for my $ai (@{$g->{ais} // []}) {
+            # AI fetches candidates once Game has rack/letter_values (usually first second)
+            if ($elapsed == 1) {
+                $app->log->debug("AI " . $ai->nickname . " fetching candidates for rack_str: $rack_str");
+                $ai->fetch_candidates($rack_str);
+            }
+            $ai->tick($elapsed);
         }
-        $g->{ai}->tick($elapsed);
         
         # Broadcast timer update
         $app->broadcaster->announce_to_game({
@@ -308,11 +311,10 @@ sub end_game ($self, $game) {
     )->all;
 
     my $game_lang = $game->language // $DEFAULT_LANG;
-    my $ai = $app->games->{$game_id}{ai};
-    my $ai_player_id = $ai ? $ai->player_id : undef;
+    my @ai_pids = map { $_->player_id } @{$app->games->{$game_id}{ais} // []};
 
     my $results = $app->state_processor->calculate_results(\@plays, $game_lang);
-    my $solo_game = $app->state_processor->is_solo(\@plays, $ai_player_id);
+    my $solo_game = $app->state_processor->is_solo(\@plays, \@ai_pids);
 
     $app->log->debug("Ending game $game_id - Found " . scalar(@plays) . " plays. Solo: " . ($solo_game ? "YES" : "NO"));
 
@@ -322,7 +324,8 @@ sub end_game ($self, $game) {
             my $player = $schema->resultset('Player')->find($result->{player_id});
             if ($player) {
                 # Skip AI player updates
-                next if $ai_player_id && $player->id eq $ai_player_id;
+                my %is_ai = map { $_ => 1 } @ai_pids;
+                next if $is_ai{$player->id};
 
                 my $old_score = $player->lifetime_score || 0;
                 my $new_score = $old_score + $result->{score};

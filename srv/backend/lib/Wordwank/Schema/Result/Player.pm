@@ -5,6 +5,7 @@ extends 'DBIx::Class::Core';
 use UUID::Tiny qw(:std);
 use DateTime;
 use Crypt::URandom;
+use Mojo::Util qw(encode decode);
 
 __PACKAGE__->table('players');
 __PACKAGE__->load_components(qw/InflateColumn::DateTime TimeStamp/);
@@ -43,8 +44,18 @@ __PACKAGE__->add_columns(
         data_type => 'integer',
         is_nullable => 0,
         default_value => 0,
+    },
+    brain => {
+        data_type => 'jsonb',
+        is_nullable => 1,
     }
 );
+
+use Mojo::JSON qw(encode_json decode_json);
+__PACKAGE__->inflate_column('brain', {
+    inflate => sub { my $v = shift; return undef unless defined $v; decode_json(encode('UTF-8', $v)) },
+    deflate => sub { my $v = shift; return undef unless defined $v; decode('UTF-8', encode_json($v)) },
+});
 
 __PACKAGE__->set_primary_key('id');
 __PACKAGE__->add_unique_constraint([qw/nickname/]);

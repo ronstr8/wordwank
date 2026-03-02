@@ -1,8 +1,11 @@
-.PHONY: deps test clean run help
+.PHONY: deps test clean run migrate help
 
 help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+migrate: ## Run pending database migrations
+	perl -Ilib bin/migrate.pl
 
 deps: ## Install CPAN dependencies
 	cpanm --installdeps .

@@ -102,21 +102,16 @@ sub calculate_results ($self, $plays, $game_lang) {
     return \@results;
 }
 
-sub is_solo ($self, $plays, $ai_player_id) {
+sub is_solo ($self, $plays, $ai_player_ids = []) {
+    my %is_ai = map { $_ => 1 } @$ai_player_ids;
     my %seen_players = map { $_->get_column('player_id') => 1 } @$plays;
     
     my $humans_seen = 0;
     for my $pid (keys %seen_players) {
-        $humans_seen++ unless $ai_player_id && $pid eq $ai_player_id;
+        $humans_seen++ unless $is_ai{$pid};
     }
     
-    # Solo is only true if only 1 human and NO ai.
-    # Actually, the logic in Game.pm was:
-    # my $has_ai = $app->games->{$game->id}{ai} ? 1 : 0;
-    # my $solo_game = ($humans_seen <= 1 && !$has_ai);
-    
-    # We'll pass has_ai as a parameter to be cleaner or check if ai_player_id is provided.
-    return ($humans_seen <= 1 && !$ai_player_id);
+    return $humans_seen < 2;
 }
 
 1;

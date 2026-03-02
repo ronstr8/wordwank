@@ -1,5 +1,6 @@
 package Wordwank;
 use Mojo::Base 'Mojolicious', -signatures;
+use utf8;
 use Wordwank::Schema;
 use Wordwank::Game::Scorer;
 use Wordwank::Game::Broadcaster;
@@ -69,6 +70,7 @@ has translations => sub { {} };
 has _languages_cache => sub { undef };
 
 sub startup ($self) {
+    binmode(STDERR, ":utf8");
     warn "DEBUG: [Wordwank] startup() BEGIN\n";
     # Plugins
     $self->plugin('NotYAMLConfig' => {file => 'wordwank.yml', optional => 1});
