@@ -313,7 +313,7 @@ sub end_game ($self, $game) {
     my $game_lang = $game->language // $DEFAULT_LANG;
     my @ai_pids = map { $_->player_id } @{$app->games->{$game_id}{ais} // []};
 
-    my $results = $app->state_processor->calculate_results(\@plays, $game_lang);
+    my $results = $app->state_processor->calculate_results(\@plays, $game_lang, $game->started_at);
     my $solo_game = $app->state_processor->is_solo(\@plays, \@ai_pids);
 
     $app->log->debug("Ending game $game_id - Found " . scalar(@plays) . " plays. Solo: " . ($solo_game ? "YES" : "NO"));
@@ -353,6 +353,7 @@ sub end_game ($self, $game) {
         push @bonuses, { 'Duplicates' => $_->{duplicate_bonus} } if $_->{duplicate_bonus} > 0;
         push @bonuses, { 'Unique Play' => $_->{unique_bonus} } if $_->{unique_bonus} > 0;
         push @bonuses, { 'Length Bonus' => $_->{length_bonus} } if $_->{length_bonus} > 0;
+        push @bonuses, { 'Quick Wank' => $_->{quick_bonus} } if $_->{quick_bonus} > 0;
         $item->{bonuses} = \@bonuses if @bonuses;
         $item;
     } @$results ];

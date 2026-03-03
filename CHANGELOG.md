@@ -5,6 +5,32 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] - 2026-03-03
+
+### Added (1.9.0)
+
+- **Quick Wank Bonus**: New end-game bonus for lightning-fast players. Earn up to +6 points for playing in the first 5 seconds of a game. Bonus is calculated as `(quickBonusSeconds + 1) - seconds_since_start`.
+- **AI Brain & Scheduling**:
+  - Added `brain` column (JSONB) to `players` table for AI configuration and personalities.
+  - Implemented AI scheduling logic allowing AIs to join during specific windows or jump in randomly.
+  - Persona-driven AI dialogue now supports custom prompts and character-specific behaviors.
+- **Database Migration Framework**: Introduced a robust Perl-based migration runner (`migrate.pl`) with version tracking.
+
+### Refactored (1.9.0)
+
+- **Backend Architecture Overhaul**: Refactored monolithic `Game.pm` into specialized modules:
+  - `Wordwank::Game::Manager`: Handles game lifecycle and player joining.
+  - `Wordwank::Game::StateProcessor`: Manages scoring, bonuses, and results calculation.
+  - `Wordwank::Game::Registry`: Handles game discovery and creation logic.
+  - `Wordwank::Service::Wordd`: Cleaned up interface for the word validation service.
+
+### Fixed (1.9.0)
+
+- **UTF-8 & JSON Safety**:
+  - Hardened `Mojo::JSON` inflation/deflation in DBIx::Class models to safely handle UTF-8 characters (like smart quotes) in JSON columns.
+  - Added `use utf8;` and `binmode(STDERR, ":utf8")` to prevent "Wide character" warnings and server hangs.
+- **SQL Syntax Errors**: Fixed quoting issues in migration scripts by adopting smart quotes (`’`) for character prompts.
+
 ## [1.8.0] - 2026-02-28
 
 ### Added (1.8.0)

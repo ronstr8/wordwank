@@ -10,6 +10,7 @@ global:
   maxPlayers: 13
   randomLetterScoreMode: "true"
   gameDuration: 30
+  quickBonusSeconds: 5
   rackSize: 8
   minVowels: 2
   minConsonants: 2

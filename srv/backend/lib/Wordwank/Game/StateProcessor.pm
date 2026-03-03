@@ -5,11 +5,12 @@ use utf8;
 
 has 'app' => ( is => 'ro', required => 1 );
 
-sub calculate_results ($self, $plays, $game_lang) {
+sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef) {
     my $scorer = $self->app->scorer;
+    my $quick_bonus_seconds = $ENV{QUICK_BONUS_SECONDS} || 5;
     
     my %word_to_players;
-    my %player_bonuses;  # player_id -> { duplicates => count, length_bonus => count, unique => count, duped_by => [ { name => nickname, bonus => 1 } ] }
+    my %player_bonuses;  # player_id -> { duplicates => count, length_bonus => count, unique => count, quick_bonus => count, duped_by => [ { name => nickname, bonus => 1 } ] }
     my %is_duper;  # player_id -> 1 if they duplicated someone
     my %player_id_to_nickname;
     
@@ -27,6 +28,19 @@ sub calculate_results ($self, $plays, $game_lang) {
         my $bonus = $scorer->get_length_bonus($word);
         if ($bonus > 0) {
             $player_bonuses{$player_id}{length_bonus} = $bonus;
+        }
+
+        # Calculate quick bonus
+        if ($game_started_at) {
+            my $created_at = $play->get_column('created_at');
+            if ($created_at) {
+                my $seconds_since_start = $created_at->epoch - $game_started_at->epoch;
+                if ($seconds_since_start <= $quick_bonus_seconds) {
+                    # Bonus = (X+1) - seconds_since_game_start
+                    my $q_bonus = ($quick_bonus_seconds + 1) - $seconds_since_start;
+                    $player_bonuses{$player_id}{quick_bonus} = $q_bonus if $q_bonus > 0;
+                }
+            }
         }
     }
     
@@ -67,12 +81,13 @@ sub calculate_results ($self, $plays, $game_lang) {
         my $duplicate_bonus = $bonuses->{duplicates} || 0;
         my $unique_bonus = $bonuses->{unique} || 0;
         my $length_bonus = $bonuses->{length_bonus} || 0;
+        my $quick_bonus = $bonuses->{quick_bonus} || 0;
         
         my $total_score;
         if ($is_duper{$player_id}) {
             $total_score = 0;
         } else {
-            $total_score = $base_score + $duplicate_bonus + $unique_bonus + $length_bonus;
+            $total_score = $base_score + $duplicate_bonus + $unique_bonus + $length_bonus + $quick_bonus;
         }
         
         # Track highest score per player
@@ -86,6 +101,7 @@ sub calculate_results ($self, $plays, $game_lang) {
                 duplicate_bonus => $duplicate_bonus,
                 unique_bonus    => $unique_bonus,
                 length_bonus    => $length_bonus,
+                quick_bonus     => $quick_bonus,
                 duped_by        => $bonuses->{duped_by} // [],
                 is_dupe         => $is_duper{$player_id} ? 1 : 0,
                 created_at      => $play->get_column('created_at'),

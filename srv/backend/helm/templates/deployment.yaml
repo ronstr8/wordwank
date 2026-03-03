@@ -68,6 +68,8 @@ spec:
               value: {{ .Values.global.logLevel | default .Values.image.logLevel | quote }}
             - name: GAME_DURATION
               value: {{ .Values.global.gameDuration | quote }}
+            - name: QUICK_BONUS_SECONDS
+              value: {{ .Values.global.quickBonusSeconds | default 5 | quote }}
             - name: RACK_SIZE
               value: {{ .Values.global.rackSize | quote }}
             - name: MIN_VOWELS
