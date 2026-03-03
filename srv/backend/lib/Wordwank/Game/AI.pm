@@ -257,7 +257,11 @@ sub _execute_play ($self, $word, $score, $game_record) {
     $app->broadcaster->announce_to_game($msg, $self->game_id);
 
     # Global Chat Broadcast
-    my $chat_msg = $app->t('app.played_word', $self->language, { name => $self->nickname, score => $score });
+    my $chat_msg = $app->t('app.played_word', $self->language, { 
+        player     => $self->nickname, 
+        tile_count => length($word), 
+        raw_points => $score 
+    });
     $app->broadcast_all_clients({
         type    => 'chat',
         sender  => 'SYSTEM',

@@ -69,8 +69,8 @@ sub _fetch_tile_config_from_service ($self, $lang) {
 # Generate tile values for a new game based on tile frequency
 sub generate_tile_values ($self, $lang) {
     if (my $cached = $self->_tile_values_cache->{$lang}) {
-        # Only return cache if it's the same day
-        my $today = DateTime->now->ymd;
+        # Only return cache if it's the same day in Buffalo
+        my $today = DateTime->now(time_zone => 'America/New_York')->ymd;
         return $cached->{values} if $cached->{date} eq $today;
     }
 
@@ -99,9 +99,15 @@ sub generate_tile_values ($self, $lang) {
     
     # Blank tile always 0
     $values{'_'} = 0;
+
+    # Daily Bonus: The first letter of the current day in Buffalo (ET) is worth 7 points
+    my $dt_buffalo = DateTime->now(time_zone => 'America/New_York');
+    my $day_name = $dt_buffalo->day_name; # e.g. "Tuesday"
+    my $bonus_char = uc(substr($day_name, 0, 1));
+    $values{$bonus_char} = 7;
     
     $self->_tile_values_cache->{$lang} = {
-        date   => DateTime->now->ymd,
+        date   => $dt_buffalo->ymd,
         values => \%values,
     };
 
@@ -155,7 +161,7 @@ sub is_vowel ($self, $char, $lang) {
 sub get_random_rack ($self, $lang, $size = 7, $depth = 0) {
     if ($depth > 5) {
         warn "Max rack generation depth reached for $lang, returning partial/fallback";
-        return [ ('?') x ($ENV{RACK_SIZE} || 7) ];
+        return [ ('?') x ($ENV{RACK_SIZE} || 8) ];
     }
 
     my $config = $self->_get_tile_config($lang);
@@ -179,7 +185,7 @@ sub get_random_rack ($self, $lang, $size = 7, $depth = 0) {
 
     my @rack;
     # Simple random draw
-    my $rack_size = $ENV{RACK_SIZE} || 7;
+    my $rack_size = $ENV{RACK_SIZE} || 8;
     my @indices = (0 .. $#bag);
     for (1 .. $rack_size) {
         last unless @indices;
@@ -204,12 +210,14 @@ sub get_random_rack ($self, $lang, $size = 7, $depth = 0) {
     return \@rack;
 }
 
+sub get_min_bonus_len ($self, $rack_size) {
+    return int($rack_size / 2) + 1;
+}
 
-sub get_length_bonus ($self, $word) {
+sub get_length_bonus ($self, $word, $rack_size = $ENV{RACK_SIZE}) {
     my $len = length($word);
-    return 0 if $len < 6;
-    # 5 for 6, then double for each (6: 5, 7: 10, 8: 20, 9: 40...)
-    return 5 * (2 ** ($len - 6));
+    my $bonuses = $len - $self->get_min_bonus_len($rack_size);
+    return $bonuses < 1 ? 0 : 5 * (2 ** $bonuses);
 }
 
 sub calculate_score {

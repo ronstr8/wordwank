@@ -1107,7 +1107,7 @@ function App() {
                 </DraggablePanel>
             )}
 
-            {results && <Results data={results} onClose={joinGame} playerNames={playerNames} isFocusMode={isFocusMode} />}
+            {results && <Results {...results} onClose={joinGame} playerNames={playerNames} isFocusMode={isFocusMode} />}
 
             {/* Play Toasts (Right Side) */}
             <div className="toast-container">

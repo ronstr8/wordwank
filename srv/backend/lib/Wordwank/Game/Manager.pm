@@ -9,6 +9,7 @@ has 'app';
 
 my $DEFAULT_GAME_DURATION = $ENV{GAME_DURATION} || 30;
 my $DEFAULT_LANG = $ENV{DEFAULT_LANG} || 'en';
+my $DEFAULT_RACK_SIZE = $ENV{RACK_SIZE} || 8;
 
 sub join_player ($self, $controller, $player, $payload = undef) {
     my $app = $self->app;
@@ -197,14 +198,40 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
             });
             $app->log->debug("Recorded play for player " . $player->id . " in game " . $game_record->id . ": $word ($score pts)");
             
+            # Calculate achievement emojis
+            my $actual_rack_size = (ref($game_record->rack) eq 'ARRAY' ? scalar(@{$game_record->rack}) : 0);
+            my $len_bonus = $app->scorer->get_length_bonus($word, $actual_rack_size);
+            my $total_points = $score + $len_bonus;
+
+            my @emojis;
+            my $game_data = $app->games->{$game_record->id};
+            if ($game_data && $game_data->{state}) {
+                # ⚡ Quick Bonus
+                my $quick_bonus_seconds = $ENV{QUICK_BONUS_SECONDS} || 5;
+                my $elapsed = (time - $game_data->{state}->started_at->epoch);
+                push @emojis, '⚡' if $elapsed <= $quick_bonus_seconds;
+
+                # 💯 Full Rack
+                push @emojis, '💯' if length($word) >= $actual_rack_size;
+
+                # ✨ Any other instant bonus, such as for word length
+                push @emojis, '✨' if $len_bonus > 0;
+            }
+            my $emoji_prefix = @emojis ? join('', @emojis) . ' ' : '';
+
             # Also send a chat message for the play (restricting to game scope)
-            my $chat_msg = $controller->t('app.played_word', $lang, { name => $player->nickname, score => $score });
+            my $tile_count = length($word);
+            my $chat_msg = $controller->t('app.played_word', $lang, { 
+                player     => $player->nickname, 
+                tile_count => $tile_count,
+                raw_points => $score
+            });
             my $timestamp = time;
             $app->broadcaster->announce_to_game({
                 type    => 'chat',
                 sender  => 'SYSTEM',
                 payload => {
-                    text       => $chat_msg,
+                    text       => $emoji_prefix . $chat_msg,
                     senderName => 'Wordwank',
                     isSystem   => 1,
                 },
@@ -222,10 +249,12 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
                     sender    => $player->id,
                     timestamp => $timestamp,
                     payload   => {
-                        playerName => $player->nickname,
-                        word       => $is_sender ? $word : undef,
-                        score      => $score,
-                        msg        => $is_sender ? "You played $word for $score pts!" : $player->nickname . " played a word for $score pts!",
+                        playerName   => $player->nickname,
+                        word         => $is_sender ? $word : undef,
+                        score        => $total_points,
+                        raw_points   => $score,
+                        length_bonus => $len_bonus,
+                        msg          => $emoji_prefix . $chat_msg,
                     }
                 }});
             }
@@ -313,7 +342,8 @@ sub end_game ($self, $game) {
     my $game_lang = $game->language // $DEFAULT_LANG;
     my @ai_pids = map { $_->player_id } @{$app->games->{$game_id}{ais} // []};
 
-    my $results = $app->state_processor->calculate_results(\@plays, $game_lang, $game->started_at);
+    my $actual_rack_size = (ref($game->rack) eq 'ARRAY' ? scalar(@{$game->rack}) : 8);
+    my $results = $app->state_processor->calculate_results(\@plays, $game_lang, $game->started_at, $actual_rack_size);
     my $solo_game = $app->state_processor->is_solo(\@plays, \@ai_pids);
 
     $app->log->debug("Ending game $game_id - Found " . scalar(@plays) . " plays. Solo: " . ($solo_game ? "YES" : "NO"));
@@ -330,7 +360,6 @@ sub end_game ($self, $game) {
                 my $old_score = $player->lifetime_score || 0;
                 my $new_score = $old_score + $result->{score};
                 $player->update({ lifetime_score => $new_score });
-                $app->log->debug("Player " . $player->id . " score: $old_score -> $new_score (+" . $result->{score} . ")");
             }
         }
     }
@@ -339,26 +368,12 @@ sub end_game ($self, $game) {
     my $winner_word = $winner ? $winner->{word} : undef;
     my $winner_lang = $game->language // $DEFAULT_LANG;
     
-    # Build enhanced results for payload
-    my $results_payload = [ map { 
-        my $item = { 
-            player => $_->{player}, 
-            word   => $_->{word}, 
-            score  => $_->{score},
-            base_score => $_->{base_score},
-            is_dupe => $_->{is_dupe},
-            duped_by => $_->{duped_by},
-        };
-        my @bonuses;
-        push @bonuses, { 'Duplicates' => $_->{duplicate_bonus} } if $_->{duplicate_bonus} > 0;
-        push @bonuses, { 'Unique Play' => $_->{unique_bonus} } if $_->{unique_bonus} > 0;
-        push @bonuses, { 'Length Bonus' => $_->{length_bonus} } if $_->{length_bonus} > 0;
-        push @bonuses, { 'Quick Wank' => $_->{quick_bonus} } if $_->{quick_bonus} > 0;
-        $item->{bonuses} = \@bonuses if @bonuses;
-        $item;
-    } @$results ];
+    # Build results for payload
+    my $results_payload = $results; # Use StateProcessor's enhanced output
 
-    my $send_results = sub ($definition = undef, $suggested_word = undef) {
+    my ($send_results, $wrap_send, $timer);
+    
+    $send_results = sub ($definition = undef, $suggested_word = undef) {
         my $summary = $winner 
             ? $app->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
             : $app->t('results.no_winner', $winner_lang);
@@ -402,6 +417,21 @@ sub end_game ($self, $game) {
         delete $app->games->{$game_id};
     };
 
+    # Safety: If we're still here after 3 seconds, just send what we have
+    $timer = Mojo::IOLoop->timer(3 => sub {
+        return unless $timer;
+        $timer = undef;
+        $app->log->warn("End game broadcast safety triggered for $game_id - suggest/define took too long");
+        $send_results->();
+    });
+
+    $wrap_send = sub ($def = undef, $sug = undef) {
+        return unless $timer;
+        Mojo::IOLoop->remove($timer);
+        $timer = undef;
+        $send_results->($def, $sug);
+    };
+
     my $suggest_cb = sub ($suggested_res = undef) {
         my $suggested_word;
         if ($suggested_res && $suggested_res->is_success) {
@@ -410,10 +440,10 @@ sub end_game ($self, $game) {
 
         if ($winner_word) {
             $app->wordd->define($winner_word, $winner_lang, sub ($def_res = undef) {
-                $send_results->($def_res && $def_res->is_success ? $def_res->body : undef, $suggested_word);
+                $wrap_send->($def_res && $def_res->is_success ? $def_res->body : undef, $suggested_word);
             });
         } else {
-            $send_results->(undef, $suggested_word);
+            $wrap_send->(undef, $suggested_word);
         }
     };
 

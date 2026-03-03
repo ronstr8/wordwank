@@ -70,13 +70,19 @@ subtest 'Quick Wank Bonus calculation' => sub {
 
     my %res_by_player = map { $_->{player} => $_ } @$results;
 
-    is($res_by_player{Lightning}{quick_bonus}, 5, 'Player 1 got +5 quick bonus');
+    my $p1_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Lightning}{bonuses} // []})[0];
+    my $p1_quick = $p1_bonus_obj ? $p1_bonus_obj->{"Quick Bonus"} : 0;
+    is($p1_quick, 5, 'Player 1 got +5 quick bonus');
     is($res_by_player{Lightning}{score}, 15, 'Player 1 total score correct');
 
-    is($res_by_player{Medium}{quick_bonus}, 3, 'Player 3 got +3 quick bonus');
+    my $p3_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Medium}{bonuses} // []})[0];
+    my $p3_quick = $p3_bonus_obj ? $p3_bonus_obj->{"Quick Bonus"} : 0;
+    is($p3_quick, 3, 'Player 3 got +3 quick bonus');
     is($res_by_player{Medium}{score}, 13, 'Player 3 total score correct');
 
-    ok(!defined $res_by_player{Slug}{quick_bonus} || $res_by_player{Slug}{quick_bonus} == 0, 'Player 2 got no quick bonus');
+    my $p2_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Slug}{bonuses} // []})[0];
+    my $p2_quick = $p2_bonus_obj ? $p2_bonus_obj->{"Quick Bonus"} : 0;
+    ok(!$p2_quick, 'Player 2 got no quick bonus');
     is($res_by_player{Slug}{score}, 10, 'Player 2 total score correct');
 };
 

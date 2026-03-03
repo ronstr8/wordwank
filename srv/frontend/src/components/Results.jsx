@@ -3,9 +3,8 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import './Results.css'
 
-const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
+const Results = ({ results = [], summary = "", is_solo = false, definition, suggested_word, onClose, playerNames = {}, isFocusMode = false }) => {
     const { t } = useTranslation();
-    const { results = [], summary = "", is_solo = false } = data || {};
     const safeResults = Array.isArray(results) ? results : [];
     const [activeWord, setActiveWord] = useState(null);
 
@@ -109,10 +108,10 @@ const Results = ({ data, onClose, playerNames = {}, isFocusMode = false }) => {
                         ))
                     )}
                 </div>
-                {data.suggested_word && (
+                {suggested_word && (
                     <div className="suggested-word-box">
                         <h4>{t('results.suggested_word_title', 'Missed Opportunity')}</h4>
-                        <span className="missed-word">{data.suggested_word}</span>
+                        <span className="missed-word">{suggested_word}</span>
                         <p>{t('results.suggested_word_desc', 'You could have played this!')}</p>
                     </div>
                 )}
