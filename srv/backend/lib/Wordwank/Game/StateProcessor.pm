@@ -63,9 +63,9 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
                 };
             }
         } else {
-            # Unique word bonus (+5)
+            # Unique word bonus (+2)
             my $player_id = $players->[0];
-            $player_bonuses{$player_id}{unique} = 5;
+            $player_bonuses{$player_id}{unique} = 2;
         }
     }
     

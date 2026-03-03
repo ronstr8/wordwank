@@ -74,11 +74,7 @@ const MessageList = ({ messages }) => {
                 const isSystem = msg.isSystem || msg.sender === 'SYSTEM';
                 const icon = isSystem ? getSystemIcon(msg) : null;
 
-                // Strip leading emoji from text if we are already showing one as an icon
                 let displayWeightText = msg.text;
-                if (isSystem && icon) {
-                    displayWeightText = displayWeightText.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]\s*/u, '');
-                }
 
                 return (
                     <div key={i} className={`chat-msg ${isSystem ? 'system-msg' : ''}`}>

@@ -67,10 +67,18 @@ sub _fetch_tile_config_from_service ($self, $lang) {
 }
 
 # Generate tile values for a new game based on tile frequency
+sub get_daily_bonus_char ($self) {
+    my $dt = DateTime->now(time_zone => 'America/New_York');
+    my @chars = (undef, 'M', 'T', 'W', 'T', 'F', 'S', 'S');
+    return $chars[$dt->day_of_week];
+}
+
 sub generate_tile_values ($self, $lang) {
+    my $dt_buffalo = DateTime->now(time_zone => 'America/New_York');
+    my $today = $dt_buffalo->ymd;
+
     if (my $cached = $self->_tile_values_cache->{$lang}) {
         # Only return cache if it's the same day in Buffalo
-        my $today = DateTime->now(time_zone => 'America/New_York')->ymd;
         return $cached->{values} if $cached->{date} eq $today;
     }
 
@@ -101,13 +109,11 @@ sub generate_tile_values ($self, $lang) {
     $values{'_'} = 0;
 
     # Daily Bonus: The first letter of the current day in Buffalo (ET) is worth 7 points
-    my $dt_buffalo = DateTime->now(time_zone => 'America/New_York');
-    my $day_name = $dt_buffalo->day_name; # e.g. "Tuesday"
-    my $bonus_char = uc(substr($day_name, 0, 1));
+    my $bonus_char = $self->get_daily_bonus_char();
     $values{$bonus_char} = 7;
     
     $self->_tile_values_cache->{$lang} = {
-        date   => $dt_buffalo->ymd,
+        date   => $today,
         values => \%values,
     };
 

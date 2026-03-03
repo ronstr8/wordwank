@@ -1022,7 +1022,7 @@ function App() {
                             <div className="legend-item">
                                 <span className="legend-icon">⭐</span>
                                 <div>
-                                    <strong>Unique Word Bonus</strong>: find a word no one else did for +5 pts.
+                                    <strong>Unique Word Bonus</strong>: find a word no one else did for +2 pts.
                                 </div>
                             </div>
                             <div className="legend-item">

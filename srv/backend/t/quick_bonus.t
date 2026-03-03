@@ -61,29 +61,29 @@ subtest 'Quick Wank Bonus calculation' => sub {
 
     my $results = $processor->calculate_results(\@plays, 'en', $game_start);
 
-    # p1 (Lightning): Play at 1s. Bonus = (5+1)-1 = 5. Total = 5 + 5 + 5 (unique) = 15.
+    # p1 (Lightning): Play at 1s. Bonus = (5+1)-1 = 5. Total = 5 + 5 + 2 (unique) = 12.
     # WAIT: CAT, DOG, BAT are unique.
-    # Base = 5. Unique = 5. 
-    # p1 Quick Bonus = 5. Total = 15.
-    # p2 Quick Bonus = 0. Total = 10.
-    # p3 Quick Bonus = 3. Total = 13.
+    # Base = 5. Unique = 2. 
+    # p1 Quick Bonus = 5. Total = 12.
+    # p2 Quick Bonus = 0. Total = 7.
+    # p3 Quick Bonus = 3. Total = 10.
 
     my %res_by_player = map { $_->{player} => $_ } @$results;
 
     my $p1_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Lightning}{bonuses} // []})[0];
     my $p1_quick = $p1_bonus_obj ? $p1_bonus_obj->{"Quick Bonus"} : 0;
     is($p1_quick, 5, 'Player 1 got +5 quick bonus');
-    is($res_by_player{Lightning}{score}, 15, 'Player 1 total score correct');
+    is($res_by_player{Lightning}{score}, 12, 'Player 1 total score correct');
 
     my $p3_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Medium}{bonuses} // []})[0];
     my $p3_quick = $p3_bonus_obj ? $p3_bonus_obj->{"Quick Bonus"} : 0;
     is($p3_quick, 3, 'Player 3 got +3 quick bonus');
-    is($res_by_player{Medium}{score}, 13, 'Player 3 total score correct');
+    is($res_by_player{Medium}{score}, 10, 'Player 3 total score correct');
 
     my $p2_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Slug}{bonuses} // []})[0];
     my $p2_quick = $p2_bonus_obj ? $p2_bonus_obj->{"Quick Bonus"} : 0;
     ok(!$p2_quick, 'Player 2 got no quick bonus');
-    is($res_by_player{Slug}{score}, 10, 'Player 2 total score correct');
+    is($res_by_player{Slug}{score}, 7, 'Player 2 total score correct');
 };
 
 done_testing();

@@ -217,6 +217,11 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
                 # ✨ Any other instant bonus, such as for word length
                 push @emojis, '✨' if $len_bonus > 0;
             }
+
+            # 📅 Daily Bonus (Calendar emoji if word contains the day's special letter)
+            # This is independent of volatile state and always works if the char is present
+            my $bonus_char = $app->scorer->get_daily_bonus_char();
+            push @emojis, '📅' if index(uc($word), $bonus_char) != -1;
             my $emoji_prefix = @emojis ? join('', @emojis) . ' ' : '';
 
             # Also send a chat message for the play (restricting to game scope)
