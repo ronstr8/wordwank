@@ -211,13 +211,25 @@ sub startup ($self) {
     # Global Broadcast Helper (broadcasts to EVERY connected client in EVERY game)
     $self->helper(broadcast_all_clients => sub ($c, $msg) {
         # Store in history if it's a chat message
-    if ($msg->{type} eq 'chat') {
-        my $history = $c->app->chat_history;
-        my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
-        push @$history, $msg;
-        shift @$history while @$history > $limit; # Use while to be safe
-    }
-    $c->app->broadcaster->announce_all_but($msg);
+        if ($msg->{type} eq 'chat') {
+            my $history = $c->app->chat_history;
+            my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
+            push @$history, $msg;
+            shift @$history while @$history > $limit;
+        }
+        $c->app->broadcaster->announce_all_but($msg);
+    });
+
+    # Scoped Broadcast Helper (broadcasts to a specific game and records history)
+    $self->helper(broadcast_to_game => sub ($c, $msg, $game_id, $exclude_list = []) {
+        # Store in history if it's a chat message
+        if ($msg->{type} eq 'chat') {
+            my $history = $c->app->chat_history;
+            my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
+            push @$history, $msg;
+            shift @$history while @$history > $limit;
+        }
+        $c->app->broadcaster->announce_to_game($msg, $game_id, $exclude_list);
     });
 
     # Notification Helper

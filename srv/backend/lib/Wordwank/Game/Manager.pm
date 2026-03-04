@@ -126,7 +126,7 @@ sub handle_chat ($self, $controller, $player, $payload) {
     # Isolate chat to the current game
     my $game_data = $self->_get_player_game($player->id);
     if ($game_data) {
-        $self->app->broadcaster->announce_to_game({
+        $controller->broadcast_to_game({
             type    => 'chat',
             sender  => $player->id,
             payload => {
@@ -232,12 +232,13 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
                 raw_points => $score
             });
             my $timestamp = time;
-            $app->broadcaster->announce_to_game({
+            # Broadcast to everyone in the game
+            $controller->broadcast_to_game({
                 type    => 'chat',
                 sender  => 'SYSTEM',
                 payload => {
                     text       => $emoji_prefix . $chat_msg,
-                    senderName => 'Wordwank',
+                    senderName => $player->nickname,
                     isSystem   => 1,
                 },
                 timestamp => $timestamp,
@@ -396,17 +397,11 @@ sub end_game ($self, $game) {
             }
         };
 
-        # Push to history
-        my $history = $app->chat_history;
-        my $limit   = $ENV{CHAT_HISTORY_SIZE} || 50;
-        push @$history, $history_msg;
-        shift @$history while @$history > $limit;
-
         # Global Announcement
         my @game_pids = keys %{$app->games->{$game_id}{clients} // {}};
         $app->broadcaster->announce_all_but($history_msg, \@game_pids);
 
-        $app->broadcaster->announce_to_game({
+        $app->broadcast_to_game({
             type      => 'game_end',
             timestamp => time,
             payload   => {

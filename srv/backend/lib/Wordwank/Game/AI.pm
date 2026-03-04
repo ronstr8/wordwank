@@ -176,7 +176,7 @@ sub _broadcast_chat ($self, $text) {
             senderName => $self->nickname,
         }
     };
-    $self->app->broadcaster->announce_to_game($msg, $self->game_id);
+    $self->app->broadcast_to_game($msg, $self->game_id);
 }
 
 sub play_best_word ($self) {
@@ -262,7 +262,7 @@ sub _execute_play ($self, $word, $score, $game_record) {
         tile_count => length($word), 
         raw_points => $score 
     });
-    $app->broadcast_all_clients({
+    $app->broadcast_to_game({
         type    => 'chat',
         sender  => 'SYSTEM',
         payload => {
@@ -270,7 +270,7 @@ sub _execute_play ($self, $word, $score, $game_record) {
             senderName => $self->nickname,
         },
         timestamp => $timestamp,
-    });
+    }, $self->game_id);
 }
 
 sub chat ($self, $key, $args = {}) {
