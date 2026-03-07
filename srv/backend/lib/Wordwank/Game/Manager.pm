@@ -335,14 +335,10 @@ sub end_game ($self, $game, $results_args = {}) {
     my $actual_rack_size = (ref($game->rack) eq 'ARRAY' ? scalar(@{$game->rack}) : 8);
     my $results = $app->state_processor->calculate_results(\@plays, $game_lang, $game->started_at, $actual_rack_size);
 
-    # Merge in extra flags for the results (e.g. is_early_end)
-    my $results_payload = $results;
-    if (keys %$results_args) {
-        $results_payload = {
-            results => $results,
-            %$results_args,
-        };
-    }
+    my $results_payload = {
+        results => $results,
+        %$results_args,
+    };
     my $solo_game = $app->state_processor->is_solo(\@plays, \@ai_pids);
 
     $app->log->debug("Ending game $game_id - Found " . scalar(@plays) . " plays. Solo: " . ($solo_game ? "YES" : "NO"));
@@ -527,7 +523,7 @@ sub _broadcast_endgame_results ($self, $args) {
         type      => 'game_end',
         timestamp => time,
         payload   => {
-            results => $results_payload,
+            %$results_payload,
             is_solo => $solo_game,
             summary => $summary,
             definition     => $definition,

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import './Results.css'
 
-const Results = ({ results = [], summary = "", is_solo = false, definition, suggested_word, onClose, playerNames = {}, isFocusMode = false }) => {
+const Results = ({ results = [], summary = "", is_solo = false, is_early_end = false, definition, suggested_word, onClose, playerNames = {}, isFocusMode = false }) => {
     const { t } = useTranslation();
     const safeResults = Array.isArray(results) ? results : [];
     const [activeWord, setActiveWord] = useState(null);
@@ -50,7 +50,7 @@ const Results = ({ results = [], summary = "", is_solo = false, definition, sugg
                 )}
             </div>
             <div className="results-card" onClick={handleCardClick}>
-                {!isFocusMode && <h2>{t(results.is_early_end ? 'results.title_premature' : 'results.title')}!</h2>}
+                {!isFocusMode && <h2>{t(is_early_end ? 'results.title_premature' : 'results.title')}!</h2>}
                 {isFocusMode && <div className="focus-results-label">{t('results.round_over')}</div>}
 
                 <div className="results-list">

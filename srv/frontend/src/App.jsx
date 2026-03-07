@@ -381,11 +381,9 @@ function App() {
                     } else if (data.type === 'game_end') {
                         console.log('[WS] Processing game_end', data.payload);
                         const resultsData = {
+                            ...data.payload,
                             results: data.payload.results || [],
                             summary: data.payload.summary || (data.payload.results && data.payload.results.length > 0 ? tRef.current('results.round_over') : tRef.current('results.no_plays_round')),
-                            is_solo: data.payload.is_solo || false,
-                            definition: data.payload.definition,
-                            suggested_word: data.payload.suggested_word
                         };
 
                         if (resultsData.results.length > 0 && data.payload.definition) {
@@ -729,7 +727,7 @@ function App() {
 
     return (
         <div className={`game-container ${isFocusMode ? 'focus-mode' : ''}`}>
-            <div className="version-stamp">v{__APP_VERSION__} · {__BUILD_DATE__} · <a href={CONFIG.PROJECT_CODE_LINK} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{CONFIG.PROJECT_CODE_LINK}</a></div>
+            <div className="version-stamp">v{__APP_VERSION__} · {__BUILD_DATE__} · <a href={CONFIG.PROJECT_CODE_LINK} target="_blank" rel="noopener noreferrer">{CONFIG.PROJECT_CODE_LINK}</a></div>
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
