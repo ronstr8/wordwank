@@ -256,6 +256,11 @@ sub _execute_play ($self, $word, $score, $game_record) {
     };
     $app->broadcaster->announce_to_game($msg, $self->game_id);
 
+    # Calculate achievement emojis
+    my $actual_rack_size = (ref($game_record->rack) eq 'ARRAY' ? scalar(@{$game_record->rack}) : 0);
+    my $len_bonus = $app->scorer->get_length_bonus($word, $actual_rack_size);
+    my $emoji_prefix = $app->game_manager->_get_achievement_emojis($game_record, $word, $len_bonus);
+
     # Global Chat Broadcast
     my $chat_msg = $app->t('app.played_word', $self->language, { 
         player     => $self->nickname, 
@@ -266,11 +271,14 @@ sub _execute_play ($self, $word, $score, $game_record) {
         type    => 'chat',
         sender  => 'SYSTEM',
         payload => {
-            text       => $chat_msg,
+            text       => $emoji_prefix . $chat_msg,
             senderName => $self->nickname,
         },
         timestamp => $timestamp,
     }, $self->game_id);
+
+    # Premature Climax check
+    $app->game_manager->_check_premature_climax($self->game_id);
 }
 
 sub chat ($self, $key, $args = {}) {

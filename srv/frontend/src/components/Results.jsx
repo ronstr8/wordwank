@@ -50,7 +50,7 @@ const Results = ({ results = [], summary = "", is_solo = false, definition, sugg
                 )}
             </div>
             <div className="results-card" onClick={handleCardClick}>
-                {!isFocusMode && <h2>{t('results.title')}!</h2>}
+                {!isFocusMode && <h2>{t(results.is_early_end ? 'results.title_premature' : 'results.title')}!</h2>}
                 {isFocusMode && <div className="focus-results-label">{t('results.round_over')}</div>}
 
                 <div className="results-list">
@@ -82,11 +82,11 @@ const Results = ({ results = [], summary = "", is_solo = false, definition, sugg
                                             </div>
                                         );
                                     })}
-                                    {res.duped_by && res.duped_by.map((duper, k) => (
-                                        <div key={k} className="detail-item dupe-detail">
-                                            ↳ {duper.name} {t('results.duped_you', 'duplicated you')} (+{duper.bonus})
+                                    {res.duped_by && res.duped_by.length > 0 && (
+                                        <div className="detail-item dupe-detail">
+                                            ↳ {t('results.duped_by_list', 'Duplicated by')}: {res.duped_by.map(d => d.name).join(', ')}
                                         </div>
-                                    ))}
+                                    )}
                                     {!!res.is_dupe && (
                                         <div className="detail-item dupe-warning">
                                             ⚠️ {t('results.duplicate_penalty', '0 points (Duplicate)')}

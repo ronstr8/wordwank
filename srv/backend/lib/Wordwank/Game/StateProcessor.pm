@@ -19,10 +19,10 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
         my $player_id = $play->get_column('player_id');
         
         push @{$word_to_players{$word}}, $player_id;
-        $player_id_to_nickname{$player_id} = $play->get_column('player');
+        $player_id_to_nickname{$player_id} = $play->player->nickname;
         
         # Initialize bonus tracking for this player
-        $player_bonuses{$player_id} //= { duplicates => 0, unique => 0, length_bonus => 0, duped_by => [] };
+        $player_bonuses{$player_id} //= { duplicates => 0, unique => 0, length_bonus => 0, quick_bonus => 0, duped_by => [] };
         
         # Calculate length bonus (using game rack size)
         my $bonus = $scorer->get_length_bonus($word, $rack_size);
@@ -32,13 +32,12 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
 
         # Calculate quick bonus
         if ($game_started_at) {
-            my $created_at = $play->get_column('created_at');
+            my $created_at = $play->created_at; # Use accessor for inflated DateTime
             if ($created_at && ref($created_at) && $created_at->can('epoch')) {
                 my $seconds_since_start = $created_at->epoch - $game_started_at->epoch;
                 if ($seconds_since_start <= $quick_bonus_seconds) {
-                    # Bonus = (X+1) - seconds_since_game_start
-                    my $q_bonus = ($quick_bonus_seconds + 1) - $seconds_since_start;
-                    $player_bonuses{$player_id}{quick_bonus} = $q_bonus if $q_bonus > 0;
+                    # Flat bonus of 5 points for playing within the window
+                    $player_bonuses{$player_id}{quick_bonus} = 5;
                 }
             }
         }
@@ -51,7 +50,7 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
             # First player is the original
             my $original_player = $players->[0];
             my $duplicate_count = scalar(@$players) - 1;
-            $player_bonuses{$original_player}{duplicates} += $duplicate_count;
+            $player_bonuses{$original_player}{duplicates} += $duplicate_count * 2;
             
             # Mark all subsequent players as dupers
             for my $i (1 .. $#$players) {
@@ -59,7 +58,7 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
                 $is_duper{$duper_id} = 1;
                 push @{$player_bonuses{$original_player}{duped_by}}, {
                     name  => $player_id_to_nickname{$duper_id},
-                    bonus => 1,
+                    bonus => 2,
                 };
             }
         } else {
@@ -101,7 +100,7 @@ sub calculate_results ($self, $plays, $game_lang, $game_started_at = undef, $rac
         if (!exists $player_total_scores{$player_id} || $total_score > $player_total_scores{$player_id}{score}) {
             $player_total_scores{$player_id} = {
                 player_id       => $player_id,
-                player          => $play->get_column('player'),  # nickname for display
+                player          => $play->player->nickname,
                 word            => $word,
                 score           => $total_score,
                 base_score      => $is_duper{$player_id} ? 0 : $base_score,

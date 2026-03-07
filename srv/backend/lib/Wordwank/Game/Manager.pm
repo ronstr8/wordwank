@@ -203,26 +203,7 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
             my $len_bonus = $app->scorer->get_length_bonus($word, $actual_rack_size);
             my $total_points = $score + $len_bonus;
 
-            my @emojis;
-            my $game_data = $app->games->{$game_record->id};
-            if ($game_data && $game_data->{state}) {
-                # ⚡ Quick Bonus
-                my $quick_bonus_seconds = $ENV{QUICK_BONUS_SECONDS} || 5;
-                my $elapsed = (time - $game_data->{state}->started_at->epoch);
-                push @emojis, '⚡' if $elapsed <= $quick_bonus_seconds;
-
-                # 💯 Full Rack
-                push @emojis, '💯' if length($word) >= $actual_rack_size;
-
-                # ✨ Any other instant bonus, such as for word length
-                push @emojis, '✨' if $len_bonus > 0;
-            }
-
-            # 📅 Daily Bonus (Calendar emoji if word contains the day's special letter)
-            # This is independent of volatile state and always works if the char is present
-            my $bonus_char = $app->scorer->get_daily_bonus_char();
-            push @emojis, '📅' if index(uc($word), $bonus_char) != -1;
-            my $emoji_prefix = @emojis ? join('', @emojis) . ' ' : '';
+            my $emoji_prefix = $self->_get_achievement_emojis($game_record, $word, $len_bonus);
 
             # Also send a chat message for the play (restricting to game scope)
             my $tile_count = length($word);
@@ -267,6 +248,9 @@ sub _perform_play ($self, $controller, $player, $payload, $word, $game_data, $ga
 
             # AI Reacts if beaten
             $_->check_reaction($player->nickname, $score) for @{$game_data->{ais} // []};
+
+            # Premature Climax check
+            $self->_check_premature_climax($game_record->id);
         }
         else {
             my $code = $res->code // 0;
@@ -328,7 +312,7 @@ sub start_game_timer ($self, $game) {
     });
 }
 
-sub end_game ($self, $game) {
+sub end_game ($self, $game, $results_args = {}) {
     my $app = $self->app;
     my $schema = $app->schema;
     my $game_id = $game->id;
@@ -350,6 +334,15 @@ sub end_game ($self, $game) {
 
     my $actual_rack_size = (ref($game->rack) eq 'ARRAY' ? scalar(@{$game->rack}) : 8);
     my $results = $app->state_processor->calculate_results(\@plays, $game_lang, $game->started_at, $actual_rack_size);
+
+    # Merge in extra flags for the results (e.g. is_early_end)
+    my $results_payload = $results;
+    if (keys %$results_args) {
+        $results_payload = {
+            results => $results,
+            %$results_args,
+        };
+    }
     my $solo_game = $app->state_processor->is_solo(\@plays, \@ai_pids);
 
     $app->log->debug("Ending game $game_id - Found " . scalar(@plays) . " plays. Solo: " . ($solo_game ? "YES" : "NO"));
@@ -374,47 +367,21 @@ sub end_game ($self, $game) {
     my $winner_word = $winner ? $winner->{word} : undef;
     my $winner_lang = $game->language // $DEFAULT_LANG;
     
-    # Build results for payload
-    my $results_payload = $results; # Use StateProcessor's enhanced output
-
-    my ($send_results, $wrap_send, $timer);
+    my ($wrap_send, $timer);
     
-    $send_results = sub ($definition = undef, $suggested_word = undef) {
-        my $summary = $winner 
-            ? $app->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
-            : $app->t('results.no_winner', $winner_lang);
-
-        my $history_msg = {
-            type      => 'chat',
-            sender    => 'SYSTEM',
-            timestamp => time,
-            payload   => {
-                text       => $summary,
-                senderName => 'SYSTEM',
-                isSystem   => 1,
-                type       => 'results_table',
-                data       => $results_payload,
-            }
-        };
-
-        # Global Announcement
-        my @game_pids = keys %{$app->games->{$game_id}{clients} // {}};
-        $app->broadcaster->announce_all_but($history_msg, \@game_pids);
-
-        $app->broadcast_to_game({
-            type      => 'game_end',
-            timestamp => time,
-            payload   => {
-                results => $results_payload,
-                is_solo => $solo_game,
-                summary => $summary,
-                definition     => $definition,
-                suggested_word => $suggested_word,
-            }
-        }, $game_id);
-        
-        $app->log->debug("Finished broadcasting game_end for $game_id. Deleting game from memory.");
-        delete $app->games->{$game_id};
+    $wrap_send = sub ($def = undef, $sug = undef) {
+        return unless $timer;
+        Mojo::IOLoop->remove($timer);
+        $timer = undef;
+        $self->_broadcast_endgame_results({
+            game           => $game,
+            results_payload => $results_payload,
+            solo_game      => $solo_game,
+            winner         => $winner,
+            winner_lang    => $winner_lang,
+            definition     => $def,
+            suggested_word => $sug,
+        });
     };
 
     # Safety: If we're still here after 3 seconds, just send what we have
@@ -422,15 +389,14 @@ sub end_game ($self, $game) {
         return unless $timer;
         $timer = undef;
         $app->log->warn("End game broadcast safety triggered for $game_id - suggest/define took too long");
-        $send_results->();
+        $self->_broadcast_endgame_results({
+            game           => $game,
+            results_payload => $results_payload,
+            solo_game      => $solo_game,
+            winner         => $winner,
+            winner_lang    => $winner_lang,
+        });
     });
-
-    $wrap_send = sub ($def = undef, $sug = undef) {
-        return unless $timer;
-        Mojo::IOLoop->remove($timer);
-        $timer = undef;
-        $send_results->($def, $sug);
-    };
 
     my $suggest_cb = sub ($suggested_res = undef) {
         my $suggested_word;
@@ -523,6 +489,122 @@ sub _get_player_game ($self, $player_id) {
         return $game if exists $game->{clients}{$player_id};
     }
     return undef;
+}
+
+sub _broadcast_endgame_results ($self, $args) {
+    my $app = $self->app;
+    my $game = $args->{game};
+    my $game_id = $game->id;
+    my $results_payload = $args->{results_payload};
+    my $solo_game = $args->{solo_game};
+    my $winner = $args->{winner};
+    my $winner_lang = $args->{winner_lang};
+    my $definition = $args->{definition};
+    my $suggested_word = $args->{suggested_word};
+
+    my $summary = $winner 
+        ? $app->t('results.winner_summary', $winner_lang, { name => $winner->{player}, score => $winner->{score}, word => $winner->{word} }) 
+        : $app->t('results.no_winner', $winner_lang);
+
+    my $history_msg = {
+        type      => 'chat',
+        sender    => 'SYSTEM',
+        timestamp => time,
+        payload   => {
+            text       => $summary,
+            senderName => 'SYSTEM',
+            isSystem   => 1,
+            type       => 'results_table',
+            data       => $results_payload,
+        }
+    };
+
+    # Global Announcement
+    my @game_pids = keys %{$app->games->{$game_id}{clients} // {}};
+    $app->broadcaster->announce_all_but($history_msg, \@game_pids);
+
+    $app->broadcast_to_game({
+        type      => 'game_end',
+        timestamp => time,
+        payload   => {
+            results => $results_payload,
+            is_solo => $solo_game,
+            summary => $summary,
+            definition     => $definition,
+            suggested_word => $suggested_word,
+        }
+    }, $game_id);
+    
+    $app->log->debug("Finished broadcasting game_end for $game_id. Deleting game from memory.");
+    delete $app->games->{$game_id};
+}
+
+sub _get_achievement_emojis ($self, $game_record, $word, $len_bonus) {
+    my $app = $self->app;
+    my @emojis;
+    my $game_data = $app->games->{$game_record->id};
+    
+    if ($game_data && $game_data->{state}) {
+        # ⚡ Quick Bonus
+        my $quick_bonus_seconds = $ENV{QUICK_BONUS_SECONDS} || 5;
+        my $elapsed = (time - $game_data->{state}->started_at->epoch);
+        push @emojis, '⚡' if $elapsed <= $quick_bonus_seconds;
+
+        # 💯 Full Rack
+        my $actual_rack_size = (ref($game_record->rack) eq 'ARRAY' ? scalar(@{$game_record->rack}) : 0);
+        push @emojis, '💯' if length($word) >= $actual_rack_size;
+
+        # ✨ Any other instant bonus, such as for word length
+        push @emojis, '✨' if $len_bonus > 0;
+    }
+
+    # 📅 Daily Bonus
+    my $bonus_char = $app->scorer->get_daily_bonus_char();
+    push @emojis, '📅' if index(uc($word), $bonus_char) != -1;
+
+    return @emojis ? join('', @emojis) . ' ' : '';
+}
+
+sub _check_premature_climax ($self, $game_id) {
+    my $app = $self->app;
+    if ($ENV{END_ON_ALL_PLAYED} && $ENV{END_ON_ALL_PLAYED} eq 'true') {
+        if ($self->_check_all_played($game_id)) {
+            my $game_data = $app->games->{$game_id};
+            $app->log->info("Premature Climax! All players have played. Ending game $game_id early.");
+            $self->end_game($game_data->{state}, { is_early_end => 1 });
+            return 1;
+        }
+    }
+    return 0;
+}
+
+sub _check_all_played ($self, $game_id) {
+    my $app = $self->app;
+    my $game_data = $app->games->{$game_id};
+    return 0 unless $game_data;
+
+    # Count connected humans
+    my $human_count = scalar(keys %{$game_data->{clients} // {}});
+    
+    # Count active AIs
+    my $ai_count = scalar(@{$game_data->{ais} // []});
+    
+    my $total_target = $human_count + $ai_count;
+    $app->log->debug("Checking all_played for game $game_id. Humans: $human_count, AIs: $ai_count, Total: $total_target");
+    return 0 if $total_target == 0;
+
+    # Count unique plays in DB for this game
+    my $play_count = $app->schema->resultset('Play')->search(
+        { game_id => $game_id },
+        { select => [ 'player_id' ], distinct => 1 }
+    )->count;
+
+    $app->log->debug("Game $game_id: $play_count unique plays found in DB.");
+
+    my $is_done = $play_count >= $total_target;
+    $app->log->info("Game $game_id early end check: $play_count/$total_target. Result: " . ($is_done ? "FINISHED" : "CONTINUE"));
+
+    return $is_done;
 }
 
 1;

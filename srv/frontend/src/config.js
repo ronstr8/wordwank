@@ -9,6 +9,7 @@ export const CONFIG = {
 
     // Runtime Configuration
     LOG_LEVEL: window.WORDWANK_CONFIG?.LOG_LEVEL || import.meta.env.VITE_LOG_LEVEL || 'info',
+    PROJECT_CODE_LINK: window.WORDWANK_CONFIG?.PROJECT_CODE_LINK || import.meta.env.VITE_PROJECT_CODE_LINK || 'https://github.com/ronstr8/wordwank',
 };
 
 export default CONFIG;

@@ -10,7 +10,7 @@ global:
   maxPlayers: 13
   randomLetterScoreMode: "true"
   gameDuration: 30
-  quickBonusSeconds: 5
+  quickBonusSeconds: 10
   rackSize: 8
   minVowels: 2
   minConsonants: 2
@@ -20,8 +20,10 @@ global:
   totalTiles: 100
   kofiId: "wordwank"
   kofiEnabled: false
-  paypalEnabled: true
+  paypalEnabled: false
   paypalEmail: "quinnfazigu@gmail.com"
+  projectCodeLink: "https://github.com/ronstr8/wordwank"
+  endOnAllPlayed: "true"
 
 # Persistent storage configuration
 persistence:

@@ -90,6 +90,8 @@ spec:
               value: {{ .Values.ollama.url | default "http://ollama:11434" | quote }}
             - name: OLLAMA_MODEL
               value: {{ .Values.ollama.model | default "phi3:mini" | quote }}
+            - name: END_ON_ALL_PLAYED
+              value: {{ .Values.global.endOnAllPlayed | default "false" | quote }}
 
           volumeMounts:
             - name: locales-volume

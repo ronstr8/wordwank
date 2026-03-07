@@ -729,7 +729,7 @@ function App() {
 
     return (
         <div className={`game-container ${isFocusMode ? 'focus-mode' : ''}`}>
-            <div className="version-stamp">v{__APP_VERSION__} · {__BUILD_DATE__}</div>
+            <div className="version-stamp">v{__APP_VERSION__} · {__BUILD_DATE__} · <a href={CONFIG.PROJECT_CODE_LINK} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{CONFIG.PROJECT_CODE_LINK}</a></div>
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
@@ -791,7 +791,6 @@ function App() {
                         <div className="button-group">
                             <button className="header-btn wtf-btn" onClick={() => setShowRules(!showRules)} title={t('app.rules_title')}>{t('app.help_label')}</button>
                             <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
-                            <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
                             <button className="header-btn" onClick={() => setStatsVisible(!statsVisible)} title={t('app.stats_button')}>🏆</button>
                             <button className="header-btn logout" onClick={handleLogout} title={t('auth.logout')}>
                                 🚪
@@ -840,7 +839,6 @@ function App() {
 
                     <div className="header-actions mobile-only">
                         <button className="header-btn" onClick={handleInvite} title={t('app.invite_friend')} disabled={!gameId}>🔗</button>
-                        <button className="header-btn don-btn" onClick={() => setShowDonations(!showDonations)} title={t('app.donate_button')}>🤗</button>
                     </div>
                 </header>
             )}

@@ -5,6 +5,26 @@ All notable changes to Wordwank will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.10.1] - 2026-03-07
+
+### Added (1.10.1)
+
+- **Github Link**: Project code link near version and build date, useful for submitting issues
+
+## [1.10.0] - 2026-03-05
+
+### Added (1.10.0)
+
+- **End on All Played Toggle**: New global setting (`global.endOnAllPlayed`) that automatically ends a game as soon as every connected player has submitted a word.
+- **Premature Climax! branding**: Games that end early due to the "All Played" condition now feature a unique "PREMATURE CLIMAX!" header on the results screen.
+- **Full Multilingual Support**: Localized "Premature Climax!" and result screens in **English, Spanish, German, French, and Russian**.
+
+### Changed (1.10.0)
+
+- **Simplified Duplicate Display**: Duplicating players are now shown as a clean, comma-separated list on the results screen, removing unnecessary point breakdowns.
+- **Balanced Duplicate Bonus**: Increased the duplicate word bonus to **+2 points** per duplication to better reward original vocabulary.
+- **Scoped Game Broadcasts**: Refactored internal broadcast logic to ensure chat and end-game notifications are strictly scoped to the active game.
+
 ## [1.9.0] - 2026-03-03
 
 ### Added (1.9.0)

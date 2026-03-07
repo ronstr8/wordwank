@@ -1,89 +1,85 @@
-use strict;
-use warnings;
-use utf8;
+use Mojo::Base -strict;
 use Test::More;
+use Test::Mojo;
+use Data::Dumper;
 use DateTime;
-use lib 'lib';
+use Wordwank::Schema;
 
-use_ok('Wordwank::Game::StateProcessor');
+# Mock environment
+$ENV{DATABASE_URL} = 'dbi:SQLite:dbname=:memory:';
+$ENV{QUICK_BONUS_SECONDS} = 5;
 
-# Mock App
-package MockApp {
-    sub new { bless {}, shift }
-    sub scorer {
-        require Wordwank::Game::Scorer;
-        return Wordwank::Game::Scorer->new;
-    }
-}
+my $t = Test::Mojo->new('Wordwank');
+my $app = $t->app;
+my $schema = $app->schema;
+$schema->deploy;
 
-# Mock Play
-package MockPlay {
-    sub new { 
-        my ($class, %args) = @_;
-        bless \%args, $class;
-    }
-    sub get_column {
-        my ($self, $col) = @_;
-        return $self->{$col};
-    }
-}
+# 1. Create a game started 2 seconds ago
+my $started_at = DateTime->now->subtract(seconds => 2);
+diag("Creating game started at: " . $started_at);
 
-my $app = MockApp->new;
-my $processor = Wordwank::Game::StateProcessor->new(app => $app);
+my $game = $schema->resultset('Game')->create({
+    id => 'test-game-quick-bonus',
+    rack => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+    letter_values => { A => 1, B => 1, C => 1, D => 1, E => 1, F => 1, G => 1, H => 1 },
+    language => 'en',
+    started_at => $started_at,
+});
 
-subtest 'Quick Wank Bonus calculation' => sub {
-    my $game_start = DateTime->new(year => 2026, month => 3, day => 3, hour => 12, minute => 0, second => 0);
-    $ENV{QUICK_BONUS_SECONDS} = 5;
+# 2. Add players
+my $p1 = $schema->resultset('Player')->create({ id => 'p1', nickname => 'Fazigu' });
+my $p2 = $schema->resultset('Player')->create({ id => 'p2', nickname => 'Flash' });
 
-    my @plays = (
-        MockPlay->new(
-            player_id  => 'p1',
-            player     => 'Lightning',
-            word       => 'CAT',
-            score      => 5,
-            created_at => $game_start->clone->add(seconds => 1), # Play at 1s
-        ),
-        MockPlay->new(
-            player_id  => 'p2',
-            player     => 'Slug',
-            word       => 'DOG',
-            score      => 5,
-            created_at => $game_start->clone->add(seconds => 6), # Play at 6s (no bonus)
-        ),
-        MockPlay->new(
-            player_id  => 'p3',
-            player     => 'Medium',
-            word       => 'BAT',
-            score      => 5,
-            created_at => $game_start->clone->add(seconds => 3), # Play at 3s
-        ),
-    );
+# 3. Create plays
+# Play 1: Created NOW (2s since start) -> Should get bonus
+diag("Creating play for Fazigu...");
+my $play1 = $schema->resultset('Play')->create({
+    game_id   => $game->id,
+    player_id => $p1->id,
+    word      => 'QUICK',
+    score     => 5,
+    created_at => DateTime->now,
+});
 
-    my $results = $processor->calculate_results(\@plays, 'en', $game_start);
+# Play 2: Created far in future or far in past? 
+# Wait, let's create a "Slow" play
+diag("Creating slow play for Flash...");
+my $play2 = $schema->resultset('Play')->create({
+    game_id   => $game->id,
+    player_id => $p2->id,
+    word      => 'SLOW',
+    score     => 4,
+    created_at => DateTime->now->add(seconds => 10),
+});
 
-    # p1 (Lightning): Play at 1s. Bonus = (5+1)-1 = 5. Total = 5 + 5 + 2 (unique) = 12.
-    # WAIT: CAT, DOG, BAT are unique.
-    # Base = 5. Unique = 2. 
-    # p1 Quick Bonus = 5. Total = 12.
-    # p2 Quick Bonus = 0. Total = 7.
-    # p3 Quick Bonus = 3. Total = 10.
+# 4. Process results
+diag("Calculating results...");
+my @plays = $schema->resultset('Play')->search(
+    { 'me.game_id' => $game->id },
+    { prefetch => 'player' }
+)->all;
 
-    my %res_by_player = map { $_->{player} => $_ } @$results;
+my $results = $app->state_processor->calculate_results(\@plays, 'en', $game->started_at, 8);
 
-    my $p1_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Lightning}{bonuses} // []})[0];
-    my $p1_quick = $p1_bonus_obj ? $p1_bonus_obj->{"Quick Bonus"} : 0;
-    is($p1_quick, 5, 'Player 1 got +5 quick bonus');
-    is($res_by_player{Lightning}{score}, 12, 'Player 1 total score correct');
+# diag(Dumper($results));
 
-    my $p3_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Medium}{bonuses} // []})[0];
-    my $p3_quick = $p3_bonus_obj ? $p3_bonus_obj->{"Quick Bonus"} : 0;
-    is($p3_quick, 3, 'Player 3 got +3 quick bonus');
-    is($res_by_player{Medium}{score}, 10, 'Player 3 total score correct');
+# 5. Assertions
+my ($fazigu_res) = grep { $_->{player_id} eq 'p1' } @$results;
+my ($flash_res)  = grep { $_->{player_id} eq 'p2' } @$results;
 
-    my $p2_bonus_obj = (grep { exists $_->{"Quick Bonus"} } @{$res_by_player{Slug}{bonuses} // []})[0];
-    my $p2_quick = $p2_bonus_obj ? $p2_bonus_obj->{"Quick Bonus"} : 0;
-    ok(!$p2_quick, 'Player 2 got no quick bonus');
-    is($res_by_player{Slug}{score}, 7, 'Player 2 total score correct');
-};
+ok($fazigu_res, "Found result for Fazigu");
+ok($flash_res, "Found result for Flash");
 
+# Check Fazigu's Quick Bonus
+my ($quick_bonus) = grep { exists $_->{"Quick Bonus"} } @{$fazigu_res->{bonuses}};
+ok($quick_bonus, "Fazigu got Quick Bonus itemized") or diag(Dumper($fazigu_res->{bonuses}));
+is($quick_bonus->{"Quick Bonus"}, 5, "Fazigu got 5 pts for Quick Bonus");
+is($fazigu_res->{score}, 5 + 5 + 2, "Fazigu total: 5 (base) + 5 (quick) + 2 (unique)");
+
+# Check Flash's Quick Bonus (should be 0/missing)
+my ($flash_quick) = grep { exists $_->{"Quick Bonus"} } @{$flash_res->{bonuses}};
+ok(!$flash_quick, "Flash did NOT get Quick Bonus");
+is($flash_res->{score}, 4 + 2, "Flash total: 4 (base) + 2 (unique)");
+
+diag("Test complete.");
 done_testing();
