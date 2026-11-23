@@ -41,11 +41,9 @@ has _pubsub => (
         my $redis = $self->_redis or return undef;
         my $ps = $redis->pubsub;
 
-        $ps->listen('logodal:broadcast' => sub ($pub, $payload) {
-            my $data = eval { decode_json($payload) };
-            return unless $data;
+        $ps->listen('logodal:broadcast' => _on_message(sub ($data) {
             $self->_deliver_all_local($data->{msg}, $data->{exclude} // {});
-        });
+        }));
 
         $self->app->log->info("Broadcaster: Redis pub/sub active");
         return $ps;
@@ -145,11 +143,9 @@ sub get_chat_history ($self, $game_id, $fallback, $cb) {
 
 sub subscribe_player ($self, $pid) {
     my $ps = $self->_pubsub or return;
-    $ps->listen("logodal:player:$pid" => sub ($pub, $payload) {
-        my $data = eval { decode_json($payload) };
-        return unless $data;
+    $ps->listen("logodal:player:$pid" => _on_message(sub ($data) {
         $self->_send_local_to_pid($pid, $data->{msg});
-    });
+    }));
 }
 
 sub unsubscribe_player ($self, $pid) {
@@ -161,11 +157,9 @@ sub subscribe_game ($self, $gid) {
     my $ps = $self->_pubsub or return;
     return if $self->_subscribed_games->{$gid};
     $self->_subscribed_games->{$gid} = 1;
-    $ps->listen("logodal:game:$gid" => sub ($pub, $payload) {
-        my $data = eval { decode_json($payload) };
-        return unless $data;
+    $ps->listen("logodal:game:$gid" => _on_message(sub ($data) {
         $self->_deliver_game_local($gid, $data->{msg}, $data->{exclude} // {});
-    });
+    }));
 }
 
 sub unsubscribe_game ($self, $gid) {
@@ -175,6 +169,17 @@ sub unsubscribe_game ($self, $gid) {
 }
 
 # --- Internal helpers ---
+
+# Wraps a handler as a Mojo::Redis::PubSub listen callback. Mojo::Redis calls
+# it as $pubsub->$cb($payload, $channel); a two-argument signature dies on
+# every message, silently dropping all cross-instance delivery. Payloads that
+# aren't JSON are ignored.
+sub _on_message ($handler) {
+    return sub ($pubsub, $payload, $channel = undef) {
+        my $data = eval { decode_json($payload) } or return;
+        $handler->($data);
+    };
+}
 
 # notify returns undef when Redis is already dead, or a rejected promise when it dies mid-flight.
 # Either way, run $fallback.

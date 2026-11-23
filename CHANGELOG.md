@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Commit-Tagged Images**: Service images are tagged with the commit they were built from instead of the app version, and the rules footer shows that commit. Each build is kept, so a service can be rolled back to an earlier image, and new text reaches returning players without a hard refresh.
 - **Wordwank Leader Title**: The Wordwank leader is now the "Wankmaster" in every language, replacing "apex wanker" and its native-slang counterparts.
 
+### Fixed
+
+- **Cross-Instance Game Messages**: Game events relayed through Redis (to one player, to a table, or to everyone) are delivered again. Every relayed message was being dropped because the listeners expected one argument fewer than Redis passes them.
+
 ## [3.1.0] - 2026-11-16
 
 ### Added (3.1.0)
