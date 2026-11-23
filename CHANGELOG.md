@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Game Stats Dashboard**: With k8s-homelab's monitoring installed, Grafana gets a *Wordwank game stats* dashboard (Wordwank folder) read straight from the game database: rounds, words and players per day, new sign-ups, when people play, a leaderboard with bot win rates, most-played, highest-scoring and longest words, and rounds by language. Both brands share one game pool, so it covers Logodal and Wordwank together. Grafana reads through its own read-only `grafana_reader` role, which can't see email addresses, real names, sessions or login identities.
+
 ### Changed
 
 - **Commit-Tagged Images**: Service images are tagged with the commit they were built from instead of the app version, and the rules footer shows that commit. Each build is kept, so a service can be rolled back to an earlier image, and new text reaches returning players without a hard refresh.

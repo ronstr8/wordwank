@@ -98,6 +98,13 @@ backend:
     CHAT_HISTORY_SIZE: 50
 
 # PostgreSQL dependency configuration
+# Game-stats dashboards for Grafana (kube-prometheus-stack in k8s-homelab):
+# a read-only Postgres role, a datasource for it, and dashboards/*.json.
+grafana:
+  enabled: true
+  folder: Wordwank
+  datasourceName: Wordwank (Postgres)
+
 postgresql:
   enabled: true
   fullnameOverride: postgresql

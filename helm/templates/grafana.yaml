@@ -1,0 +1,107 @@
+{{- if .Values.grafana.enabled }}
+{{- /* Generated once, then reused: lookup returns the Secret on every later upgrade. */}}
+{{- $readerSecret := "logodal-grafana-reader" }}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace $readerSecret }}
+{{- $password := randAlphaNum 32 }}
+{{- if $existing }}
+{{- $password = index $existing.data "password" | b64dec }}
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $readerSecret }}
+type: Opaque
+data:
+  password: {{ $password | b64enc | quote }}
+---
+# Picked up by Grafana's datasource sidecar (kube-prometheus-stack in k8s-homelab).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: logodal-grafana-datasource
+  labels:
+    grafana_datasource: "1"
+type: Opaque
+stringData:
+  logodal-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: {{ .Values.grafana.datasourceName | quote }}
+        uid: logodal-pg
+        type: grafana-postgresql-datasource
+        url: {{ printf "%s.%s.svc.cluster.local:5432" .Values.postgresql.fullnameOverride .Release.Namespace }}
+        user: grafana_reader
+        editable: false
+        jsonData:
+          database: {{ .Values.postgresql.auth.database }}
+          sslmode: disable
+          postgresVersion: 1600
+          maxOpenConns: 5
+        secureJsonData:
+          password: {{ $password | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logodal-grafana-reader-sql
+data:
+  grafana-reader.sql: |-
+    {{- .Files.Get "files/grafana-reader.sql" | nindent 4 }}
+---
+# Creates/updates the grafana_reader role. A hook so it runs after the
+# database exists, and again on every upgrade to re-apply the grants.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: logodal-grafana-reader
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql
+          image: "{{ .Values.postgresql.image.registry }}/{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+          command:
+            - sh
+            - -c
+            - >-
+              psql -h {{ .Values.postgresql.fullnameOverride }} -U postgres -d {{ .Values.postgresql.auth.database }}
+              -v reader_password="$READER_PASSWORD" -f /sql/grafana-reader.sql
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.fullnameOverride }}
+                  key: postgres-password
+            - name: READER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $readerSecret }}
+                  key: password
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: logodal-grafana-reader-sql
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logodal-dashboard-{{ base $path | trimSuffix ".json" }}
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: {{ $.Values.grafana.folder | quote }}
+data:
+  {{ base $path }}: |-
+    {{- $.Files.Get $path | nindent 4 }}
+{{- end }}
+{{- end }}

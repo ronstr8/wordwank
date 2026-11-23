@@ -1,0 +1,1047 @@
+{
+  "uid": "wordwank-games",
+  "title": "Wordwank game stats",
+  "tags": [
+    "logodal",
+    "wordwank"
+  ],
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "This period",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Rounds with people",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "SELECT count(DISTINCT p.game_id) FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Words played by people",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "SELECT count(*) FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Players",
+      "description": "People who played at least one word.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "SELECT count(DISTINCT p.player_id) FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "New players",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "SELECT count(*) FROM players WHERE brain IS NULL AND $__timeFilter(created_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Rounds won by people",
+      "description": "Of rounds a person played in, the share a person won rather than a bot.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "WITH winners AS (\n  SELECT DISTINCT ON (p.game_id) p.game_id, p.player_id, pl.brain IS NULL AS human\n  FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at)\n  ORDER BY p.game_id, COALESCE(p.final_score, p.score) DESC, p.created_at\n) SELECT avg(human::int) FROM winners WHERE game_id IN (SELECT p.game_id FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Best word",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "SELECT upper(p.word) || ' \u2014 ' || COALESCE(p.final_score, p.score) || ' pts' FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) ORDER BY COALESCE(p.final_score, p.score) DESC LIMIT 1",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Activity",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Rounds per day",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT $__timeGroupAlias(g.created_at, '1d'),\n  count(*) FILTER (WHERE r.humans > 0) AS \"with people\",\n  count(*) FILTER (WHERE r.humans = 0 AND r.plays > 0) AS \"bots only\",\n  count(*) FILTER (WHERE r.plays = 0) AS \"nobody played\"\nFROM games g\nLEFT JOIN LATERAL (\n  SELECT count(*) AS plays, count(*) FILTER (WHERE pl.brain IS NULL) AS humans\n  FROM plays p JOIN players pl ON pl.id = p.player_id WHERE p.game_id = g.id\n) r ON true\nWHERE $__timeFilter(g.created_at)\nGROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Words per day",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT $__timeGroupAlias(g.created_at, '1d'),\n  count(*) FILTER (WHERE pl.brain IS NULL) AS people,\n  count(*) FILTER (WHERE NOT pl.brain IS NULL) AS bots\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at)\nGROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Players per day",
+      "description": "Distinct people who played a word that day.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT $__timeGroupAlias(g.created_at, '1d'), count(DISTINCT p.player_id) AS \"played\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nGROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "New players per day",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT $__timeGroupAlias(created_at, '1d'),\n  count(*) FILTER (WHERE NOT is_anonymous) AS \"signed in\",\n  count(*) FILTER (WHERE is_anonymous) AS anonymous\nFROM players\nWHERE brain IS NULL AND $__timeFilter(created_at)\nGROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "barchart",
+      "title": "When people play (hour of day)",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT lpad(extract(hour FROM g.created_at AT TIME ZONE '$tz')::int::text, 2, '0') AS hour, count(*) AS words\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nGROUP BY 1 ORDER BY 1",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "hour",
+        "orientation": "vertical",
+        "showValue": "never",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "barchart",
+      "title": "When people play (day of week)",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT to_char(g.created_at AT TIME ZONE '$tz', 'ID Dy') AS day, count(*) AS words\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nGROUP BY 1 ORDER BY 1",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "day",
+        "orientation": "vertical",
+        "showValue": "never",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Players",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Leaderboard",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nWITH winners AS (\n  SELECT DISTINCT ON (p.game_id) p.game_id, p.player_id, pl.brain IS NULL AS human\n  FROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at)\n  ORDER BY p.game_id, COALESCE(p.final_score, p.score) DESC, p.created_at\n)\nSELECT pl.nickname AS \"Player\",\n  CASE WHEN pl.brain IS NOT NULL THEN 'bot' ELSE '' END AS \" \",\n  count(DISTINCT p.game_id) AS \"Rounds\",\n  count(*) FILTER (WHERE w.player_id = p.player_id) AS \"Wins\",\n  round(100.0 * count(*) FILTER (WHERE w.player_id = p.player_id) / count(DISTINCT p.game_id), 1) AS \"Win %\",\n  sum(COALESCE(p.final_score, p.score)) AS \"Points\",\n  round(avg(COALESCE(p.final_score, p.score)), 1) AS \"Pts / word\",\n  (array_agg(upper(p.word) ORDER BY COALESCE(p.final_score, p.score) DESC))[1] AS \"Best word\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nLEFT JOIN winners w ON w.game_id = p.game_id\nWHERE $__timeFilter(g.created_at)\nGROUP BY pl.id, pl.nickname, pl.brain\nORDER BY \"Points\" DESC\nLIMIT 25",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Words",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "table",
+      "title": "Most-played words",
+      "description": "Played by people.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT upper(p.word) AS \"Word\", count(*) AS \"Times\", count(DISTINCT p.player_id) AS \"Players\",\n  round(avg(COALESCE(p.final_score, p.score)), 1) AS \"Avg pts\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nGROUP BY 1 ORDER BY 2 DESC LIMIT 20",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Highest-scoring plays",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 42,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT upper(p.word) AS \"Word\", COALESCE(p.final_score, p.score) AS \"Points\", pl.nickname AS \"Player\", g.created_at AS \"When\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at)\nORDER BY 2 DESC, g.created_at DESC LIMIT 20",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Longest words",
+      "description": "Played by people.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 42,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT DISTINCT ON (length(p.word), upper(p.word)) upper(p.word) AS \"Word\", length(p.word) AS \"Letters\",\n  pl.nickname AS \"First by\", g.created_at AS \"When\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nORDER BY length(p.word) DESC, upper(p.word), g.created_at LIMIT 20",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Word length and points (people)",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT $__timeGroupAlias(g.created_at, '1d'),\n  avg(length(p.word)) AS \"letters / word\", avg(COALESCE(p.final_score, p.score)) AS \"points / word\"\nFROM plays p\n  JOIN games g ON g.id = p.game_id\n  JOIN players pl ON pl.id = p.player_id\nWHERE $__timeFilter(g.created_at) AND pl.brain IS NULL\nGROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "piechart",
+      "title": "Rounds by language",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "logodal-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 52,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "logodal-pg"
+          },
+          "rawSql": "\nSELECT language AS metric, count(*) AS value FROM games\nWHERE $__timeFilter(created_at) AND EXISTS (SELECT 1 FROM plays WHERE game_id = games.id)\nGROUP BY 1 ORDER BY 2 DESC",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": true,
+          "fields": ""
+        },
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ],
+          "showLegend": true
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "tz",
+        "label": "Time zone",
+        "type": "custom",
+        "query": "America/New_York",
+        "current": {
+          "text": "America/New_York",
+          "value": "America/New_York"
+        },
+        "options": [
+          {
+            "text": "America/New_York",
+            "value": "America/New_York",
+            "selected": true
+          }
+        ],
+        "hide": 2
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": []
+}
