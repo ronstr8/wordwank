@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Wordwank Leader Title**: The English Wordwank leader is now the "Wankmaster" instead of the "apex wanker".
+
 ## [3.1.0] - 2026-11-16
 
 ### Added (3.1.0)

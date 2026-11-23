@@ -9,7 +9,7 @@
         "players_starting": "{{players}} and you start wanking words.",
         "players_starting_you": "You start wanking words.",
         "rules_summary": "Wordwank is a high-speed vocabulary duel! Use your tiles to form the highest scoring (or weirdest) word before time runs out. Letter values are based on their frequency in the wank sock: common letters are worth 1 point, while rarer letters earn progressively more (up to 9 points). The two rarest 'Unicorn' letters are worth 10 points! One letter each day is worth 7 points. Longer words earn Length Bonuses (+{{bonus_base}} for {{bonus_len}} letters, doubling for every letter after, so using all {{rack_size}} tiles earns +{{full_bonus}}). Careful: duplicating a word gives you 0 points, but if someone copies YOU, you earn the full raw letter value of that word — per copy. Every game, one tile mutates into the Mutant Letter — it glows green and is worth 10 points. Find it fast.",
-        "you_are_daedalus": "You are the apex wanker!"
+        "you_are_daedalus": "You are the Wankmaster!"
     },
     "auth": {
         "anonymous_disclaimer": "We never say who plays, but if you want to keep your wank rank, sign in with one of the below."
@@ -21,7 +21,7 @@
         "title_premature": "PREMATURE CLIMAX"
     },
     "stats": {
-        "the_daedalus_is": "The Apex Wanker is..."
+        "the_daedalus_is": "The Wankmaster is..."
     },
     "error": {
         "missing_letters": "You can't wank letters you don't have."
