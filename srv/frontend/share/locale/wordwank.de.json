@@ -9,7 +9,7 @@
         "players_starting": "{{players}} und du fangt an, Wörter zu wichsen.",
         "players_starting_you": "Du fängst an, Wörter zu wichsen.",
         "rules_summary": "Wordwank ist ein rasantes Vokabelduell! Nutze deine Steine, um das am höchsten gewertete (oder schrägste) Wort zu bilden, bevor die Zeit abläuft. Die Buchstabenwerte basieren auf ihrer Häufigkeit in der Wichssocke: Häufige Buchstaben sind 1 Punkt wert, seltenere bis zu 9 Punkte. Die zwei seltensten Einhorn-Buchstaben sind 10 Punkte wert! Ein Buchstabe ist jeden Tag 7 Punkte wert. Längere Wörter bringen Längenboni (+{{bonus_base}} für {{bonus_len}} Buchstaben, Verdopplung für jeden weiteren, alle {{rack_size}} Steine bringen also +{{full_bonus}}). Achtung: Ein dupliziertes Wort bringt dir 0 Punkte, aber wenn jemand DICH kopiert, erhältst du den vollen Rohwert dieses Wortes pro Kopie. In jeder Runde mutiert ein Stein zum Mutantenbuchstaben: Er leuchtet grün und ist 10 Punkte wert. Schnell sein lohnt sich.",
-        "you_are_daedalus": "Du bist der Oberwichser!"
+        "you_are_daedalus": "Du bist der Wankmaster!"
     },
     "auth": {
         "anonymous_disclaimer": "Wir sagen nie, wer spielt, aber wenn du deinen Wichs-Rang behalten willst, melde dich mit einem der folgenden an."
@@ -21,7 +21,7 @@
         "title_premature": "VORZEITIGER HÖHEPUNKT"
     },
     "stats": {
-        "the_daedalus_is": "Der Oberwichser ist..."
+        "the_daedalus_is": "Der Wankmaster ist..."
     },
     "error": {
         "missing_letters": "Du kannst keine Buchstaben wichsen, die du nicht hast."

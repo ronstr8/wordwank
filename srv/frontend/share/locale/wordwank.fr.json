@@ -9,7 +9,7 @@
         "players_starting": "{{players}} et vous commencez à branler des mots.",
         "players_starting_you": "Vous commencez à branler des mots.",
         "rules_summary": "Wordwank est un duel de vocabulaire à toute berzingue ! Utilisez vos tuiles pour former le mot le mieux noté (ou le plus étrange) avant la fin du temps. Les valeurs des lettres sont basées sur leur fréquence dans la chaussette à branlette : les lettres courantes valent 1 point, tandis que les plus rares valent jusqu'à 9 points. Les deux lettres Licorne les plus rares valent 10 points ! Une lettre chaque jour vaut 7 points. Les mots longs rapportent des Bonus de Longueur (+{{bonus_base}} pour {{bonus_len}} lettres, doublant pour chaque lettre supplémentaire ; utiliser les {{rack_size}} tuiles rapporte +{{full_bonus}}). Attention : dupliquer un mot vous donne 0 point, mais si quelqu'un VOUS copie, vous gagnez la valeur brute totale de ce mot par copie. À chaque partie, une tuile mute en Lettre Mutante : elle brille en vert et vaut 10 points. Trouvez-la vite.",
-        "you_are_daedalus": "Tu es le branleur suprême !"
+        "you_are_daedalus": "Tu es le Wankmaster !"
     },
     "auth": {
         "anonymous_disclaimer": "On ne dit jamais qui joue, mais si vous voulez garder votre rang de branleur, connectez-vous avec l'un des ci-dessous."
@@ -21,7 +21,7 @@
         "title_premature": "CLIMAX PRÉMATURÉ"
     },
     "stats": {
-        "the_daedalus_is": "Le Branleur Suprême est..."
+        "the_daedalus_is": "Le Wankmaster est..."
     },
     "error": {
         "missing_letters": "On ne branle pas des lettres qu'on n'a pas."

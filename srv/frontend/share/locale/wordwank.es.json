@@ -9,7 +9,7 @@
         "players_starting": "{{players}} y tú empezáis a pajillear palabras.",
         "players_starting_you": "Empiezas a pajillear palabras.",
         "rules_summary": "Wordwank es un duelo de vocabulario a toda pastilla. Usa tus fichas para formar la palabra con mayor puntuación (o más rara) antes de que se acabe el tiempo. Los valores de las letras se basan en su frecuencia en el calcetín pajillero: las letras comunes valen 1 punto, mientras que las más raras pueden valer hasta 9. ¡Las dos letras Unicornio más raras valen 10 puntos! Una letra cada día vale 7 puntos. Las palabras largas ganan Bonificaciones por Longitud (+{{bonus_base}} por {{bonus_len}} letras, doblando por cada letra adicional; usar las {{rack_size}} fichas da +{{full_bonus}}). Cuidado: duplicar una palabra te da 0 puntos, pero si alguien TE copia, ganas el valor bruto completo de esa palabra por cada copia. En cada ronda, una ficha muta en la Letra Mutante: brilla en verde y vale 10 puntos. Encuéntrala rápido.",
-        "you_are_daedalus": "¡Eres el pajillero supremo!"
+        "you_are_daedalus": "¡Eres el Wankmaster!"
     },
     "auth": {
         "anonymous_disclaimer": "Nunca decimos quién juega, pero si quieres mantener tu rango de pajas, inicia sesión con uno de los siguientes."
@@ -21,7 +21,7 @@
         "title_premature": "CLÍMAX PREMATURO"
     },
     "stats": {
-        "the_daedalus_is": "El Pajillero Supremo es..."
+        "the_daedalus_is": "El Wankmaster es..."
     },
     "error": {
         "missing_letters": "No puedes pajillear letras que no tienes."
