@@ -14,7 +14,7 @@ DOMAIN = logodal.fazigu.org
 
 SERVICES = frontend backend wordd
 
-.PHONY: all build clean deploy resurrect undeploy help backup ensure-namespace sync-version $(SERVICES)
+.PHONY: all build clean deploy resurrect undeploy help backup verify-registry ensure-namespace sync-version $(SERVICES)
 
 all: build
 
@@ -42,6 +42,9 @@ sync-version: ## Propagate VERSION to package.json and Chart.yaml appVersions
 
 migrate: ## Run pending database migrations inside the cluster
 	kubectl exec -n $(NAMESPACE) -it deploy/backend -- perl -Ilib bin/migrate.pl
+
+verify-registry: ## Check every tag in the local registry still has all its manifests and layers
+	scripts/verify-registry.py $(REGISTRY)
 
 backup: ## Create a timestamped SQL backup of the logodal database
 	bash scripts/backup-db.sh
