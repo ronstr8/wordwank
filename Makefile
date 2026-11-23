@@ -2,8 +2,11 @@
 
 # Localhost is always allowed as an insecure registry by Docker
 REGISTRY = localhost:5000
-# Single point of truth for versions is VERSION
-TAG ?= $(shell cat VERSION)
+# Images are tagged with the commit they were built from (scripts/image-tag.sh).
+# VERSION only labels the changelog; it doesn't name images.
+ifndef TAG
+TAG := $(shell scripts/image-tag.sh)
+endif
 PROJECT_NAME ?= logodal
 DOCKER_BUILD_FLAGS ?= --progress=plain
 NAMESPACE = logodal
@@ -20,7 +23,7 @@ help:
 	@echo "Usage:"
 	@echo "  make build              - Build and push all microservice Docker images"
 	@echo "  make deploy             - Install/Upgrade using Helm umbrella chart"
-	@echo "  make <service>          - Build, Push, and Restart a specific service"
+	@echo "  make <service>          - Build, push and roll out a service, tagged with the commit SHA"
 	@echo "  make resurrect          - Run after bringing back up a cluster"
 
 ensure-namespace:
@@ -30,16 +33,11 @@ ensure-namespace:
 build: $(SERVICES)
 
 $(SERVICES): ensure-namespace
-	docker build $(DOCKER_BUILD_FLAGS) -t $(REGISTRY)/$(PROJECT_NAME)-$@:$(TAG) ./srv/$@
+	docker build $(DOCKER_BUILD_FLAGS) --build-arg GIT_SHA=$(TAG) -t $(REGISTRY)/$(PROJECT_NAME)-$@:$(TAG) ./srv/$@
 	docker push $(REGISTRY)/$(PROJECT_NAME)-$@:$(TAG)
-	@if kubectl get deployment $@ -n $(NAMESPACE) > /dev/null 2>&1; then \
-		kubectl rollout restart deployment/$@ -n $(NAMESPACE); \
-		kubectl rollout status deployment/$@ -n $(NAMESPACE); \
-	else \
-		echo "⚠️  deployment/$@ not found in namespace $(NAMESPACE). Run 'make deploy' first."; \
-	fi
+	scripts/roll-service.sh $@ $(REGISTRY)/$(PROJECT_NAME)-$@:$(TAG) $(NAMESPACE)
 
-sync-version: ## Propagate VERSION to package.json, Chart.yaml appVersions, and imageTag
+sync-version: ## Propagate VERSION to package.json and Chart.yaml appVersions
 	node scripts/sync-version.js
 
 migrate: ## Run pending database migrations inside the cluster
@@ -58,14 +56,18 @@ deploy: ensure-namespace
 	@mkdir -p helm/share/locale
 	@cp srv/frontend/share/locale/*.json helm/share/locale/
 	helm dependency build ./helm
-	kubectl delete configmap logodal-locales --namespace $(NAMESPACE) --ignore-not-found
+	@# Keep each service on the image it's running; check them all before touching anything.
+	@tags=$$(scripts/deployed-tags.sh $(NAMESPACE) $(REGISTRY) $(PROJECT_NAME) $(TAG) $(SERVICES)) || exit 1; \
+	set -x; \
+	kubectl delete configmap logodal-locales --namespace $(NAMESPACE) --ignore-not-found && \
 	helm upgrade --install logodal ./helm \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
 		--values ./helm/values.yaml \
 		--values ./helm/secrets.yaml \
-		--set global.registry=localhost:5000 \
-		--set global.domain=$(DOMAIN)
+		--set global.registry=$(REGISTRY) \
+		--set global.domain=$(DOMAIN) \
+		$$tags
 
 undeploy:
 	helm uninstall logodal --namespace $(NAMESPACE)

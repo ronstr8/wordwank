@@ -274,7 +274,7 @@ function App() {
                             </div>
                         </div>
                         <div className="rules-footer">
-                            v{__APP_VERSION__} · {__BUILD_DATE__} · <a href={CONFIG.PROJECT_CODE_LINK} target="_blank" rel="noopener noreferrer">GitHub</a>
+                            v{__APP_VERSION__} · {__GIT_SHA__} · {__BUILD_DATE__} ·<a href={CONFIG.PROJECT_CODE_LINK} target="_blank" rel="noopener noreferrer">GitHub</a>
                         </div>
                     </div>
                 </DraggablePanel>

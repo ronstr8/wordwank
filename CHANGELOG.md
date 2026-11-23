@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Commit-Tagged Images**: Service images are tagged with the commit they were built from instead of the app version, and the rules footer shows that commit. Each build is kept, so a service can be rolled back to an earlier image, and new text reaches returning players without a hard refresh.
 - **Wordwank Leader Title**: The Wordwank leader is now the "Wankmaster" in every language, replacing "apex wanker" and its native-slang counterparts.
 
 ## [3.1.0] - 2026-11-16

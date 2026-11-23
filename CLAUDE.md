@@ -38,7 +38,10 @@ npm test         # Unit tests for pure modules (node --test, no extra deps)
 ```bash
 make build       # Build and push all Docker images (frontend, backend, wordd)
 make deploy      # Install/upgrade Helm umbrella chart
-make <service>   # Build, push, and restart a single service (e.g. make backend)
+make <service>   # Build, push, and roll out a single service (e.g. make backend)
+                 #   Images are tagged with the commit SHA (scripts/image-tag.sh), "-dirty" if
+                 #   uncommitted. `make deploy` keeps each service on the image it's already
+                 #   running, so it never needs a rebuild; VERSION doesn't name images.
                  #   NOTE: locale text is NOT in the frontend image. nginx serves it from the
                  #   logodal-locales ConfigMap, which only `make deploy` refreshes from
                  #   srv/frontend/share/locale/. Any locale change needs `make deploy`.

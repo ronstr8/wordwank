@@ -30,6 +30,8 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+    // The commit the image was built from; the Makefile passes it as a docker build arg.
+    __GIT_SHA__: JSON.stringify(process.env.GIT_SHA || 'dev'),
   },
   server: {
     port: 3000,

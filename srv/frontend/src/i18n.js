@@ -10,7 +10,8 @@ import { BRAND } from './brand';
 // The overlay is deep-merged over the base, so a brand only ships what differs
 // and every other string stays in sync automatically.
 
-const version = __APP_VERSION__;
+// Cache-buster for locale fetches: changes with every frontend build, not just releases.
+const version = `${__APP_VERSION__}-${__GIT_SHA__}`;
 
 async function fetchJson(url, { optional = false } = {}) {
     const res = await fetch(url);

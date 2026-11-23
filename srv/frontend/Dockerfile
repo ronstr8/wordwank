@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+# Declared late so a new commit doesn't invalidate the npm install layer.
+ARG GIT_SHA=dev
 RUN npm run build
 
 # Production stage

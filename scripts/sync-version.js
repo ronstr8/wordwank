@@ -5,7 +5,6 @@
  * Single source of truth: root "VERSION" file.
  * Propagates version to:
  *  - srv/frontend/package.json (version)
- *  - helm/values.yaml (global.imageTag)
  *  - All Chart.yaml files (appVersion)
  */
 const fs = require('fs');
@@ -41,21 +40,10 @@ if (fs.existsSync(pkgPath)) {
     }
 }
 
-// 2. Update helm/values.yaml (global.imageTag)
-const valuesPath = path.join(root, 'helm', 'values.yaml');
-if (fs.existsSync(valuesPath)) {
-    const content = fs.readFileSync(valuesPath, 'utf-8');
-    const replaced = content.replace(/^([ \t]*imageTag:[ \t]*).*$/m, `$1${version}`);
-    if (replaced !== content) {
-        fs.writeFileSync(valuesPath, replaced);
-        console.log(`  SYNC  helm/values.yaml (imageTag) → ${version}`);
-        updated++;
-    } else {
-        console.log(`  OK    helm/values.yaml (imageTag already ${version})`);
-    }
-}
+// Image tags are commit SHAs (scripts/image-tag.sh), not VERSION, so
+// helm/values.yaml is deliberately left alone.
 
-// 3. Update Chart.yaml files (appVersion)
+// 2. Update Chart.yaml files (appVersion)
 const charts = [
     'helm/Chart.yaml',
     'srv/frontend/helm/Chart.yaml',
