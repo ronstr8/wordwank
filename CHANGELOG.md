@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - **Game Stats Dashboard**: With k8s-homelab's monitoring installed, Grafana gets a *Wordwank game stats* dashboard (Wordwank folder) read straight from the game database: rounds, words and players per day, new sign-ups, when people play, a leaderboard with bot win rates, most-played, highest-scoring and longest words, and rounds by language. Both brands share one game pool, so it covers Logodal and Wordwank together. Grafana reads through its own read-only `grafana_reader` role, which can't see email addresses, real names, sessions or login identities.
+- **Data Store Monitoring**: PostgreSQL and Redis now run Prometheus exporters, and a *Wordwank data stores* dashboard shows connections, transactions, cache hit rates, database and table sizes, long-open transactions, Redis commands, memory, keys and pub/sub, and each logodal container's CPU and memory.
 
 ### Changed
 

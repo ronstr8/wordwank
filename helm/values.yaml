@@ -127,6 +127,18 @@ postgresql:
     image:
       repository: busybox
       tag: 1.36.1
+  # Prometheus exporter sidecar + ServiceMonitor (scraped by k8s-homelab's
+  # monitoring stack). Versioned Bitnami images now live under bitnamilegacy.
+  metrics:
+    enabled: true
+    image:
+      repository: bitnamilegacy/postgres-exporter
+      tag: 0.15.0-debian-12-r39
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 100m, memory: 64Mi}
+    serviceMonitor:
+      enabled: true
 
 redis:
   enabled: true
@@ -137,6 +149,14 @@ redis:
   master:
     persistence:
       enabled: false
+  # Prometheus exporter sidecar + ServiceMonitor, as for postgresql above.
+  metrics:
+    enabled: true
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 100m, memory: 64Mi}
+    serviceMonitor:
+      enabled: true
   replica:
     replicaCount: 0
 
